@@ -161,6 +161,26 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   .mobile .page.title-page .zone{display:none}
 }
 
+.page.title-page .reader-close{
+  position:absolute;
+  left:max(12px,env(safe-area-inset-left));
+  top:16px;
+  z-index:30;
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  color:color-mix(in srgb,var(--title-ink,#203b2a) 72%,transparent);
+  background:color-mix(in srgb,var(--title-bg,#f7e9bf) 48%,transparent);
+  border:0;
+  border-radius:50%;
+  font:600 34px/1 Arial,sans-serif;
+  text-decoration:none;
+}
+.page.title-page .reader-close:hover{
+  color:var(--title-ink,#203b2a);
+  background:color-mix(in srgb,var(--title-bg,#f7e9bf) 70%,transparent);
+}
 .library-back{display:none!important}
 .hint{
   top:auto!important;

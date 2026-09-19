@@ -27,9 +27,9 @@ function isWillow(book) {
   return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
 }
 
-function titlePageHtml(book, baseUrl) {
+function titlePageHtml(book, baseUrl, libraryUrl) {
   const src = coverSrc(book, baseUrl);
-  return `<article class="page title-page current" data-source="title" aria-label="Title page"><div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${esc(book.title||'')}</h1>${subtitleHtml(book.tagline)}</div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
+  return `<article class="page title-page current" data-source="title" aria-label="Title page"><a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a><div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${esc(book.title||'')}</h1>${subtitleHtml(book.tagline)}</div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
@@ -39,7 +39,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href}
   const preload=coverSrc(book,baseUrl);
   const skipCover=isWillow(book);
   const storyPages=skipCover?book.pages.slice(1):book.pages;
-  const articles=titlePageHtml(book,baseUrl)+storyPages.map((p,i)=>{
+  const articles=titlePageHtml(book,baseUrl,libraryUrl)+storyPages.map((p,i)=>{
     const coverOnly=!skipCover&&i===0;
     const fallback=p.kind==='facsimile'||coverOnly;
     const classes=`page${fallback?' facsimile':''}${coverOnly?' cover-plate':''}${!coverOnly&&p.position==='top'?' top-text':''}`;

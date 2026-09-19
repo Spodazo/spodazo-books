@@ -52,9 +52,6 @@ export default function BookPage() {
 
   return (
     <>
-      <Link href="/" className="reader-close" aria-label="Close">
-        ×
-      </Link>
       <AdminLoginLink />
       <div id="reader" ref={hostRef} className="reader-host" />
     </>
