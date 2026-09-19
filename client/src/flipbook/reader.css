@@ -397,5 +397,13 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 .page.end-page .zone{display:block}
 .mobile .page.end-page .zone{display:none}
+@media(min-width:701px){
+  html:not(.mobile) .page.end-page{
+    grid-template-columns:1fr 1fr!important;
+  }
+  html:not(.mobile) .page.end-page .end-meta{
+    grid-column:2;
+  }
+}
 
 .sr{top:0;left:0}
