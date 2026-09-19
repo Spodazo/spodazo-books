@@ -1,0 +1,40 @@
+import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+export const books = pgTable("books", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  tagline: text("tagline").notNull().default(""),
+  cover: text("cover").notNull().default(""),
+  pdf: text("pdf").notNull().default(""),
+  pagesJson: text("pages_json").notNull().default("[]"),
+  color: text("color").notNull().default("honey"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  hidden: boolean("hidden").notNull().default(false),
+  published: boolean("published").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const curator = pgTable("curator", {
+  id: text("id").primaryKey(),
+  firstName: text("first_name").notNull().default(""),
+  lastName: text("last_name").notNull().default(""),
+  email: text("email").notNull().default(""),
+  passwordHash: text("password_hash").notNull().default(""),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const playerSetup = pgTable("player_setup", {
+  id: text("id").primaryKey(),
+  appName: text("app_name").notNull().default(""),
+  theme: text("theme").notNull().default(""),
+  credits: text("credits").notNull().default(""),
+  copyright: text("copyright").notNull().default(""),
+  collectionCover: text("collection_cover").notNull().default(""),
+  logo: text("logo").notNull().default(""),
+  favicon: text("favicon").notNull().default(""),
+  footerImage: text("footer_image").notNull().default(""),
+  collectionColor: text("collection_color").notNull().default("honey"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});

@@ -1,0 +1,77 @@
+export type BookPage = {
+  id: string;
+  sourcePage: number;
+  kind: "story" | "facsimile";
+  title: string;
+  paragraphs: string[];
+  imageAsset: string;
+  fullPageAsset: string;
+  imageUrl: string;
+  fullPageUrl: string;
+  position: "top" | "bottom";
+  focalPoint: string;
+  alt?: string;
+};
+
+export type Book = {
+  id: string;
+  slug: string;
+  title: string;
+  tagline: string;
+  cover: string;
+  pdf: string;
+  color: string;
+  sortOrder: number;
+  hidden: boolean;
+  published: boolean;
+  pages: BookPage[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type PublicBook = Book & {
+  coverUrl: string;
+  pdfUrl: string;
+  pageCount: number;
+};
+
+export type BookListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  tagline: string;
+  cover: string;
+  coverUrl: string;
+  pdfUrl: string;
+  color: string;
+  sortOrder: number;
+  hidden: boolean;
+  published: boolean;
+  pageCount: number;
+};
+
+export type PlayerSetup = {
+  appName: string;
+  theme: string;
+  credits: string;
+  copyright: string;
+  collectionCover: string;
+  collectionCoverUrl: string;
+  logo: string;
+  logoUrl: string;
+  favicon: string;
+  faviconUrl: string;
+  footerImage: string;
+  footerImageUrl: string;
+  collectionColor: string;
+};
+
+export type Curator = {
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type CuratorRecord = Curator & {
+  passwordHash: string;
+};
