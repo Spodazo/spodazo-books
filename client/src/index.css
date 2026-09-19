@@ -87,15 +87,15 @@ button, input, select, textarea { font: inherit; }
   top: 16px;
   right: 68px;
   z-index: 80;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  color: color-mix(in srgb, var(--text) 52%, transparent);
-  background: color-mix(in srgb, var(--card) 42%, transparent);
+  color: color-mix(in srgb, var(--text) 72%, transparent);
+  background: color-mix(in srgb, var(--card) 48%, transparent);
   border: 0;
   border-radius: 50%;
-  font: 600 30px/1 Arial, sans-serif;
+  font: 600 34px/1 Arial, sans-serif;
   text-decoration: none;
 }
 .reader-close:hover {
