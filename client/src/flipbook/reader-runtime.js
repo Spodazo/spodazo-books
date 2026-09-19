@@ -68,7 +68,7 @@ function takeComplete(article,units){
 }
 function rebuild(){if(busy)return;var source=pages[index]?pages[index].getAttribute('data-source'):'0';mobile=matchMedia('(max-width: 700px), (pointer: coarse) and (max-width: 1100px)').matches;document.documentElement.classList.toggle('mobile',mobile);book.innerHTML='';pages=[];
 originals.forEach(function(template,i){var p=template.cloneNode(true);p.setAttribute('data-source',String(i));p.className=template.className.replace(/\bcurrent\b/g,'').trim();book.appendChild(p);pages.push(p);
-if(mobile&&!p.classList.contains('facsimile')){
+if(mobile&&!p.classList.contains('facsimile')&&!p.classList.contains('title-page')){
 p.classList.add('current');p.style.visibility='hidden';
 var box=p.querySelector('section'),text=p.querySelector('p');
 if(box&&text){

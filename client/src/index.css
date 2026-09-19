@@ -254,6 +254,15 @@ button, input, select, textarea { font: inherit; }
 }
 .album-cover-tile img { width: 100%; height: 100%; object-fit: cover; }
 .album-cover-tile.selected { outline: 3px solid var(--amber); }
+.book-cover-preview {
+  display: block;
+  width: 140px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 6px 0 10px;
+  border: 1px solid var(--border);
+}
 .hidden-badge {
   position: absolute;
   font-size: 11px;

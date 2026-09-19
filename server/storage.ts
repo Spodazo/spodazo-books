@@ -23,6 +23,8 @@ export type BookInput = {
   slug: string;
   title: string;
   tagline?: string;
+  author?: string;
+  date?: string;
   cover?: string;
   pdf?: string;
   pages?: BookPage[];
@@ -82,6 +84,8 @@ function toListItem(book: Book): BookListItem {
     slug: publicBook.slug,
     title: publicBook.title,
     tagline: publicBook.tagline,
+    author: publicBook.author,
+    date: publicBook.date,
     cover: publicBook.cover,
     coverUrl: publicBook.coverUrl,
     pdfUrl: publicBook.pdfUrl,
@@ -125,6 +129,8 @@ function recordBook(row: {
   slug: string;
   title: string;
   tagline?: string | null;
+  author?: string | null;
+  date?: string | null;
   cover?: string | null;
   pdf?: string | null;
   pagesJson?: string | null;
@@ -141,6 +147,8 @@ function recordBook(row: {
     slug: row.slug,
     title: row.title,
     tagline: row.tagline || "",
+    author: row.author || "",
+    date: row.date || "",
     cover: row.cover || "",
     pdf: row.pdf || "",
     pages: row.pages || parsePagesJson(row.pagesJson),
@@ -204,6 +212,8 @@ export class JsonBookStore implements BookStore {
       slug: input.slug,
       title: input.title,
       tagline: input.tagline || "",
+      author: input.author || "",
+      date: input.date || "",
       cover: input.cover || pages[0]?.imageAsset || "",
       pdf: input.pdf || "",
       pages,
@@ -226,6 +236,8 @@ export class JsonBookStore implements BookStore {
     if (input.slug !== undefined) book.slug = input.slug;
     if (input.title !== undefined) book.title = input.title;
     if (input.tagline !== undefined) book.tagline = input.tagline;
+    if (input.author !== undefined) book.author = input.author;
+    if (input.date !== undefined) book.date = input.date;
     if (input.cover !== undefined) book.cover = input.cover;
     if (input.pdf !== undefined) book.pdf = input.pdf;
     if (input.pages !== undefined) book.pages = input.pages.map((page, index) => normalizeBookPage(page, index));
@@ -343,6 +355,8 @@ export class PostgresBookStore implements BookStore {
     if (!existingCurator.length) {
       await this.db.insert(curator).values({ id: "site", ...DEFAULT_CURATOR });
     }
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS author TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS book_date TEXT NOT NULL DEFAULT ''`);
   }
 
   async listBooks(): Promise<BookListItem[]> {
@@ -369,6 +383,8 @@ export class PostgresBookStore implements BookStore {
         slug: input.slug,
         title: input.title,
         tagline: input.tagline || "",
+        author: input.author || "",
+        date: input.date || "",
         cover: input.cover || pages[0]?.imageAsset || "",
         pdf: input.pdf || "",
         pagesJson: pagesToJson(pages),
@@ -386,6 +402,8 @@ export class PostgresBookStore implements BookStore {
     if (input.slug !== undefined) patch.slug = input.slug;
     if (input.title !== undefined) patch.title = input.title;
     if (input.tagline !== undefined) patch.tagline = input.tagline;
+    if (input.author !== undefined) patch.author = input.author;
+    if (input.date !== undefined) patch.date = input.date;
     if (input.cover !== undefined) patch.cover = input.cover;
     if (input.pdf !== undefined) patch.pdf = input.pdf;
     if (input.pages !== undefined) patch.pagesJson = pagesToJson(input.pages.map((page, index) => normalizeBookPage(page, index)));

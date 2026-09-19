@@ -4,6 +4,9 @@ declare module "*.js" {
   export const importPDF: (file: Blob, options?: Record<string, unknown>) => Promise<{
     book: {
       title: string;
+      tagline?: string;
+      author?: string;
+      date?: string;
       pdfUrl: string;
       pages: Array<{
         id: string;

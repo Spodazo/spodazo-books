@@ -18,6 +18,8 @@ export type Book = {
   slug: string;
   title: string;
   tagline: string;
+  author: string;
+  date: string;
   cover: string;
   pdf: string;
   color: string;
@@ -40,6 +42,8 @@ export type BookListItem = {
   slug: string;
   title: string;
   tagline: string;
+  author: string;
+  date: string;
   cover: string;
   coverUrl: string;
   pdfUrl: string;

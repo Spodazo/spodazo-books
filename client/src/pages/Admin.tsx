@@ -289,6 +289,12 @@ function ImportBookForm({
         <>
           <label>Book title</label>
           <input value={imported.book.title} onChange={(event) => { imported.book.title = event.target.value; setImported({ ...imported }); }} />
+          <label>Subtitle</label>
+          <input value={imported.book.tagline || ""} onChange={(event) => { imported.book.tagline = event.target.value; setImported({ ...imported }); }} />
+          <label>Author</label>
+          <input value={imported.book.author || ""} onChange={(event) => { imported.book.author = event.target.value; setImported({ ...imported }); }} />
+          <label>Date</label>
+          <input value={imported.book.date || ""} onChange={(event) => { imported.book.date = event.target.value; setImported({ ...imported }); }} />
           <label>Page</label>
           <select value={pageIndex} onChange={(event) => setPageIndex(Number(event.target.value))}>
             {imported.book.pages.map((item, index) => (
@@ -336,6 +342,9 @@ function ImportBookForm({
                 async (manifest: { title: string; pdfUrl: string; pages: BookPage[] }) => {
                   return createBook({
                     title: manifest.title,
+                    tagline: imported.book.tagline,
+                    author: imported.book.author,
+                    date: imported.book.date,
                     slug: /willow/i.test(manifest.title) ? "Willows-Big-Forest-Adventure" : undefined,
                     pdfUrl: manifest.pdfUrl,
                     coverUrl: manifest.pages[0]?.imageUrl,
@@ -374,6 +383,9 @@ function BookEditor({
 }) {
   const [title, setTitle] = useState(book.title);
   const [tagline, setTagline] = useState(book.tagline);
+  const [author, setAuthor] = useState(book.author || "");
+  const [date, setDate] = useState(book.date || "");
+  const [coverUrl, setCoverUrl] = useState(book.coverUrl);
   const [hidden, setHidden] = useState(book.hidden);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(false);
@@ -382,22 +394,45 @@ function BookEditor({
   useEffect(() => {
     setTitle(book.title);
     setTagline(book.tagline);
+    setAuthor(book.author || "");
+    setDate(book.date || "");
+    setCoverUrl(book.coverUrl);
     setHidden(book.hidden);
   }, [book.id]);
 
   useEffect(() => {
     if (!preview || !previewRef.current) return;
-    const handle = mountReader(previewRef.current, book, { libraryUrl: "/admin", baseUrl: location.href });
+    const handle = mountReader(previewRef.current, { ...book, title, tagline, author, date, coverUrl }, { libraryUrl: "/admin", baseUrl: location.href });
     return () => handle.destroy();
-  }, [preview, book]);
+  }, [preview, book, title, tagline, author, date, coverUrl]);
 
   return (
     <section className="card">
       <h2>{book.title}</h2>
       <label>Title</label>
       <input value={title} onChange={(event) => setTitle(event.target.value)} />
-      <label>Tagline</label>
+      <label>Subtitle</label>
       <input value={tagline} onChange={(event) => setTagline(event.target.value)} />
+      <label>Book Cover</label>
+      {coverUrl ? <img className="book-cover-preview" src={coverUrl} alt="" /> : null}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={async (event) => {
+          const file = event.currentTarget.files?.[0];
+          if (!file) return;
+          try {
+            const uploaded = await uploadBookAsset(file, file.name);
+            setCoverUrl(uploaded.url);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Cover upload failed");
+          }
+        }}
+      />
+      <label>Author</label>
+      <input value={author} onChange={(event) => setAuthor(event.target.value)} />
+      <label>Date</label>
+      <input value={date} onChange={(event) => setDate(event.target.value)} placeholder="2026" />
       <label>
         <input type="checkbox" checked={hidden} onChange={(event) => setHidden(event.target.checked)} />
         Hide from the public library
@@ -409,7 +444,7 @@ function BookEditor({
           onClick={async () => {
             setError("");
             try {
-              await onSaved(await updateBook(book.id, { title, tagline, hidden }));
+              await onSaved(await updateBook(book.id, { title, tagline, author, date, coverUrl, hidden }));
             } catch (err) {
               setError(err instanceof Error ? err.message : "Save failed");
             }

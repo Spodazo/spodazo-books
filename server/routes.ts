@@ -367,6 +367,8 @@ export function registerRoutes(app: Express): void {
         title,
         slug,
         tagline: String(body.tagline || ""),
+        author: String(body.author || ""),
+        date: String(body.date || ""),
         cover: files?.cover?.[0]?.filename || filenameFromUrl(body.coverUrl || "") || pages[0]?.imageAsset,
         pdf: files?.pdf?.[0]?.filename || filenameFromUrl(body.pdfUrl || ""),
         pages,
@@ -398,6 +400,8 @@ export function registerRoutes(app: Express): void {
           ? uniqueSlug(String(body.slug || body.title || current.slug), used)
           : undefined,
         tagline: body.tagline !== undefined ? String(body.tagline) : undefined,
+        author: body.author !== undefined ? String(body.author) : undefined,
+        date: body.date !== undefined ? String(body.date) : undefined,
         cover: files?.cover?.[0]?.filename || (body.coverUrl ? filenameFromUrl(body.coverUrl) : undefined),
         pdf: files?.pdf?.[0]?.filename || (body.pdfUrl ? filenameFromUrl(body.pdfUrl) : undefined),
         pages,
