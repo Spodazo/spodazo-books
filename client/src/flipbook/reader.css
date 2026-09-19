@@ -258,7 +258,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   max-height:calc(100% - 168px);
   object-fit:contain!important;
   object-position:center center!important;
-  border:1px solid #9a8060;
+  border:1px solid var(--title-outline,#285e45);
   border-radius:12px;
   background:transparent;
 }
@@ -313,7 +313,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     max-height:calc(100% - 168px);
     object-fit:contain!important;
     object-position:center center!important;
-    border:1px solid #9a8060;
+    border:1px solid var(--title-outline,#285e45);
     border-radius:12px;
     background:transparent;
   }
