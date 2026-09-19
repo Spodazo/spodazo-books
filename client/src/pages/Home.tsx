@@ -24,7 +24,6 @@ export default function HomePage() {
       <AdminLoginLink />
       <header className="library-head">
         {setup.logoUrl ? <img className="library-logo" src={setup.logoUrl} alt={setup.appName} /> : <small>SPODAZO</small>}
-        <h1>Our storybooks</h1>
         {setup.theme ? <p className="library-theme">{setup.theme}</p> : null}
       </header>
       <section className="library-grid">
