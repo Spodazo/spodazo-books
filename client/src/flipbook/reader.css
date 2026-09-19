@@ -71,6 +71,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 .page.title-page .title-meta,
 .mobile .page.title-page .title-meta{
+  min-width:0;
+  overflow:hidden;
   position:relative!important;
   inset:auto!important;
   left:auto!important;
@@ -95,10 +97,12 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 .page.title-page h1,.mobile .page.title-page h1{
   display:block!important;
-  font-size:clamp(28px,5.2dvh,54px);
+  font-size:clamp(26px,4.4dvh,44px);
   font-weight:700;
   line-height:1.08;
   margin:0 0 10px;
+  overflow-wrap:break-word;
+  max-width:100%;
   color:var(--title-ink,#203b2a);
   -webkit-text-fill-color:var(--title-ink,#203b2a);
   text-shadow:none;
