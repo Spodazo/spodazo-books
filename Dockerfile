@@ -3,6 +3,7 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 
 COPY package*.json ./
+ENV NPM_CONFIG_ENGINE_STRICT=false
 RUN npm install
 
 COPY . .
