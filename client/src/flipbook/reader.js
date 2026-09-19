@@ -60,7 +60,10 @@ function characterSrc(book, baseUrl) {
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   const src = coverSrc(book, baseUrl);
   const character = characterSrc(book, baseUrl);
-  return `<article class="page end-page" data-source="end" aria-label="The end">${src?`<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>`:''}<section class="end-meta">${character?`<img class="end-character" src="${character}" alt="">`:''}<h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  const left = character
+    ? `<div class="end-cover-wrap end-character-wrap"><img class="end-character" src="${character}" alt=""></div>`
+    : (src ? `<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>` : "");
+  return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl) {
@@ -73,6 +76,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   if(!book.pages?.length)throw new Error('This book has no pages.');
   const palette=paletteById(book.color);
   const preload=coverSrc(book,baseUrl);
+  const characterPreload=characterSrc(book,baseUrl);
   const skipCover=isWillow(book);
   const storyPages=skipCover?book.pages.slice(1):book.pages;
   const articles=titlePageHtml(book,baseUrl,libraryUrl)+storyPages.map((p,i)=>{
@@ -84,7 +88,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="Page ${i+1}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}<style>${css}</style></head><body><main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div><div class="page-curl" aria-hidden="true"></div><main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';
