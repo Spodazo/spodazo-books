@@ -37,11 +37,6 @@ export default function HomePage() {
               {book.tagline ? <p>{book.tagline}</p> : null}
               <div className="actions">
                 <Link href={`/${book.slug}`}>Read</Link>
-                {book.pdfUrl ? (
-                  <a href={book.pdfUrl} download>
-                    Download
-                  </a>
-                ) : null}
               </div>
             </div>
           </article>
