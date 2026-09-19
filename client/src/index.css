@@ -319,6 +319,13 @@ button, input, select, textarea { font: inherit; }
 }
 .admin-dialog-head { display: flex; justify-content: space-between; align-items: center; }
 
+@media (min-width: 701px) {
+  .library-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 280px));
+    justify-content: center;
+  }
+}
+
 @media (max-width: 480px) {
   .library { padding: 28px 20px; }
   .book-card img { height: 48svh; }
