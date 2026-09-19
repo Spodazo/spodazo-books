@@ -171,6 +171,12 @@ button, input, select, textarea { font: inherit; }
   text-align: center;
   color: var(--muted);
 }
+.library-legal-logo {
+  display: block;
+  width: min(128px, 40%);
+  height: auto;
+  margin: 0 auto 12px;
+}
 .library-credits {
   margin: 0 0 8px;
   font: 600 14px Arial, sans-serif;

@@ -557,6 +557,13 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   text-align:center;
   pointer-events:none;
 }
+.page.end-page .end-logo,
+.mobile .page.end-page .end-logo{
+  display:block;
+  width:min(120px,36%);
+  height:auto;
+  margin:0 auto 10px;
+}
 .page.end-page .end-credits,
 .page.end-page .end-copyright,
 .mobile .page.end-page .end-credits,

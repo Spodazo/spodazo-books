@@ -27,16 +27,17 @@ function isWillow(book) {
   return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
 }
 
-function legalHtml(credits, copyright) {
+function legalHtml(credits, copyright, logoUrl, baseUrl) {
   const credit = String(credits || "").trim();
   const copy = String(copyright || "").trim();
-  if (!credit && !copy) return "";
-  return `<footer class="end-legal">${credit?`<p class="end-credits">${esc(credit)}</p>`:""}${copy?`<p class="end-copyright">${esc(copy)}</p>`:""}</footer>`;
+  const logo = logoUrl ? esc(safeURL(logoUrl, baseUrl)) : "";
+  if (!credit && !copy && !logo) return "";
+  return `<footer class="end-legal">${logo?`<img class="end-logo" src="${logo}" alt="">`:""}${credit?`<p class="end-credits">${esc(credit)}</p>`:""}${copy?`<p class="end-copyright">${esc(copy)}</p>`:""}</footer>`;
 }
 
-function endPageHtml(book, baseUrl, credits, copyright) {
+function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   const src = coverSrc(book, baseUrl);
-  return `<article class="page end-page" data-source="end" aria-label="The end">${src?`<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>`:''}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  return `<article class="page end-page" data-source="end" aria-label="The end">${src?`<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>`:''}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl) {
@@ -45,7 +46,7 @@ function titlePageHtml(book, baseUrl, libraryUrl) {
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
-export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright=''}={}) {
+export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright='',logoUrl=''}={}) {
   if(!book.pages?.length)throw new Error('This book has no pages.');
   const palette=paletteById(book.color);
   const preload=coverSrc(book,baseUrl);
@@ -59,7 +60,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const image=safeURL(coverOnly?(book.coverUrl||p.fullPageUrl||p.imageUrl):fallback?p.fullPageUrl||p.imageUrl:p.imageUrl,baseUrl);
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="Page ${i+1}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
-  }).join('')+endPageHtml(book,baseUrl,credits,copyright);
+  }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
   return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}<style>${css}</style></head><body><main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {

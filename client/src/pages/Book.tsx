@@ -42,9 +42,10 @@ export default function BookPage() {
       baseUrl: location.href,
       credits: setup.credits,
       copyright: setup.copyright,
+      logoUrl: setup.logoUrl,
     });
     return () => handle.destroy();
-  }, [book, setup.credits, setup.copyright]);
+  }, [book, setup.credits, setup.copyright, setup.logoUrl]);
 
   if (error) {
     return (
