@@ -513,6 +513,16 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   box-shadow:none!important;
   border-radius:0!important;
 }
+.page.end-page .end-character,
+.mobile .page.end-page .end-character{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:58%;
+  max-height:34vh;
+  object-fit:contain;
+  margin:18px 0 32px;
+}
 .page.end-page .end-title,
 .mobile .page.end-page .end-title{
   display:block!important;
@@ -572,7 +582,12 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   }
   html:not(.mobile) .page.end-page .end-meta{
     grid-column:2;
-    padding:24px 10%!important;
+    padding:36px 10% 120px!important;
+  }
+  html:not(.mobile) .page.end-page .end-character{
+    max-width:52%;
+    max-height:42%;
+    margin:8px 0 40px;
   }
   html:not(.mobile) .page.end-page .end-legal{
     left:50%;
@@ -622,6 +637,19 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   max-width:70ch;
   margin-left:auto;
   margin-right:auto;
+}
+
+@media(max-width:700px),(pointer:coarse) and (max-width:1100px){
+  .page.end-page .end-meta,
+  .mobile .page.end-page .end-meta{
+    padding:28px 24px 150px!important;
+  }
+  .page.end-page .end-character,
+  .mobile .page.end-page .end-character{
+    max-width:54%;
+    max-height:32vh;
+    margin:16px 0 28px;
+  }
 }
 
 .sr{top:0;left:0}

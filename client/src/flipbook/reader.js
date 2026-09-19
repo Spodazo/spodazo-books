@@ -52,9 +52,15 @@ function legalHtml(credits, copyright, logoUrl, baseUrl) {
   return `<footer class="end-legal">${logo?`<img class="end-logo" src="${logo}" alt="">`:""}${credit?`<p class="end-credits">${esc(credit)}</p>`:""}${copy?`<p class="end-copyright">${esc(copy)}</p>`:""}</footer>`;
 }
 
+function characterSrc(book, baseUrl) {
+  const url = book.characterUrl || (isWillow(book) ? "/media/images/willow-character.webp" : "");
+  return url ? esc(safeURL(url, baseUrl)) : "";
+}
+
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   const src = coverSrc(book, baseUrl);
-  return `<article class="page end-page" data-source="end" aria-label="The end">${src?`<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>`:''}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  const character = characterSrc(book, baseUrl);
+  return `<article class="page end-page" data-source="end" aria-label="The end">${src?`<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>`:''}<section class="end-meta">${character?`<img class="end-character" src="${character}" alt="">`:''}<h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl) {
