@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useRoute } from "wouter";
 import AdminLoginLink from "../components/AdminLoginLink";
+import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
 import { fetchBook } from "../lib/api";
-import type { PublicBook } from "@shared/types";
+import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
+import type { PlayerSetup, PublicBook } from "@shared/types";
 import { mountReader } from "../flipbook/reader.js";
 
 export default function BookPage() {
@@ -11,6 +13,7 @@ export default function BookPage() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   const [book, setBook] = useState<PublicBook | null>(null);
+  const [setup, setSetup] = useState<PlayerSetup>(readCachedSetup() || DEFAULT_PLAYER_SETUP);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,6 +26,9 @@ export default function BookPage() {
       .catch((err: Error) => {
         if (!cancelled) setError(err.message);
       });
+    void loadHomeSetup().then((next) => {
+      if (!cancelled) setSetup(next);
+    });
     return () => {
       cancelled = true;
     };
@@ -34,9 +40,11 @@ export default function BookPage() {
     const handle = mountReader(host, book, {
       libraryUrl: "/",
       baseUrl: location.href,
+      credits: setup.credits,
+      copyright: setup.copyright,
     });
     return () => handle.destroy();
-  }, [book]);
+  }, [book, setup.credits, setup.copyright]);
 
   if (error) {
     return (

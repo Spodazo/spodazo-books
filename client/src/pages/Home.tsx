@@ -48,6 +48,12 @@ export default function HomePage() {
         ))}
         {!books.length ? <p className="empty">Books will appear here after they are published in Admin.</p> : null}
       </section>
+      {setup.credits || setup.copyright ? (
+        <footer className="library-legal">
+          {setup.credits ? <p className="library-credits">{setup.credits}</p> : null}
+          {setup.copyright ? <p className="library-copyright">{setup.copyright}</p> : null}
+        </footer>
+      ) : null}
     </main>
   );
 }

@@ -110,8 +110,11 @@ button, input, select, textarea { font: inherit; }
 
 .library {
   max-width: 960px;
+  min-height: 100dvh;
   margin: auto;
-  padding: 48px 24px 64px;
+  padding: 48px 24px 32px;
+  display: flex;
+  flex-direction: column;
 }
 .library-head {
   border-bottom: 1px solid var(--border);
@@ -162,6 +165,22 @@ button, input, select, textarea { font: inherit; }
   text-underline-offset: 4px;
 }
 .empty { color: var(--muted); }
+.library-legal {
+  margin-top: auto;
+  padding: 28px 8px 8px;
+  text-align: center;
+  color: var(--muted);
+}
+.library-credits {
+  margin: 0 0 8px;
+  font: 600 14px Arial, sans-serif;
+  color: var(--text2);
+}
+.library-copyright {
+  margin: 0 auto;
+  max-width: 58ch;
+  font: 400 12px/1.45 Arial, sans-serif;
+}
 
 .reader-host {
   position: fixed;
@@ -359,5 +378,15 @@ button, input, select, textarea { font: inherit; }
   .caption p {
     margin: 0 0 8px;
     font-size: 14px;
+  }
+  .library-legal {
+    padding: 16px 4px 4px;
+  }
+  .library-credits {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  .library-copyright {
+    font-size: 11px;
   }
 }
