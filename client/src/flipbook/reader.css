@@ -456,6 +456,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     width:50%;
     padding:0 10%;
     box-sizing:border-box;
+    bottom:32px;
   }
 }
 .page.end-page .end-legal,
