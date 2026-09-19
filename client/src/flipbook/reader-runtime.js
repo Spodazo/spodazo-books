@@ -73,7 +73,7 @@ var box=p.querySelector('section'),text=p.querySelector('p');
 if(box&&text){
  var units=groupParagraphs(text.innerHTML);
  text.innerHTML=units.join('<br><br>');
- box.style.maxHeight=Math.floor(book.clientHeight*.44)+'px';
+ box.style.maxHeight=Math.floor(book.clientHeight*.34)+'px';
  var size=parseFloat(getComputedStyle(text).fontSize);
  while(!fits(box)&&size>15){size-=.5;text.style.fontSize=size+'px';}
  if(!fits(box)){
