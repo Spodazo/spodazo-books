@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRoute } from "wouter";
+import AdminLoginLink from "../components/AdminLoginLink";
 import { fetchBook } from "../lib/api";
 import type { PublicBook } from "@shared/types";
 import { mountReader } from "../flipbook/reader.js";
@@ -40,11 +41,17 @@ export default function BookPage() {
   if (error) {
     return (
       <main className="reader-missing">
+        <AdminLoginLink />
         <p>{error}</p>
         <a href="/">Back to library</a>
       </main>
     );
   }
 
-  return <div id="reader" ref={hostRef} className="reader-host" />;
+  return (
+    <>
+      <AdminLoginLink />
+      <div id="reader" ref={hostRef} className="reader-host" />
+    </>
+  );
 }

@@ -65,17 +65,31 @@ button, input, select, textarea { font: inherit; }
   position: fixed;
   top: 18px;
   right: 20px;
-  z-index: 40;
-  width: 36px;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   height: 36px;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--card) 80%, transparent);
+  padding: 0 12px 0 10px;
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--text) 28%, transparent);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 2px 10px var(--shadow);
+  font: 600 13px/1 Arial, sans-serif;
+  text-decoration: none;
+}
+.admin-login:hover {
+  color: var(--amber);
+  border-color: var(--amber);
 }
 .admin-login svg { width: 16px; height: 16px; fill: currentColor; }
+@media (max-width: 720px) {
+  .admin-login {
+    top: max(18px, calc(env(safe-area-inset-top) + 10px));
+    right: max(16px, calc(env(safe-area-inset-right) + 8px));
+  }
+}
 
 .library {
   max-width: 960px;
