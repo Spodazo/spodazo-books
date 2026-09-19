@@ -34,6 +34,10 @@ function adminLoginHtml() {
   return `<a class="admin-login" href="/admin" target="_top" aria-label="Admin login" title="Admin login"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8 0V7a3 3 0 0 1 6 0v2H9zm3 5.2a1.8 1.8 0 0 1 .8 3.4V19h-1.6v-1.4a1.8 1.8 0 0 1 .8-3.4z"/></svg></a>`;
 }
 
+function pageCurlHtml() {
+  return `<svg class="page-curl" viewBox="0 0 180 220" aria-hidden="true"><defs><linearGradient id="pc-fill" x1="18%" y1="8%" x2="88%" y2="92%"><stop offset="0%" stop-color="#f8efe6"/><stop offset="38%" stop-color="#f0dcd2"/><stop offset="72%" stop-color="#e2c4b8"/><stop offset="100%" stop-color="#d4b0a6"/></linearGradient><radialGradient id="pc-hi" cx="42%" cy="28%" r="46%"><stop offset="0%" stop-color="#fffaf4" stop-opacity=".9"/><stop offset="100%" stop-color="#fffaf4" stop-opacity="0"/></radialGradient><filter id="pc-sh" x="-35%" y="-25%" width="170%" height="170%"><feDropShadow dx="-7" dy="10" stdDeviation="6" flood-color="#322616" flood-opacity=".2"/></filter></defs><path filter="url(#pc-sh)" fill="url(#pc-fill)" d="M86 10C60 18 28 62 22 112c-4 38 18 76 64 88 42 10 76-24 80-76 4-46-18-100-54-114-10-4-18-4-26 0z"/><path fill="url(#pc-hi)" d="M86 10C60 18 28 62 22 112c-4 38 18 76 64 88 42 10 76-24 80-76 4-46-18-100-54-114-10-4-18-4-26 0z"/></svg>`;
+}
+
 function storyBody(paragraphs) {
   return (paragraphs || [])
     .map((line) => String(line).trim())
@@ -88,7 +92,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="Page ${i+1}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div><div class="page-curl" aria-hidden="true"></div><main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml()}<main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';

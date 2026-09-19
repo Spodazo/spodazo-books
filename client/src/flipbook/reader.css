@@ -696,18 +696,15 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   html:not(.mobile) .page-curl{
     display:block;
     position:absolute;
-    top:20px;
-    right:20px;
-    width:78px;
-    height:78px;
+    top:6px;
+    right:14px;
+    width:118px;
+    height:144px;
     z-index:41;
     pointer-events:none;
-    border-radius:0 18px 0 0;
-    background:
-      linear-gradient(225deg,rgba(50,38,22,.28) 0 16%,transparent 18%),
-      linear-gradient(225deg,#b89558 0 46%,#efe6c8 48%,#f7efd6 100%);
-    clip-path:polygon(30% 0,100% 0,100% 70%);
-    box-shadow:-10px 12px 18px rgba(50,38,22,.2);
+    overflow:visible;
+    transform:rotate(38deg);
+    transform-origin:70% 18%;
   }
 }
 
