@@ -326,7 +326,38 @@ button, input, select, textarea { font: inherit; }
   }
 }
 
-@media (max-width: 480px) {
-  .library { padding: 28px 20px; }
-  .book-card img { height: 48svh; }
+@media (max-width: 700px) {
+  .library {
+    padding: 16px 16px 24px;
+  }
+  .library-logo {
+    width: min(176px, 48vw);
+    margin: 0 auto 6px;
+  }
+  .library-theme {
+    margin: 4px 0 0;
+    font-size: 14px;
+  }
+  .library-head {
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+  .library-grid {
+    gap: 16px;
+  }
+  .book-card img,
+  .cover-empty {
+    height: clamp(168px, calc(100svh - 300px), 320px);
+  }
+  .caption {
+    padding: 12px 14px 14px;
+  }
+  .caption h2 {
+    font-size: 18px;
+    margin: 0 0 6px;
+  }
+  .caption p {
+    margin: 0 0 8px;
+    font-size: 14px;
+  }
 }
