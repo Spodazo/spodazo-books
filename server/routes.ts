@@ -396,8 +396,8 @@ export function registerRoutes(app: Express): void {
       const pages = pagesFromBody(body.pages);
       const updated = await store.updateBook(current.id, {
         title: body.title !== undefined ? String(body.title) : undefined,
-        slug: body.slug !== undefined || body.title !== undefined
-          ? uniqueSlug(String(body.slug || body.title || current.slug), used)
+        slug: body.slug !== undefined
+          ? uniqueSlug(String(body.slug || current.slug), used)
           : undefined,
         tagline: body.tagline !== undefined ? String(body.tagline) : undefined,
         author: body.author !== undefined ? String(body.author) : undefined,

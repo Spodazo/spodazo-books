@@ -195,7 +195,8 @@ export class JsonBookStore implements BookStore {
   }
 
   async getBookBySlug(slug: string): Promise<PublicBook | null> {
-    const book = this.read().books.find((item) => item.slug === slug);
+    const wanted = String(slug || "").toLowerCase();
+    const book = this.read().books.find((item) => item.slug.toLowerCase() === wanted);
     return book ? hydrateBook(book) : null;
   }
 
@@ -365,7 +366,7 @@ export class PostgresBookStore implements BookStore {
   }
 
   async getBookBySlug(slug: string): Promise<PublicBook | null> {
-    const [row] = await this.db.select().from(books).where(eq(books.slug, slug)).limit(1);
+    const [row] = await this.db.select().from(books).where(sql`lower(${books.slug}) = ${String(slug || "").toLowerCase()}`).limit(1);
     return row ? hydrateBook(recordBook(row)) : null;
   }
 
