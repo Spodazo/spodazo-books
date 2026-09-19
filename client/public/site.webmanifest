@@ -1,7 +1,7 @@
 {
-  "name": "Spodazo Music",
-  "short_name": "Spodazo",
-  "description": "Music by Spodazo",
+  "name": "Spodazo Books",
+  "short_name": "Spodazo Books",
+  "description": "Online storybooks for children",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

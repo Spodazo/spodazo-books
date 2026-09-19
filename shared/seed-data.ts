@@ -25,7 +25,7 @@ export const SITE_COPYRIGHT =
   "Produced by Spodazo LLC © 2026. All Rights Reserved. This material may not be copied — in whole or in part — or distributed without previous permission from the Producers.";
 
 export const DEFAULT_PLAYER_SETUP: PlayerSetup = {
-  appName: "Spodazo Bookings",
+  appName: "Spodazo Books",
   theme: "Online storybooks for children",
   credits: "Stories and graphics by Spodazo.",
   copyright: SITE_COPYRIGHT,
