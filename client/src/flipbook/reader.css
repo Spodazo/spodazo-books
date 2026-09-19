@@ -315,12 +315,12 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     width:auto;
     margin:auto 7%;
     padding:12px 16px!important;
-    height:calc(8 * 1.25em + 24px)!important;
-    max-height:calc(8 * 1.25em + 24px)!important;
-    min-height:calc(8 * 1.25em + 24px)!important;
+    height:calc(8 * 1.5em + 24px)!important;
+    max-height:calc(8 * 1.5em + 24px)!important;
+    min-height:calc(8 * 1.5em + 24px)!important;
     font-size:clamp(22px,2.34vw,31px);
-    line-height:1.25;
-    justify-content:flex-start!important;
+    line-height:1.5;
+    justify-content:center!important;
     background:rgba(247,233,191,.38)!important;
     backdrop-filter:none!important;
     -webkit-backdrop-filter:none!important;
@@ -331,7 +331,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   }
   html:not(.mobile) .page:not(.title-page):not(.end-page) p{
     font-size:inherit;
-    line-height:1.25;
+    line-height:1.5;
     margin:0;
   }
   html:not(.mobile) .pbreak{display:none!important}
