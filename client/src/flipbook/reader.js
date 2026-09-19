@@ -35,7 +35,7 @@ function adminLoginHtml() {
 }
 
 function pageCurlHtml() {
-  return `<svg class="page-curl" viewBox="0 0 160 140" aria-hidden="true"><defs><linearGradient id="pc-fill" x1="100%" y1="0%" x2="10%" y2="90%"><stop offset="0%" stop-color="#f7efe6"/><stop offset="48%" stop-color="#e8cfc2"/><stop offset="100%" stop-color="#d4b0a4"/></linearGradient><filter id="pc-sh" x="-35%" y="-25%" width="170%" height="170%"><feDropShadow dx="-5" dy="8" stdDeviation="5" flood-color="#322616" flood-opacity=".2"/></filter></defs><path filter="url(#pc-sh)" fill="url(#pc-fill)" d="M155 6Q78 68 18 124L155 86Z"/></svg>`;
+  return `<svg class="page-curl" viewBox="0 0 160 120" aria-hidden="true"><defs><linearGradient id="pc-fill" x1="100%" y1="20%" x2="0%" y2="50%"><stop offset="0%" stop-color="#f7efe6"/><stop offset="48%" stop-color="#e8cfc2"/><stop offset="100%" stop-color="#d4b0a4"/></linearGradient><filter id="pc-sh" x="-35%" y="-30%" width="170%" height="170%"><feDropShadow dx="-6" dy="5" stdDeviation="5" flood-color="#322616" flood-opacity=".2"/></filter></defs><path filter="url(#pc-sh)" fill="url(#pc-fill)" d="M156 8L156 100Q70 54 16 48Z"/></svg>`;
 }
 
 function storyBody(paragraphs) {
