@@ -4,26 +4,9 @@ var book=document.querySelector('main'),originals=Array.prototype.slice.call(boo
 var count=document.getElementById('count'),mobile=false;
 function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
 function updateCurl(){
-  var peek=document.querySelector('.page-peek');
-  var flap=book.querySelector(':scope > .page-curl-flap');
-  if(peek)peek.remove();
-  if(flap)flap.remove();
-  pages.forEach(function(p){p.classList.remove('has-curl');});
-  var current=pages[index],next=pages[index+1];
-  if(busy||!current||!next)return;
-  current.classList.add('has-curl');
-  flap=document.createElement('div');
-  flap.className='page-curl-flap';
-  flap.setAttribute('aria-hidden','true');
-  book.appendChild(flap);
-  if(!mobile)return;
-  peek=document.createElement('div');
-  peek.className='page-peek';
-  peek.setAttribute('aria-hidden','true');
-  var clone=copy(next);
-  clone.classList.add('current');
-  peek.appendChild(clone);
-  book.insertBefore(peek,current);
+  var curl=document.querySelector('.page-curl');
+  if(!curl)return;
+  curl.hidden=!!busy||!pages[index+1];
 }
 function fits(section){return section.scrollHeight<=section.clientHeight+1;}
 function isPageNum(s){return /^\d+\s*\/\s*\d+$/.test(String(s).replace(/<[^>]+>/g,'').trim());}
