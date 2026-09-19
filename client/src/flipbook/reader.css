@@ -369,7 +369,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 .page.end-page .end-title,
 .mobile .page.end-page .end-title{
   display:block!important;
-  font-size:clamp(36px,6vw,72px);
+  font-size:clamp(32px,5vw,56px);
+  max-width:86%;
   font-weight:700;
   line-height:1.1;
   margin:0 0 18px;
@@ -403,6 +404,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   }
   html:not(.mobile) .page.end-page .end-meta{
     grid-column:2;
+    padding:24px 10%!important;
   }
 }
 
