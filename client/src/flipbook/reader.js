@@ -35,7 +35,7 @@ function adminLoginHtml() {
 }
 
 function pageCurlHtml() {
-  return `<svg class="page-curl" viewBox="0 0 180 220" aria-hidden="true"><defs><linearGradient id="pc-fill" x1="18%" y1="8%" x2="88%" y2="92%"><stop offset="0%" stop-color="#f8efe6"/><stop offset="38%" stop-color="#f0dcd2"/><stop offset="72%" stop-color="#e2c4b8"/><stop offset="100%" stop-color="#d4b0a6"/></linearGradient><radialGradient id="pc-hi" cx="42%" cy="28%" r="46%"><stop offset="0%" stop-color="#fffaf4" stop-opacity=".9"/><stop offset="100%" stop-color="#fffaf4" stop-opacity="0"/></radialGradient><filter id="pc-sh" x="-35%" y="-25%" width="170%" height="170%"><feDropShadow dx="-7" dy="10" stdDeviation="6" flood-color="#322616" flood-opacity=".2"/></filter></defs><path filter="url(#pc-sh)" fill="url(#pc-fill)" d="M86 10C60 18 28 62 22 112c-4 38 18 76 64 88 42 10 76-24 80-76 4-46-18-100-54-114-10-4-18-4-26 0z"/><path fill="url(#pc-hi)" d="M86 10C60 18 28 62 22 112c-4 38 18 76 64 88 42 10 76-24 80-76 4-46-18-100-54-114-10-4-18-4-26 0z"/></svg>`;
+  return `<svg class="page-curl" viewBox="0 0 160 160" aria-hidden="true"><defs><linearGradient id="pc-fill" x1="12%" y1="6%" x2="92%" y2="88%"><stop offset="0%" stop-color="#f8f1e8"/><stop offset="42%" stop-color="#edd4c8"/><stop offset="100%" stop-color="#d7b3a7"/></linearGradient><filter id="pc-sh" x="-40%" y="-30%" width="180%" height="180%"><feDropShadow dx="-4" dy="7" stdDeviation="4.5" flood-color="#322616" flood-opacity=".2"/></filter></defs><path filter="url(#pc-sh)" fill="url(#pc-fill)" d="M150 7c-8 2-70 42-118 108-8 10-4 22 12 18 50-38 96-80 114-96 6-10 6-22-2-26-2-2-4-4-6-4z"/></svg>`;
 }
 
 function storyBody(paragraphs) {

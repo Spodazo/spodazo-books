@@ -645,19 +645,23 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 
 @media(max-width:700px),(pointer:coarse) and (max-width:1100px){
   .page.end-page.current,
-  .mobile .page.end-page.current{
+  .mobile .page.end-page.current,
+  .leaf-copy.end-page,
+  .mobile .leaf-copy.end-page{
     display:flex!important;
     flex-direction:column;
-    justify-content:center;
+    justify-content:flex-start;
     align-items:center;
-    padding:24px 16px 150px;
+    padding:10vh 16px 150px;
   }
   .page.end-page .end-cover-wrap.end-character-wrap,
-  .mobile .page.end-page .end-cover-wrap.end-character-wrap{
+  .mobile .page.end-page .end-cover-wrap.end-character-wrap,
+  .leaf-copy.end-page .end-cover-wrap.end-character-wrap{
     display:flex;
     align-items:center;
     justify-content:center;
-    height:auto;
+    flex:0 0 32vh;
+    height:32vh;
     width:100%;
     margin:0 0 28px;
   }
@@ -669,8 +673,11 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   .page.end-page .end-character,
   .mobile .page.end-page .end-character{
     max-width:54%;
+    height:32vh;
     max-height:32vh;
+    width:auto;
     margin:0;
+    transform:none;
   }
 }
 
@@ -696,15 +703,13 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   html:not(.mobile) .page-curl{
     display:block;
     position:absolute;
-    top:6px;
-    right:14px;
-    width:118px;
-    height:144px;
+    top:20px;
+    right:20px;
+    width:108px;
+    height:108px;
     z-index:41;
     pointer-events:none;
     overflow:visible;
-    transform:rotate(38deg);
-    transform-origin:70% 18%;
   }
 }
 
