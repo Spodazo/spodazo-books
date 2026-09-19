@@ -2,7 +2,9 @@
 
 Children’s flipbook library. Public site has no login. `/admin` is password-protected so you can add books from PDFs, covers, and site colors.
 
-The live ChatGPT preview at books.spodazo.com stays as-is until this app is deployed to Railway and DNS is cut over.
+Railway URL: https://spodazo-books-production.up.railway.app
+
+The ChatGPT preview at books.spodazo.com stays as-is until DNS is cut over.
 
 ## Local
 
