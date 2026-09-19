@@ -450,6 +450,10 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     grid-column:2;
     padding:24px 10%!important;
   }
+  html:not(.mobile) .page.end-page .end-legal{
+    left:50%;
+    right:8%;
+  }
 }
 .page.end-page .end-legal,
 .mobile .page.end-page .end-legal{
