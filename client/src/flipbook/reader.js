@@ -23,6 +23,10 @@ function storyBody(paragraphs) {
     .filter((line) => line && !/^\d+\s*\/\s*\d+$/.test(line));
 }
 
+function isWillow(book) {
+  return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
+}
+
 function titlePageHtml(book, baseUrl) {
   const src = coverSrc(book, baseUrl);
   return `<article class="page title-page current" data-source="title" aria-label="Title page"><div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${esc(book.title||'')}</h1>${subtitleHtml(book.tagline)}</div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
@@ -33,16 +37,18 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href}
   if(!book.pages?.length)throw new Error('This book has no pages.');
   const palette=paletteById(book.color);
   const preload=coverSrc(book,baseUrl);
-  const articles=titlePageHtml(book,baseUrl)+book.pages.map((p,i)=>{
-    const coverOnly=i===0;
+  const skipCover=isWillow(book);
+  const storyPages=skipCover?book.pages.slice(1):book.pages;
+  const articles=titlePageHtml(book,baseUrl)+storyPages.map((p,i)=>{
+    const coverOnly=!skipCover&&i===0;
     const fallback=p.kind==='facsimile'||coverOnly;
     const classes=`page${fallback?' facsimile':''}${coverOnly?' cover-plate':''}${!coverOnly&&p.position==='top'?' top-text':''}`;
     const focal=/^\d{1,3}% \d{1,3}%$/.test(p.focalPoint||'')?p.focalPoint:'50% 50%';
     const image=safeURL(coverOnly?(book.coverUrl||p.fullPageUrl||p.imageUrl):fallback?p.fullPageUrl||p.imageUrl:p.imageUrl,baseUrl);
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join('<br>')}</p></section>`;
-    return `<article class="${classes}" aria-label="Page ${i+1}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="${i===book.pages.length-1?'Read again':'Next page'}"></button></article>`;
+    return `<article class="${classes}" aria-label="Page ${i+1}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="${i===storyPages.length-1?'Read again':'Next page'}"></button></article>`;
   }).join('');
-  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}<style>${css}</style></head><body><a class="library-back" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top">← Library</a><main aria-label="${esc(book.title)}">${articles}</main><div id="hint" class="hint" role="status"><span class="hint-desktop">Tap left or right to turn the page</span><span class="hint-mobile">Swipe left to turn the page. Swipe right to go back</span></div><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}<style>${css}</style></head><body><main aria-label="${esc(book.title)}">${articles}</main><div id="hint" class="hint" role="status"><span class="hint-desktop">Tap left or right to turn the page</span><span class="hint-mobile">Swipe left to turn the page. Swipe right to go back</span></div><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';

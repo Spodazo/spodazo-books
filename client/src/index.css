@@ -82,10 +82,34 @@ button, input, select, textarea { font: inherit; }
   border-color: var(--amber);
 }
 .admin-login svg { width: 16px; height: 16px; fill: currentColor; }
+.reader-close {
+  position: fixed;
+  top: 16px;
+  right: 68px;
+  z-index: 80;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--text) 52%, transparent);
+  background: color-mix(in srgb, var(--card) 42%, transparent);
+  border: 0;
+  border-radius: 50%;
+  font: 600 30px/1 Arial, sans-serif;
+  text-decoration: none;
+}
+.reader-close:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+}
 @media (max-width: 720px) {
   .admin-login {
     top: max(18px, calc(env(safe-area-inset-top) + 10px));
     right: max(16px, calc(env(safe-area-inset-right) + 8px));
+  }
+  .reader-close {
+    top: max(16px, calc(env(safe-area-inset-top) + 8px));
+    right: max(64px, calc(env(safe-area-inset-right) + 52px));
   }
 }
 

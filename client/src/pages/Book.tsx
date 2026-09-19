@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useRoute } from "wouter";
+import { Link, useRoute } from "wouter";
 import AdminLoginLink from "../components/AdminLoginLink";
 import { fetchBook } from "../lib/api";
 import type { PublicBook } from "@shared/types";
@@ -41,15 +41,20 @@ export default function BookPage() {
   if (error) {
     return (
       <main className="reader-missing">
+        <Link href="/" className="reader-close" aria-label="Close">
+          ×
+        </Link>
         <AdminLoginLink />
         <p>{error}</p>
-        <a href="/">Back to library</a>
       </main>
     );
   }
 
   return (
     <>
+      <Link href="/" className="reader-close" aria-label="Close">
+        ×
+      </Link>
       <AdminLoginLink />
       <div id="reader" ref={hostRef} className="reader-host" />
     </>

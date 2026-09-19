@@ -161,4 +161,16 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   .mobile .page.title-page .zone{display:none}
 }
 
+.library-back{display:none!important}
+.hint{
+  top:auto!important;
+  bottom:max(28px,env(safe-area-inset-bottom))!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  background:rgba(247,233,191,.58)!important;
+  color:#203b2a!important;
+  -webkit-text-fill-color:#203b2a!important;
+  box-shadow:0 2px 10px #0001!important;
+}
+
 .sr{top:0;left:0}
