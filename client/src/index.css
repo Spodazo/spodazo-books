@@ -91,16 +91,15 @@ button, input, select, textarea { font: inherit; }
   height: 44px;
   display: grid;
   place-items: center;
-  color: color-mix(in srgb, var(--text) 72%, transparent);
-  background: color-mix(in srgb, var(--card) 48%, transparent);
+  color: color-mix(in srgb, var(--text) 34%, transparent);
+  background: transparent;
   border: 0;
   border-radius: 50%;
   font: 600 34px/1 Arial, sans-serif;
   text-decoration: none;
 }
 .reader-close:hover {
-  color: var(--text);
-  background: color-mix(in srgb, var(--card) 70%, transparent);
+  color: color-mix(in srgb, var(--text) 55%, transparent);
 }
 @media (max-width: 720px) {
   .admin-login {
