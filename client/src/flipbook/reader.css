@@ -139,7 +139,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   .page.title-page,.mobile .page.title-page{
     grid-template-columns:1fr!important;
     grid-template-rows:auto 1fr auto auto 1fr auto;
-    justify-items:center;
+    justify-items:stretch;
     align-items:center;
     padding:0 16px;
   }
@@ -178,9 +178,11 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   }
   .page.title-page .title-bottom{
     grid-row:6;
-    margin:0;
+    margin:0 0 8px;
     padding-bottom:max(20px,env(safe-area-inset-bottom));
     text-align:center;
+    justify-self:center;
+    width:100%;
   }
   .page.title-page .hint,
   .mobile .page.title-page .hint{
