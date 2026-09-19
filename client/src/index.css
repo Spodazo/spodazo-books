@@ -66,18 +66,16 @@ button, input, select, textarea { font: inherit; }
   top: 18px;
   right: 20px;
   z-index: 80;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+  display: grid;
+  place-items: center;
+  width: 36px;
   height: 36px;
-  padding: 0 12px 0 10px;
+  padding: 0;
   color: var(--text);
   border: 1px solid color-mix(in srgb, var(--text) 28%, transparent);
-  border-radius: 999px;
+  border-radius: 50%;
   background: var(--card);
   box-shadow: 0 2px 10px var(--shadow);
-  font: 600 13px/1 Arial, sans-serif;
-  text-decoration: none;
 }
 .admin-login:hover {
   color: var(--amber);
