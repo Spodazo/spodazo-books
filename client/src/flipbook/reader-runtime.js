@@ -49,16 +49,17 @@ function splitLong(article,html){
   }
   return '';
 }
+var PGAP='<span class="pbreak"></span>';
 function takeComplete(article,units){
   var section=article.querySelector('section'),body=article.querySelector('p'),kept=[],i;
   for(i=0;i<units.length;i++){
-    body.innerHTML=kept.concat([units[i]]).join('<br><br>');
+    body.innerHTML=kept.concat([units[i]]).join(PGAP);
     if(!fits(section)){
       if(!kept.length){
         var leftover=splitLong(article,units[i]);
         return (leftover?[leftover]:[]).concat(units.slice(i+1));
       }
-      body.innerHTML=kept.join('<br><br>');
+      body.innerHTML=kept.join(PGAP);
       return units.slice(i);
     }
     kept.push(units[i]);
@@ -72,7 +73,7 @@ p.classList.add('current');p.style.visibility='hidden';
 var box=p.querySelector('section'),text=p.querySelector('p');
 if(box&&text){
  var units=groupParagraphs(text.innerHTML);
- text.innerHTML=units.join('<br><br>');
+ text.innerHTML=units.join(PGAP);
  box.style.maxHeight=Math.floor(book.clientHeight*.34)+'px';
  var size=parseFloat(getComputedStyle(text).fontSize);
  while(!fits(box)&&size>15){size-=.5;text.style.fontSize=size+'px';}
