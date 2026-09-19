@@ -170,6 +170,11 @@ button, input, select, textarea { font: inherit; }
   height: 100dvh;
   background: #efdda6;
 }
+@media (min-width: 701px) {
+  .reader-host {
+    background: #322616;
+  }
+}
 .reader-missing { padding: 48px 24px; }
 .reader-preview { margin-top: 20px; }
 .reader-preview .reader-host {

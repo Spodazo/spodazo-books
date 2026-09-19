@@ -210,6 +210,26 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   background:linear-gradient(90deg,#37270d28,transparent 22%,transparent 72%,#37270d18)!important;
 }
 @media(min-width:701px){
+  html:not(.mobile),
+  html:not(.mobile) body{
+    background:#322616;
+  }
+  html:not(.mobile) main{
+    position:absolute;
+    inset:20px;
+    width:auto;
+    height:auto;
+    border-radius:18px;
+    overflow:hidden;
+  }
+  html:not(.mobile) .page,
+  html:not(.mobile) .page.leaf-copy{
+    border-radius:18px;
+  }
+  html:not(.mobile) main:before,
+  html:not(.mobile) main:after{
+    border-radius:18px;
+  }
   html:not(.mobile) .page:not(.title-page):not(.cover-plate):not(.facsimile)>img{
     align-self:stretch;
   }
