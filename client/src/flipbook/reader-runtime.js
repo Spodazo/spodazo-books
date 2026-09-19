@@ -107,7 +107,7 @@ function animateLeaf(leaf,forward,done){
   leaf.addEventListener('transitionend',function(e){if(e.target===leaf&&e.propertyName==='transform')finish();});
   requestAnimationFrame(function(){requestAnimationFrame(function(){leaf.style.transition='transform 900ms cubic-bezier(.3,.05,.2,1)';leaf.style.transform=forward?'rotateY(-180deg)':'rotateY(0deg)';timer=setTimeout(finish,1100);});});
 }
-function show(n){if(busy||n<0)return;if(n>=pages.length)n=0;if(n===index)return;var old=pages[index],next=pages[n];if(specialPage(old)||specialPage(next)){index=n;status();return;}busy=true;var forward=n>index;next.classList.add('current');var layer=document.createElement('div');layer.setAttribute('aria-hidden','true');
+function show(n){if(busy||n<0)return;if(n>=pages.length)n=0;if(n===index)return;var old=pages[index],next=pages[n];if(specialPage(old)||specialPage(next)){index=n;status();return;}busy=true;var forward=n>index;var layer=document.createElement('div');layer.setAttribute('aria-hidden','true');
 if(mobile){
   layer.className='flip-layer mobile-flip';
   var under=document.createElement('div');under.className='mobile-under';under.appendChild(copy(next));layer.appendChild(under);
@@ -115,12 +115,14 @@ if(mobile){
   var mfront=document.createElement('div'),mback=document.createElement('div');mfront.className='mobile-leaf-face';mback.className='mobile-leaf-face mobile-leaf-back';
   mfront.appendChild(copy(forward?old:next));mback.appendChild(copy(forward?next:old));
   mleaf.appendChild(mfront);mleaf.appendChild(mback);layer.appendChild(mleaf);book.appendChild(layer);
+  next.classList.add('current');
   animateLeaf(mleaf,forward,finishFlip(layer,n));
   return;
 }
 layer.className='flip-layer';
 var underLeft=document.createElement('div'),underRight=document.createElement('div');underLeft.className='fixed-half left-half';underRight.className='fixed-half right-half';underLeft.appendChild(copy(forward?old:next));underRight.appendChild(copy(forward?next:old));layer.appendChild(underLeft);layer.appendChild(underRight);
 var leaf=document.createElement('div');leaf.className='leaf';var front=document.createElement('div'),back=document.createElement('div');front.className='leaf-face leaf-front';back.className='leaf-face leaf-back';front.appendChild(copy(forward?old:next));back.appendChild(copy(forward?next:old));leaf.appendChild(front);leaf.appendChild(back);layer.appendChild(leaf);book.appendChild(layer);
+next.classList.add('current');
 animateLeaf(leaf,forward,finishFlip(layer,n));
 }
 function direction(target){var z=target.closest('[data-dir]');return z?Number(z.getAttribute('data-dir')):0;}
