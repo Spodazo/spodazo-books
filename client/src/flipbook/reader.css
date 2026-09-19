@@ -254,6 +254,20 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   -webkit-text-fill-color:#fff!important;
   text-shadow:0 1px 2px rgba(0,0,0,.45);
 }
+.mobile .page:not(.title-page):not(.end-page) p{
+  font-size:clamp(21px,3dvh,26px);
+  line-height:1.25;
+}
+.mobile .page:not(.title-page):not(.end-page) section,
+.mobile .leaf-copy:not(.title-page):not(.end-page) section{
+  max-height:44%!important;
+}
+.mobile .page:not(.title-page):not(.cover-plate):not(.facsimile):not(.end-page)>img,
+.mobile .leaf-copy:not(.title-page):not(.end-page)>img{
+  top:-10%;
+  bottom:auto;
+  height:110%;
+}
 @media(max-width:700px),(pointer:coarse) and (max-width:1100px){
   .page:not(.title-page) section,
   .page.top-text section,
@@ -262,6 +276,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     top:auto!important;
     bottom:5px!important;
     background:rgba(28,42,32,.62)!important;
+    max-height:44%!important;
   }
   .page:not(.title-page) p,
   .page:not(.title-page) h1,
@@ -269,6 +284,18 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     color:#fff!important;
     -webkit-text-fill-color:#fff!important;
     text-shadow:0 1px 2px rgba(0,0,0,.45);
+  }
+  .page:not(.title-page):not(.end-page) p,
+  .mobile .page:not(.title-page):not(.end-page) p{
+    font-size:clamp(21px,3dvh,26px);
+    line-height:1.25;
+  }
+  .page:not(.title-page):not(.cover-plate):not(.facsimile):not(.end-page)>img,
+  .mobile .page:not(.title-page):not(.cover-plate):not(.facsimile):not(.end-page)>img,
+  .leaf-copy:not(.title-page):not(.end-page)>img{
+    top:-10%;
+    bottom:auto;
+    height:110%;
   }
 }
 .leaf-face:after{
