@@ -8,6 +8,19 @@ function coverSrc(book, baseUrl) {
   return cover ? esc(safeURL(cover, baseUrl)) : '';
 }
 
+function titleHtml(title) {
+  const words = String(title || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return "";
+  const lines = [];
+  for (let i = 0; i < words.length; i += 2) {
+    lines.push(`<span>${esc(words.slice(i, i + 2).join(" "))}</span>`);
+  }
+  return lines.join("");
+}
+
 function subtitleHtml(tagline) {
   return String(tagline || "")
     .split(/\./)
@@ -15,6 +28,10 @@ function subtitleHtml(tagline) {
     .filter(Boolean)
     .map((line) => `<p class="title-sub">${esc(line)}</p>`)
     .join("");
+}
+
+function adminLoginHtml() {
+  return `<a class="admin-login" href="/admin" target="_top" aria-label="Admin login" title="Admin login"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8 0V7a3 3 0 0 1 6 0v2H9zm3 5.2a1.8 1.8 0 0 1 .8 3.4V19h-1.6v-1.4a1.8 1.8 0 0 1 .8-3.4z"/></svg></a>`;
 }
 
 function storyBody(paragraphs) {
@@ -42,7 +59,7 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
 
 function titlePageHtml(book, baseUrl, libraryUrl) {
   const src = coverSrc(book, baseUrl);
-  return `<article class="page title-page current" data-source="title" aria-label="Title page"><a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a><div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${esc(book.title||'')}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div><div id="hint" class="hint" role="status"><span class="hint-desktop">Tap left or right to turn the page</span><span class="hint-mobile">Swipe left to turn the page. Swipe right to go back</span></div></section><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
+  return `<article class="page title-page current" data-source="title" aria-label="Title page"><a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>${adminLoginHtml()}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div><div id="hint" class="hint" role="status"><span class="hint-desktop">Tap left or right to turn the page</span><span class="hint-mobile">Swipe left to turn the page. Swipe right to go back</span></div></section><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */

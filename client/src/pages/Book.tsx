@@ -59,10 +59,5 @@ export default function BookPage() {
     );
   }
 
-  return (
-    <>
-      <AdminLoginLink />
-      <div id="reader" ref={hostRef} className="reader-host" />
-    </>
-  );
+  return <div id="reader" ref={hostRef} className="reader-host" />;
 }
