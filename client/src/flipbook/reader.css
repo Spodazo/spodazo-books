@@ -199,12 +199,33 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   box-shadow:0 2px 10px #0001!important;
 }
 
+.page:not(.title-page) section,
+.mobile .page:not(.title-page) section,
 .leaf-copy section,
 .leaf-face section,
 .mobile-leaf-face section{
   backdrop-filter:none!important;
   -webkit-backdrop-filter:none!important;
-  background:rgba(247,233,191,.38)!important;
+  background:rgba(247,233,191,.36)!important;
+}
+.leaf-copy section,
+.leaf-face section,
+.mobile-under section,
+.mobile-leaf-face section{
+  visibility:hidden!important;
+}
+.mobile .page.top-text section,
+.mobile .page.top-text.continuation section{
+  top:auto!important;
+  bottom:max(12px,env(safe-area-inset-bottom))!important;
+}
+@media(max-width:700px),(pointer:coarse) and (max-width:1100px){
+  .page.top-text section,
+  .page.top-text.continuation section,
+  .mobile .page.top-text section{
+    top:auto!important;
+    bottom:max(12px,env(safe-area-inset-bottom))!important;
+  }
 }
 .leaf-face:after{
   background:linear-gradient(90deg,#37270d28,transparent 22%,transparent 72%,#37270d18)!important;

@@ -42,7 +42,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href}
   const articles=titlePageHtml(book,baseUrl,libraryUrl)+storyPages.map((p,i)=>{
     const coverOnly=!skipCover&&i===0;
     const fallback=p.kind==='facsimile'||coverOnly;
-    const classes=`page${fallback?' facsimile':''}${coverOnly?' cover-plate':''}${!coverOnly&&p.position==='top'?' top-text':''}`;
+    const classes=`page${fallback?' facsimile':''}${coverOnly?' cover-plate':''}`;
     const focal=/^\d{1,3}% \d{1,3}%$/.test(p.focalPoint||'')?p.focalPoint:'50% 50%';
     const image=safeURL(coverOnly?(book.coverUrl||p.fullPageUrl||p.imageUrl):fallback?p.fullPageUrl||p.imageUrl:p.imageUrl,baseUrl);
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
