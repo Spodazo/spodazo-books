@@ -240,12 +240,6 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 .mobile .leaf-copy:not(.title-page) section{
   background:rgba(28,42,32,.62)!important;
 }
-.leaf-copy section,
-.leaf-face section,
-.mobile-under section,
-.mobile-leaf-face section{
-  visibility:hidden!important;
-}
 .mobile .page:not(.title-page) section,
 .mobile .page.top-text section,
 .mobile .page.continuation section{
