@@ -35,7 +35,7 @@ function adminLoginHtml() {
 }
 
 function pageCurlHtml() {
-  return `<svg class="page-curl" viewBox="0 0 160 160" aria-hidden="true"><defs><linearGradient id="pc-fill" x1="12%" y1="6%" x2="92%" y2="88%"><stop offset="0%" stop-color="#f8f1e8"/><stop offset="42%" stop-color="#edd4c8"/><stop offset="100%" stop-color="#d7b3a7"/></linearGradient><filter id="pc-sh" x="-40%" y="-30%" width="180%" height="180%"><feDropShadow dx="-4" dy="7" stdDeviation="4.5" flood-color="#322616" flood-opacity=".2"/></filter></defs><path filter="url(#pc-sh)" fill="url(#pc-fill)" d="M150 7c-8 2-70 42-118 108-8 10-4 22 12 18 50-38 96-80 114-96 6-10 6-22-2-26-2-2-4-4-6-4z"/></svg>`;
+  return `<svg class="page-curl" viewBox="0 0 160 140" aria-hidden="true"><defs><linearGradient id="pc-fill" x1="100%" y1="0%" x2="10%" y2="90%"><stop offset="0%" stop-color="#f7efe6"/><stop offset="48%" stop-color="#e8cfc2"/><stop offset="100%" stop-color="#d4b0a4"/></linearGradient><filter id="pc-sh" x="-35%" y="-25%" width="170%" height="170%"><feDropShadow dx="-5" dy="8" stdDeviation="5" flood-color="#322616" flood-opacity=".2"/></filter></defs><path filter="url(#pc-sh)" fill="url(#pc-fill)" d="M155 6Q78 68 18 124L155 86Z"/></svg>`;
 }
 
 function storyBody(paragraphs) {
@@ -65,7 +65,7 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   const src = coverSrc(book, baseUrl);
   const character = characterSrc(book, baseUrl);
   const left = character
-    ? `<div class="end-cover-wrap end-character-wrap"><img class="end-character" src="${character}" alt=""></div>`
+    ? `<div class="end-cover-wrap end-character-wrap"><img class="end-character" src="${character}" alt="" width="560" height="860"></div>`
     : (src ? `<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>` : "");
   return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }

@@ -666,7 +666,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     margin:0 0 28px;
   }
   .page.end-page .end-meta,
-  .mobile .page.end-page .end-meta{
+  .mobile .page.end-page .end-meta,
+  .leaf-copy.end-page .end-meta{
     height:auto!important;
     padding:0 24px!important;
   }
@@ -705,8 +706,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     position:absolute;
     top:20px;
     right:20px;
-    width:108px;
-    height:108px;
+    width:120px;
+    height:105px;
     z-index:41;
     pointer-events:none;
     overflow:visible;
