@@ -718,10 +718,10 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 @media(max-width:700px),(pointer:coarse) and (max-width:1100px){
   .page-curl-flap{
-    top:14px;
-    right:14px;
-    width:46px;
-    height:46px;
+    top:0;
+    right:0;
+    width:50px;
+    height:50px;
   }
   .mobile .page.has-curl,
   .page.has-curl{
