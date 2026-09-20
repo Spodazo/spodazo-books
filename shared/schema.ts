@@ -14,6 +14,9 @@ export const books = pgTable("books", {
   sortOrder: integer("sort_order").notNull().default(0),
   hidden: boolean("hidden").notNull().default(false),
   published: boolean("published").notNull().default(true),
+  audience: text("audience").notNull().default("children"),
+  pageTemplate: text("page_template").notNull().default("one-up"),
+  characterRender: text("character_render").notNull().default("scene"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

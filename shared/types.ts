@@ -1,3 +1,7 @@
+export type BookAudience = "children" | "adults";
+export type PageTemplate = "one-up" | "two-up" | "three-up";
+export type CharacterRender = "scene" | "cutout";
+
 export type BookPage = {
   id: string;
   sourcePage: number;
@@ -26,6 +30,9 @@ export type Book = {
   sortOrder: number;
   hidden: boolean;
   published: boolean;
+  audience: BookAudience;
+  pageTemplate: PageTemplate;
+  characterRender: CharacterRender;
   pages: BookPage[];
   createdAt?: string;
   updatedAt?: string;
@@ -51,6 +58,7 @@ export type BookListItem = {
   sortOrder: number;
   hidden: boolean;
   published: boolean;
+  audience: BookAudience;
   pageCount: number;
 };
 

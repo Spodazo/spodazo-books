@@ -24,6 +24,13 @@ import {
 } from "./media";
 import { imagesDir, pdfsDir, uniqueFileName } from "./paths";
 import { getStore } from "./storage";
+import {
+  generateAiImage,
+  generateAiOutline,
+  openaiConfigured,
+  parseImageRequest,
+  parseOutlineRequest,
+} from "./ai-book";
 
 function isPdfUpload(file: { fieldname: string; mimetype: string; originalname: string }): boolean {
   return file.fieldname === "pdf" || file.mimetype === "application/pdf" || /\.pdf$/i.test(file.originalname);
@@ -338,6 +345,34 @@ export function registerRoutes(app: Express): void {
     res.json({ ok: true });
   });
 
+  app.post("/api/admin/ai-books/outline", requireAdmin, async (req, res) => {
+    if (!openaiConfigured()) {
+      res.status(503).json({ error: "OPENAI_API_KEY is not set" });
+      return;
+    }
+    try {
+      const input = parseOutlineRequest(req.body);
+      res.json(await generateAiOutline(input));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not write the story";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.post("/api/admin/ai-books/image", requireAdmin, async (req, res) => {
+    if (!openaiConfigured()) {
+      res.status(503).json({ error: "OPENAI_API_KEY is not set" });
+      return;
+    }
+    try {
+      const input = parseImageRequest(req.body);
+      const generated = await generateAiImage(input);
+      res.json({ filename: generated.filename, url: imageUrl(generated.filename) });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Could not draw that picture" });
+    }
+  });
+
   app.post("/api/admin/book-assets", requireAdmin, upload.single("file"), async (req, res) => {
     const file = req.file;
     if (!file) {
@@ -375,6 +410,9 @@ export function registerRoutes(app: Express): void {
         color: String(body.color || ""),
         hidden: body.hidden === true || body.hidden === "true",
         published: body.published !== "false" && body.published !== false,
+        audience: String(body.audience || ""),
+        pageTemplate: String(body.pageTemplate || ""),
+        characterRender: String(body.characterRender || ""),
       });
       res.json(book);
     } catch (err) {
@@ -408,6 +446,9 @@ export function registerRoutes(app: Express): void {
         color: body.color !== undefined ? String(body.color) : undefined,
         hidden: body.hidden !== undefined ? body.hidden === true || body.hidden === "true" : undefined,
         published: body.published !== undefined ? body.published !== "false" && body.published !== false : undefined,
+        audience: body.audience !== undefined ? String(body.audience) : undefined,
+        pageTemplate: body.pageTemplate !== undefined ? String(body.pageTemplate) : undefined,
+        characterRender: body.characterRender !== undefined ? String(body.characterRender) : undefined,
       });
       res.json(updated);
     } catch (err) {

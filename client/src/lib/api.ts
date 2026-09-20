@@ -94,6 +94,48 @@ export function uploadBookAsset(blob: Blob, filename: string): Promise<{ url: st
   );
 }
 
+export type AiOutline = {
+  title: string;
+  tagline: string;
+  author: string;
+  date: string;
+  artStyle: string;
+  characterDescription: string;
+  pages: Array<{ title: string; paragraphs: string[]; illustrationPrompt: string }>;
+};
+
+export function generateAiOutline(body: {
+  prompt: string;
+  audience: "children" | "adults";
+  pageCount: number;
+  style?: string;
+  characters?: Array<{ name: string; description?: string }>;
+}): Promise<AiOutline> {
+  return fetch("/api/admin/ai-books/outline", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(body),
+  }).then((res) => parse<AiOutline>(res));
+}
+
+export function generateAiImage(body: {
+  kind: "caricature" | "character" | "cover" | "page";
+  audience: "children" | "adults";
+  prompt?: string;
+  artStyle?: string;
+  name?: string;
+  referenceFiles?: string[];
+  filename?: string;
+}): Promise<{ url: string; filename: string }> {
+  return fetch("/api/admin/ai-books/image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(body),
+  }).then((res) => parse<{ url: string; filename: string }>(res));
+}
+
 export function createBook(body: Record<string, unknown>): Promise<PublicBook> {
   return fetch("/api/admin/books", {
     method: "POST",

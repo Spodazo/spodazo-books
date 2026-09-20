@@ -6,8 +6,11 @@ import { books, curator, playerSetup } from "../shared/schema";
 import {
   DEFAULT_CURATOR,
   DEFAULT_PLAYER_SETUP,
+  normalizeAudience,
   normalizeBookPage,
+  normalizeCharacterRender,
   normalizeCurator,
+  normalizePageTemplate,
   normalizePlayerSetup,
   pagesToJson,
   parsePagesJson,
@@ -32,6 +35,9 @@ export type BookInput = {
   sortOrder?: number;
   hidden?: boolean;
   published?: boolean;
+  audience?: string;
+  pageTemplate?: string;
+  characterRender?: string;
 };
 
 export interface BookStore {
@@ -93,6 +99,7 @@ function toListItem(book: Book): BookListItem {
     sortOrder: publicBook.sortOrder,
     hidden: publicBook.hidden,
     published: publicBook.published,
+    audience: publicBook.audience,
     pageCount: publicBook.pageCount,
   };
 }
@@ -139,6 +146,9 @@ function recordBook(row: {
   sortOrder?: number | null;
   hidden?: boolean | null;
   published?: boolean | null;
+  audience?: string | null;
+  pageTemplate?: string | null;
+  characterRender?: string | null;
   createdAt?: Date | string | null;
   updatedAt?: Date | string | null;
 }): Book {
@@ -156,6 +166,9 @@ function recordBook(row: {
     sortOrder: row.sortOrder || 0,
     hidden: Boolean(row.hidden),
     published: row.published !== false,
+    audience: normalizeAudience(row.audience),
+    pageTemplate: normalizePageTemplate(row.pageTemplate),
+    characterRender: normalizeCharacterRender(row.characterRender),
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : undefined,
     updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : undefined,
   };
@@ -222,6 +235,9 @@ export class JsonBookStore implements BookStore {
       sortOrder: input.sortOrder ?? catalog.books.length + 1,
       hidden: Boolean(input.hidden),
       published: input.published !== false,
+      audience: normalizeAudience(input.audience),
+      pageTemplate: normalizePageTemplate(input.pageTemplate),
+      characterRender: normalizeCharacterRender(input.characterRender),
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
@@ -246,6 +262,9 @@ export class JsonBookStore implements BookStore {
     if (input.sortOrder !== undefined) book.sortOrder = input.sortOrder;
     if (input.hidden !== undefined) book.hidden = input.hidden;
     if (input.published !== undefined) book.published = input.published;
+    if (input.audience !== undefined) book.audience = normalizeAudience(input.audience);
+    if (input.pageTemplate !== undefined) book.pageTemplate = normalizePageTemplate(input.pageTemplate);
+    if (input.characterRender !== undefined) book.characterRender = normalizeCharacterRender(input.characterRender);
     book.updatedAt = nowIso();
     this.write(catalog);
     return hydrateBook(book);
@@ -358,6 +377,9 @@ export class PostgresBookStore implements BookStore {
     }
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS author TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS book_date TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'children'`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_template TEXT NOT NULL DEFAULT 'one-up'`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS character_render TEXT NOT NULL DEFAULT 'scene'`);
   }
 
   async listBooks(): Promise<BookListItem[]> {
@@ -393,6 +415,9 @@ export class PostgresBookStore implements BookStore {
         sortOrder: input.sortOrder ?? 0,
         hidden: Boolean(input.hidden),
         published: input.published !== false,
+        audience: normalizeAudience(input.audience),
+        pageTemplate: normalizePageTemplate(input.pageTemplate),
+        characterRender: normalizeCharacterRender(input.characterRender),
       })
       .returning();
     return hydrateBook(recordBook(row));
@@ -412,6 +437,9 @@ export class PostgresBookStore implements BookStore {
     if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
     if (input.hidden !== undefined) patch.hidden = input.hidden;
     if (input.published !== undefined) patch.published = input.published;
+    if (input.audience !== undefined) patch.audience = normalizeAudience(input.audience);
+    if (input.pageTemplate !== undefined) patch.pageTemplate = normalizePageTemplate(input.pageTemplate);
+    if (input.characterRender !== undefined) patch.characterRender = normalizeCharacterRender(input.characterRender);
     const [row] = await this.db.update(books).set(patch).where(eq(books.id, id)).returning();
     return row ? hydrateBook(recordBook(row)) : null;
   }

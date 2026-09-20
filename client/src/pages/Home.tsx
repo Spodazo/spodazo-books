@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import AdminLoginLink from "../components/AdminLoginLink";
-import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
+import { DEFAULT_PLAYER_SETUP, groupBooksByAudience } from "@shared/seed-data";
 import type { BookListItem, PlayerSetup } from "@shared/types";
 import { loadHomeBooks, loadHomeSetup, readCachedBooks, readCachedSetup } from "../lib/homeCache";
 import { applyPalette } from "../lib/palette";
@@ -19,6 +19,8 @@ export default function HomePage() {
     void loadHomeBooks().then(setBooks);
   }, []);
 
+  const { children, adults } = groupBooksByAudience(books);
+
   return (
     <main className="library">
       <AdminLoginLink />
@@ -26,7 +28,26 @@ export default function HomePage() {
         {setup.logoUrl ? <img className="library-logo" src={setup.logoUrl} alt={setup.appName} /> : <small>SPODAZO</small>}
         {setup.theme ? <p className="library-theme">{setup.theme}</p> : null}
       </header>
-      <section className="library-grid">
+      <LibrarySection title="Children’s books" books={children} />
+      <LibrarySection title="Books for adults" books={adults} />
+      {!books.length ? <p className="empty">Books will appear here after they are published in Admin.</p> : null}
+      {setup.logoUrl || setup.credits || setup.copyright ? (
+        <footer className="library-legal">
+          {setup.logoUrl ? <img className="library-legal-logo" src={setup.logoUrl} alt="" /> : null}
+          {setup.credits ? <p className="library-credits">{setup.credits}</p> : null}
+          {setup.copyright ? <p className="library-copyright">{setup.copyright}</p> : null}
+        </footer>
+      ) : null}
+    </main>
+  );
+}
+
+function LibrarySection({ title, books }: { title: string; books: BookListItem[] }) {
+  if (!books.length) return null;
+  return (
+    <section className="library-section">
+      <h2 className="library-section-title">{title}</h2>
+      <div className="library-grid">
         {books.map((book) => (
           <article key={book.id} className="book-card">
             <Link href={`/${book.slug}`} className="cover-link" aria-label={`Read ${book.title}`}>
@@ -41,15 +62,7 @@ export default function HomePage() {
             </div>
           </article>
         ))}
-        {!books.length ? <p className="empty">Books will appear here after they are published in Admin.</p> : null}
-      </section>
-      {setup.logoUrl || setup.credits || setup.copyright ? (
-        <footer className="library-legal">
-          {setup.logoUrl ? <img className="library-legal-logo" src={setup.logoUrl} alt="" /> : null}
-          {setup.credits ? <p className="library-credits">{setup.credits}</p> : null}
-          {setup.copyright ? <p className="library-copyright">{setup.copyright}</p> : null}
-        </footer>
-      ) : null}
-    </main>
+      </div>
+    </section>
   );
 }

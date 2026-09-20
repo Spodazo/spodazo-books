@@ -1,6 +1,6 @@
 # Spodazo Books
 
-Children’s flipbook library. Public site has no login. `/admin` is password-protected so you can add books from PDFs, covers, and site colors.
+Flipbook library for children and adults. Public site has no login. `/admin` is password-protected so you can add books from PDFs, AI prompts, covers, and site colors.
 
 Railway URL: https://spodazo-books-production.up.railway.app
 
@@ -22,9 +22,12 @@ Opens on port 3001. Catalog is stored in `.books-data/catalog.json` until `DATAB
 1. Open `/admin`
 2. Sign in with `ADMIN_PASSWORD`
 3. Site Setup: logo, favicon, app name, colors
-4. Add book from PDF, review extracted pages, save
+4. Add a book from PDF, or **Create AI book** from a prompt
+5. For AI books: choose Children or Adults, optionally upload photos or caricatures, review the wording, then save (starts hidden)
 
 Willow-style PDFs (art left, story text right) become illustration + overlay. Other layouts flip as full pages.
+
+AI books need `OPENAI_API_KEY`. GPT writes the story; GPT Image draws caricatures and pages. GPT Image often requires OpenAI organization verification. Optional: `OPENAI_STORY_MODEL`, `OPENAI_IMAGE_MODEL`, `OPENAI_IMAGE_QUALITY`.
 
 ## Railway
 
@@ -40,6 +43,10 @@ ADMIN_PASSWORD=...
 SESSION_SECRET=...
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 BOOKS_DATA_DIR=/data/books
+OPENAI_API_KEY=...
+# OPENAI_STORY_MODEL=gpt-4o
+# OPENAI_IMAGE_MODEL=gpt-image-1.5
+# OPENAI_IMAGE_QUALITY=medium
 ```
 
 5. Health check: `GET /api/version`

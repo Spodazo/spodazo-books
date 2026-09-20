@@ -133,6 +133,12 @@ button, input, select, textarea { font: inherit; }
   letter-spacing: 3px;
 }
 .library-theme { color: var(--text2); margin: 8px 0 0; }
+.library-section { margin-bottom: 40px; }
+.library-section-title {
+  margin: 0 0 18px;
+  font-size: 28px;
+  text-align: center;
+}
 .library-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -343,6 +349,41 @@ button, input, select, textarea { font: inherit; }
   padding: 20px;
 }
 .admin-dialog-head { display: flex; justify-content: space-between; align-items: center; }
+.ai-character-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.ai-sheet-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+.ai-sheet {
+  margin: 0;
+  width: 92px;
+}
+.ai-sheet img {
+  width: 92px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--portrait);
+}
+.ai-sheet figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.ai-page-preview {
+  display: block;
+  width: min(220px, 100%);
+  height: auto;
+  border-radius: 8px;
+  margin: 8px 0 12px;
+  border: 1px solid var(--border);
+}
 
 @media (min-width: 701px) {
   .library-grid {

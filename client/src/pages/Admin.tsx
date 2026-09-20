@@ -8,6 +8,8 @@ import {
   adminMe,
   createBook,
   deleteBook,
+  generateAiImage,
+  generateAiOutline,
   fetchBook,
   fetchBooks,
   fetchCurator,
@@ -42,6 +44,7 @@ export default function AdminPage() {
   const [curatorRecover, setCuratorRecover] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   async function refresh() {
     const list = await fetchBooks();
@@ -185,7 +188,10 @@ export default function AdminPage() {
       <section className="card">
         <div className="admin-top">
           <h2>Books</h2>
-          <button type="button" onClick={() => setImportOpen(true)}>Add book from PDF</button>
+          <div className="admin-top-actions">
+            <button type="button" onClick={() => setAiOpen(true)}>Create AI book</button>
+            <button type="button" className="ghost" onClick={() => setImportOpen(true)}>Add book from PDF</button>
+          </div>
         </div>
         <div className="album-cover-row">
           {books.map((book) => (
@@ -199,6 +205,7 @@ export default function AdminPage() {
                 {book.hidden ? <span className="hidden-badge">Hidden</span> : null}
               </button>
               <p>{book.title}</p>
+              <p className="hint">{book.audience === "adults" ? "Adults" : "Children"}</p>
             </div>
           ))}
         </div>
@@ -227,6 +234,19 @@ export default function AdminPage() {
               setSelected(book);
             }}
             onCancel={() => setImportOpen(false)}
+          />
+        </AdminDialog>
+      ) : null}
+
+      {aiOpen ? (
+        <AdminDialog title="Create AI book" onClose={() => setAiOpen(false)}>
+          <CreateAiBookForm
+            onSaved={async (book) => {
+              setAiOpen(false);
+              setBooks(await fetchBooks());
+              setSelected(book);
+            }}
+            onCancel={() => setAiOpen(false)}
           />
         </AdminDialog>
       ) : null}
@@ -372,6 +392,316 @@ function ImportBookForm({
   );
 }
 
+type AiCharacterDraft = {
+  id: string;
+  name: string;
+  source: "photo" | "caricature";
+  file: File | null;
+};
+
+type AiDraftPage = {
+  id: string;
+  kind: BookPage["kind"];
+  title: string;
+  paragraphs: string[];
+  imageAsset: string;
+  imageUrl: string;
+  position: BookPage["position"];
+  illustrationPrompt: string;
+};
+
+function newCharacterDraft(): AiCharacterDraft {
+  return { id: crypto.randomUUID(), name: "", source: "photo", file: null };
+}
+
+function CreateAiBookForm({
+  onSaved,
+  onCancel,
+}: {
+  onSaved: (book: PublicBook) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [audience, setAudience] = useState<PublicBook["audience"]>("children");
+  const [prompt, setPrompt] = useState("");
+  const [pageCount, setPageCount] = useState(8);
+  const [style, setStyle] = useState("");
+  const [characters, setCharacters] = useState<AiCharacterDraft[]>([newCharacterDraft()]);
+  const [title, setTitle] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [author, setAuthor] = useState("");
+  const [date, setDate] = useState("");
+  const [sheets, setSheets] = useState<Array<{ name: string; url: string }>>([]);
+  const [pages, setPages] = useState<AiDraftPage[]>([]);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const cancelled = useRef(false);
+
+  useEffect(() => () => {
+    cancelled.current = true;
+  }, []);
+
+  const page = pages[pageIndex];
+
+  async function generate() {
+    cancelled.current = false;
+    setBusy(true);
+    setError("");
+    setPages([]);
+    try {
+      const sheetsNext: Array<{ name: string; filename: string; url: string }> = [];
+      for (const [index, person] of characters.entries()) {
+        if (cancelled.current) return;
+        if (!person.file) continue;
+        const label = person.name.trim() || `Character ${index + 1}`;
+        setStatus(person.source === "photo" ? `Turning ${label} into a caricature…` : `Uploading ${label}…`);
+        const uploaded = await uploadBookAsset(person.file, person.file.name);
+        if (person.source === "photo") {
+          const drawn = await generateAiImage({
+            kind: "caricature",
+            audience,
+            name: label,
+            referenceFiles: [uploaded.filename],
+          });
+          sheetsNext.push({ name: label, filename: drawn.filename, url: drawn.url });
+        } else {
+          sheetsNext.push({ name: label, filename: uploaded.filename, url: uploaded.url });
+        }
+      }
+      if (cancelled.current) return;
+      setStatus("Writing the story…");
+      const outline = await generateAiOutline({
+        prompt,
+        audience,
+        pageCount,
+        style,
+        characters: sheetsNext.map((item) => ({ name: item.name })),
+      });
+      if (cancelled.current) return;
+      if (!sheetsNext.length) {
+        setStatus("Drawing the characters…");
+        const invented = await generateAiImage({
+          kind: "character",
+          audience,
+          prompt: outline.characterDescription,
+          artStyle: outline.artStyle || style,
+          name: "cast",
+        });
+        sheetsNext.push({ name: "Cast", filename: invented.filename, url: invented.url });
+      }
+      const references = sheetsNext.map((item) => item.filename);
+      setStatus("Drawing the cover…");
+      const cover = await generateAiImage({
+        kind: "cover",
+        audience,
+        prompt: `${outline.title}. ${outline.tagline}. ${outline.characterDescription}`,
+        artStyle: outline.artStyle || style,
+        referenceFiles: references,
+      });
+      const nextPages: AiDraftPage[] = [
+        {
+          id: "page-1",
+          kind: "facsimile",
+          title: outline.title,
+          paragraphs: [],
+          imageAsset: cover.filename,
+          imageUrl: cover.url,
+          position: "bottom",
+          illustrationPrompt: outline.title,
+        },
+      ];
+      for (const [index, item] of outline.pages.entries()) {
+        if (cancelled.current) return;
+        setStatus(`Drawing page ${index + 1} of ${outline.pages.length}…`);
+        const picture = await generateAiImage({
+          kind: "page",
+          audience,
+          prompt: item.illustrationPrompt,
+          artStyle: outline.artStyle || style,
+          name: String(index + 1),
+          referenceFiles: references,
+        });
+        nextPages.push({
+          id: `page-${index + 2}`,
+          kind: "story",
+          title: item.title,
+          paragraphs: item.paragraphs,
+          imageAsset: picture.filename,
+          imageUrl: picture.url,
+          position: "bottom",
+          illustrationPrompt: item.illustrationPrompt,
+        });
+      }
+      if (cancelled.current) return;
+      setTitle(outline.title);
+      setTagline(outline.tagline);
+      setAuthor(outline.author);
+      setDate(outline.date);
+      setSheets(sheetsNext.map((item) => ({ name: item.name, url: item.url })));
+      setPages(nextPages);
+      setPageIndex(0);
+      setStatus("Review the wording, then save. The book stays hidden until you unhide it.");
+    } catch (err) {
+      if (!cancelled.current) setError(err instanceof Error ? err.message : "Could not create the book");
+    } finally {
+      if (!cancelled.current) setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <label>Audience</label>
+      <select value={audience} disabled={busy} onChange={(event) => setAudience(event.target.value as PublicBook["audience"])}>
+        <option value="children">Children</option>
+        <option value="adults">Adults</option>
+      </select>
+      <label>Story prompt</label>
+      <textarea value={prompt} disabled={busy} onChange={(event) => setPrompt(event.target.value)} placeholder="A shy fox finds a lantern in the woods…" />
+      <label>Story pages</label>
+      <input type="number" min={4} max={12} value={pageCount} disabled={busy} onChange={(event) => setPageCount(Number(event.target.value) || 8)} />
+      <label>Art style (optional)</label>
+      <input value={style} disabled={busy} onChange={(event) => setStyle(event.target.value)} placeholder="Watercolour, evening light" />
+      <label>Characters</label>
+      <p className="hint">Upload photos to turn into caricatures, or caricatures to use as-is. Leave empty to invent the cast.</p>
+      {characters.map((person, index) => (
+        <div key={person.id} className="ai-character-row">
+          <input value={person.name} disabled={busy} placeholder={`Name ${index + 1}`} onChange={(event) => {
+            const next = [...characters];
+            next[index] = { ...person, name: event.target.value };
+            setCharacters(next);
+          }} />
+          <select value={person.source} disabled={busy} onChange={(event) => {
+            const next = [...characters];
+            next[index] = { ...person, source: event.target.value as AiCharacterDraft["source"] };
+            setCharacters(next);
+          }}>
+            <option value="photo">Photo → caricature</option>
+            <option value="caricature">Caricature</option>
+          </select>
+          <input type="file" accept="image/*" disabled={busy} onChange={(event) => {
+            const next = [...characters];
+            next[index] = { ...person, file: event.currentTarget.files?.[0] || null };
+            setCharacters(next);
+          }} />
+          {characters.length > 1 ? (
+            <button type="button" className="ghost" disabled={busy} onClick={() => setCharacters(characters.filter((item) => item.id !== person.id))}>
+              Remove
+            </button>
+          ) : null}
+        </div>
+      ))}
+      <button type="button" className="ghost" disabled={busy} onClick={() => setCharacters([...characters, newCharacterDraft()])}>
+        Add character
+      </button>
+      <p className="hint">{status || "Uses your OpenAI key. One story, one caricature per photo, then a cover and one picture per story page. Keep this tab open."}</p>
+      {sheets.length ? (
+        <div className="ai-sheet-row">
+          {sheets.map((sheet) => (
+            <figure key={sheet.url} className="ai-sheet">
+              <img src={sheet.url} alt="" />
+              <figcaption>{sheet.name}</figcaption>
+            </figure>
+          ))}
+        </div>
+      ) : null}
+      {page ? (
+        <>
+          <label>Book title</label>
+          <input value={title} onChange={(event) => setTitle(event.target.value)} />
+          <label>Subtitle</label>
+          <input value={tagline} onChange={(event) => setTagline(event.target.value)} />
+          <label>Author</label>
+          <input value={author} onChange={(event) => setAuthor(event.target.value)} />
+          <label>Date</label>
+          <input value={date} onChange={(event) => setDate(event.target.value)} />
+          <label>Page</label>
+          <select value={pageIndex} onChange={(event) => setPageIndex(Number(event.target.value))}>
+            {pages.map((item, index) => (
+              <option key={item.id} value={index}>{index + 1}. {item.title}</option>
+            ))}
+          </select>
+          {page.imageUrl ? <img className="ai-page-preview" src={page.imageUrl} alt="" /> : null}
+          <label>Page title</label>
+          <input value={page.title} onChange={(event) => {
+            page.title = event.target.value;
+            setPages([...pages]);
+          }} />
+          {page.kind === "story" ? (
+            <>
+              <label>Story text</label>
+              <textarea value={page.paragraphs.join("\n\n")} onChange={(event) => {
+                page.paragraphs = event.target.value.split(/\n\s*\n/).map((item) => item.trim()).filter(Boolean);
+                setPages([...pages]);
+              }} />
+              <label>Text position</label>
+              <select value={page.position} onChange={(event) => {
+                page.position = event.target.value as BookPage["position"];
+                setPages([...pages]);
+              }}>
+                <option value="bottom">Bottom</option>
+                <option value="top">Top</option>
+              </select>
+            </>
+          ) : (
+            <p className="hint">Cover plate — shown as a full picture with no overlay text.</p>
+          )}
+        </>
+      ) : null}
+      <div className="form-actions">
+        <button type="button" disabled={busy || !prompt.trim()} onClick={() => void generate()}>
+          {busy ? "Creating…" : pages.length ? "Create again" : "Create book"}
+        </button>
+        <button
+          type="button"
+          disabled={!pages.length || busy}
+          onClick={async () => {
+            setBusy(true);
+            setError("");
+            try {
+              const saved = await createBook({
+                title,
+                tagline,
+                author,
+                date,
+                coverUrl: pages[0]?.imageUrl,
+                audience,
+                pageTemplate: "one-up",
+                characterRender: "scene",
+                published: true,
+                hidden: true,
+                pages: pages.map((item, index) => ({
+                  id: item.id,
+                  sourcePage: index + 1,
+                  kind: item.kind,
+                  title: item.title,
+                  paragraphs: item.paragraphs,
+                  imageAsset: item.imageAsset,
+                  fullPageAsset: item.imageAsset,
+                  imageUrl: item.imageUrl,
+                  fullPageUrl: item.imageUrl,
+                  position: item.position,
+                  focalPoint: index === 0 ? "50% 40%" : "50% 50%",
+                  alt: item.title,
+                })),
+              });
+              await onSaved(saved);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Save failed");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Save book
+        </button>
+        <button type="button" className="ghost" onClick={onCancel}>Cancel</button>
+      </div>
+      {error ? <p className="error">{error}</p> : null}
+    </div>
+  );
+}
+
 function BookEditor({
   book,
   onSaved,
@@ -387,6 +717,7 @@ function BookEditor({
   const [date, setDate] = useState(book.date || "");
   const [coverUrl, setCoverUrl] = useState(book.coverUrl);
   const [hidden, setHidden] = useState(book.hidden);
+  const [audience, setAudience] = useState(book.audience || "children");
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -398,6 +729,7 @@ function BookEditor({
     setDate(book.date || "");
     setCoverUrl(book.coverUrl);
     setHidden(book.hidden);
+    setAudience(book.audience || "children");
   }, [book.id]);
 
   useEffect(() => {
@@ -433,6 +765,11 @@ function BookEditor({
       <input value={author} onChange={(event) => setAuthor(event.target.value)} />
       <label>Date</label>
       <input value={date} onChange={(event) => setDate(event.target.value)} placeholder="2026" />
+      <label>Audience</label>
+      <select value={audience} onChange={(event) => setAudience(event.target.value as PublicBook["audience"])}>
+        <option value="children">Children</option>
+        <option value="adults">Adults</option>
+      </select>
       <label>
         <input type="checkbox" checked={hidden} onChange={(event) => setHidden(event.target.checked)} />
         Hide from the public library
@@ -444,7 +781,7 @@ function BookEditor({
           onClick={async () => {
             setError("");
             try {
-              await onSaved(await updateBook(book.id, { title, tagline, author, date, coverUrl, hidden }));
+              await onSaved(await updateBook(book.id, { title, tagline, author, date, coverUrl, hidden, audience }));
             } catch (err) {
               setError(err instanceof Error ? err.message : "Save failed");
             }

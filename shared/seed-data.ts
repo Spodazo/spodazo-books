@@ -1,5 +1,5 @@
 import { DEFAULT_PALETTE_ID, normalizePaletteId } from "./palettes";
-import type { BookPage, Curator, CuratorRecord, PlayerSetup } from "./types";
+import type { BookAudience, BookPage, CharacterRender, Curator, CuratorRecord, PageTemplate, PlayerSetup } from "./types";
 
 export function slugify(value: string): string {
   return value
@@ -8,6 +8,28 @@ export function slugify(value: string): string {
     .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+export function normalizeAudience(raw?: string | null): BookAudience {
+  return raw === "adults" ? "adults" : "children";
+}
+
+export function normalizePageTemplate(raw?: string | null): PageTemplate {
+  return raw === "two-up" || raw === "three-up" ? raw : "one-up";
+}
+
+export function normalizeCharacterRender(raw?: string | null): CharacterRender {
+  return raw === "cutout" ? "cutout" : "scene";
+}
+
+export function groupBooksByAudience<T extends { audience?: string | null }>(books: T[]): { children: T[]; adults: T[] } {
+  const children: T[] = [];
+  const adults: T[] = [];
+  for (const book of books) {
+    if (normalizeAudience(book.audience) === "adults") adults.push(book);
+    else children.push(book);
+  }
+  return { children, adults };
 }
 
 export function uniqueSlug(base: string, used: Set<string>): string {
@@ -67,7 +89,9 @@ export function publicCurator(raw?: Partial<CuratorRecord> | null): Curator {
 
 export function normalizePlayerSetup(raw?: Partial<PlayerSetup> | null): PlayerSetup {
   return {
-    appName: raw?.appName?.trim() || DEFAULT_PLAYER_SETUP.appName,
+    appName: /^spodazo bookings$/i.test(raw?.appName?.trim() || "")
+      ? DEFAULT_PLAYER_SETUP.appName
+      : raw?.appName?.trim() || DEFAULT_PLAYER_SETUP.appName,
     theme: raw?.theme?.trim() || DEFAULT_PLAYER_SETUP.theme,
     credits: raw?.credits?.trim() || DEFAULT_PLAYER_SETUP.credits,
     copyright: raw?.copyright?.trim() || DEFAULT_PLAYER_SETUP.copyright,

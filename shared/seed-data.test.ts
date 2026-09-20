@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeBookPage, parsePagesJson, slugify } from "./seed-data";
+import { groupBooksByAudience, normalizeAudience, normalizeBookPage, parsePagesJson, slugify } from "./seed-data";
 
 test("slugify drops punctuation", () => {
   assert.equal(slugify("Willow’s Big Forest Adventure"), "willows-big-forest-adventure");
@@ -29,4 +29,19 @@ test("parsePagesJson keeps story fields", () => {
 test("normalizeBookPage rejects unsafe focal points", () => {
   const page = normalizeBookPage({ focalPoint: "center" }, 0);
   assert.equal(page.focalPoint, "50% 50%");
+});
+
+test("normalizeAudience defaults missing values to children", () => {
+  assert.equal(normalizeAudience(undefined), "children");
+  assert.equal(normalizeAudience("adults"), "adults");
+});
+
+test("groupBooksByAudience splits the public library", () => {
+  const grouped = groupBooksByAudience([
+    { title: "Willow", audience: "children" },
+    { title: "Memoir", audience: "adults" },
+    { title: "Legacy" },
+  ]);
+  assert.deepEqual(grouped.children.map((book) => book.title), ["Willow", "Legacy"]);
+  assert.deepEqual(grouped.adults.map((book) => book.title), ["Memoir"]);
 });
