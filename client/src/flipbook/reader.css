@@ -716,18 +716,17 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   object-fit:cover;
   object-position:top right;
 }
-.page-curl-peek .curl-peek-page{
-  display:grid!important;
-  position:absolute!important;
-  top:0!important;
-  right:0!important;
-  left:auto!important;
-  bottom:auto!important;
-  inset:auto!important;
+.mobile .page-curl-peek-img{
+  inset:auto;
+  top:0;
+  right:0;
+  left:auto;
+  bottom:auto;
   width:var(--curl-book-w,100vw);
   height:var(--curl-book-h,100dvh);
-  visibility:visible!important;
-  transform:none!important;
+  max-width:none;
+  object-fit:cover;
+  object-position:center center;
 }
 .page-curl-flap{
   z-index:1;

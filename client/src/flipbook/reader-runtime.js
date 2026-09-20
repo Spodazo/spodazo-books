@@ -26,36 +26,57 @@ function pageColor(p){
     return (root.getPropertyValue('--title-bg')||'').trim()||'#f0dfb3';
   return '#efdda6';
 }
+function pageImg(p){
+  return p&&(p.querySelector(':scope > img')||p.querySelector('img'));
+}
+function mobilePeekPage(){
+  var cur=pages[index],curImg=pageImg(cur),curSrc=curImg&&(curImg.currentSrc||curImg.src)||'';
+  var i=index+1;
+  while(i<pages.length){
+    var p=pages[i];
+    if(p.classList.contains('title-page')||p.classList.contains('end-page'))return p;
+    var img=pageImg(p),src=img&&(img.currentSrc||img.src)||'';
+    if(src&&src!==curSrc)return p;
+    i++;
+  }
+  return pages[index+1];
+}
 function fillPeek(peek,next){
   peek.replaceChildren();
   peek.style.background=pageColor(next);
   if(!next)return;
   if(mobile){
-    var clone=next.cloneNode(true);
-    clone.classList.add('current','curl-peek-page');
-    clone.classList.remove('leaf-copy');
-    clone.setAttribute('aria-hidden','true');
-    peek.appendChild(clone);
+    if(next.classList.contains('title-page')||next.classList.contains('end-page'))return;
+    var img=pageImg(next);
+    var src=img&&(img.currentSrc||img.src);
+    if(!src)return;
+    var peekImg=document.createElement('img');
+    peekImg.className='page-curl-peek-img';
+    peekImg.src=src;
+    peekImg.alt='';
+    peekImg.style.objectPosition=img.style.objectPosition||'center center';
+    peek.appendChild(peekImg);
     return;
   }
   if(!isPicturePage(next))return;
-  var img=next.querySelector('img');
-  var src=img&&(img.currentSrc||img.src);
-  if(!src)return;
-  var peekImg=document.createElement('img');
-  peekImg.className='page-curl-peek-img';
-  peekImg.src=src;
-  peekImg.alt='';
-  peek.appendChild(peekImg);
+  var deskImg=next.querySelector('img');
+  var deskSrc=deskImg&&(deskImg.currentSrc||deskImg.src);
+  if(!deskSrc)return;
+  var deskPeek=document.createElement('img');
+  deskPeek.className='page-curl-peek-img';
+  deskPeek.src=deskSrc;
+  deskPeek.alt='';
+  peek.appendChild(deskPeek);
 }
 function updateCurl(){
   var wrap=document.querySelector('.page-curl');
   if(!wrap)return;
   var next=pages[index+1];
+  var peekFrom=mobile&&next?mobilePeekPage()||next:next;
   var show=!!next&&!busy;
   wrap.hidden=!show;
   pinCurl(wrap);
-  fillPeek(wrap.querySelector('.page-curl-peek'),show?next:null);
+  fillPeek(wrap.querySelector('.page-curl-peek'),show?peekFrom:null);
 }
 function fits(section){return section.scrollHeight<=section.clientHeight+1;}
 function isPageNum(s){return /^\d+\s*\/\s*\d+$/.test(String(s).replace(/<[^>]+>/g,'').trim());}
