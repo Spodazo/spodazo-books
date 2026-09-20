@@ -1,0 +1,17 @@
+---
+description: Locked page-curl behavior for every flipbook
+globs: client/src/flipbook/**
+alwaysApply: false
+---
+
+# Flipbook page curl
+
+The page curl is a finished, book-agnostic reader feature. Keep it. Do not replace it with CSS shapes, SVG folds, or a new asset unless the user supplies one.
+
+- Asset: `media/images/page-curl.png` (transparent flap). Do not rotate it.
+- Markup: `.page-curl` is a sibling of `main` (not inside it — `rebuild()` wipes main).
+- Geometry lives in CSS variables on `.page-curl`. Tune those tokens only; do not re-measure each page.
+- Show on every page that has a following page. Hide on THE END.
+- Peek is the next distinct illustration (`object-fit: cover; object-position: top right`), not a 1:1 crop of the page corner.
+- Paper tint is the cream `--page-paper` filter on `.page-curl-flap`.
+- Arrive with the turn (`updateCurl(destination)` at flip start). Do not hide the curl while `busy`.

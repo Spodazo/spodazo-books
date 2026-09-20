@@ -17,25 +17,26 @@ function pinCurl(wrap){
   wrap.style.bottom='auto';
   wrap.style.borderRadius=getComputedStyle(book).borderRadius;
 }
+function pageImg(p){
+  return p&&(p.querySelector(':scope > img')||p.querySelector('img'));
+}
 function pageColor(p){
   if(!p)return'';
   var root=getComputedStyle(document.documentElement);
   if(p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('cover-plate'))
     return (root.getPropertyValue('--title-bg')||'').trim()||'#f0dfb3';
-  return '#efdda6';
+  return (root.getPropertyValue('--page-paper')||'').trim()||'#efdda6';
 }
 function peekPage(at){
   var next=pages[at+1];
-  if(!next||!mobile)return next;
+  if(!next)return next;
   var cur=pages[at]||pages[index];
-  var curImg=cur&&(cur.querySelector(':scope > img')||cur.querySelector('img'));
-  var curSrc=curImg&&(curImg.currentSrc||curImg.src)||'';
+  var curSrc=(pageImg(cur)&&(pageImg(cur).currentSrc||pageImg(cur).src))||'';
   var i=at+1;
   while(i<pages.length){
     var p=pages[i];
     if(p.classList.contains('title-page')||p.classList.contains('end-page'))return p;
-    var img=p.querySelector(':scope > img')||p.querySelector('img');
-    var src=img&&(img.currentSrc||img.src)||'';
+    var img=pageImg(p),src=img&&(img.currentSrc||img.src)||'';
     if(src&&src!==curSrc)return p;
     i++;
   }

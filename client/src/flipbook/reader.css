@@ -686,6 +686,15 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   display:none;
 }
 .page-curl{
+  --curl-w:min(88px,28vw);
+  --curl-ratio:939/891;
+  --curl-top:5px;
+  --curl-peek-right:5px;
+  --curl-flap-right:2px;
+  --curl-flap-top:5px;
+  --curl-radius:12px;
+  --curl-paper:#efdda6;
+  --curl-flap-filter:sepia(.75) saturate(.58) hue-rotate(4deg) brightness(1.02);
   position:absolute;
   inset:0;
   z-index:42;
@@ -696,29 +705,25 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 .page-curl-peek,
 .page-curl-flap{
   position:absolute;
-  top:0;
-  right:0;
-  width:min(88px,28vw);
+  top:var(--curl-top);
+  width:var(--curl-w);
   height:auto;
-  aspect-ratio:939/891;
+  aspect-ratio:var(--curl-ratio);
   display:block;
 }
-.mobile .page-curl-peek,
-.mobile .page-curl-flap{
-  top:5px;
-  border-top-right-radius:12px;
-  overflow:hidden;
-}
-.mobile .page-curl-peek{
-  right:5px;
-}
-.mobile .page-curl-flap{
-  right:2px;
-}
 .page-curl-peek{
+  right:var(--curl-peek-right);
   overflow:hidden;
-  background:#d8c38d;
+  background:var(--curl-paper);
   clip-path:polygon(8% 0,100% 0,100% 94%);
+  border-top-right-radius:var(--curl-radius);
+}
+.page-curl-flap{
+  top:var(--curl-flap-top);
+  right:var(--curl-flap-right);
+  z-index:1;
+  border-top-right-radius:var(--curl-radius);
+  filter:var(--curl-flap-filter);
 }
 .page-curl-peek-img{
   position:absolute;
@@ -727,10 +732,6 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   height:100%;
   object-fit:cover;
   object-position:top right;
-}
-.page-curl-flap{
-  z-index:1;
-  filter:sepia(.75) saturate(.58) hue-rotate(4deg) brightness(1.02);
 }
 @media(min-width:701px){
   html:not(.mobile) main:after{
@@ -748,16 +749,14 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     background:linear-gradient(90deg,transparent 0%,#3e2a1510 20%,#3e2a1538 40%,#24180f91 49%,#fff4d173 51%,#68482340 58%,#68482315 78%,transparent 100%);
   }
   html:not(.mobile) .page-curl{
+    --curl-w:min(120px,14vw);
+    --curl-top:0px;
+    --curl-peek-right:0px;
+    --curl-flap-right:2px;
+    --curl-flap-top:3px;
+    --curl-radius:18px;
     inset:20px;
     border-radius:18px;
-  }
-  html:not(.mobile) .page-curl-peek,
-  html:not(.mobile) .page-curl-flap{
-    width:min(120px,14vw);
-  }
-  html:not(.mobile) .page-curl-flap{
-    top:3px;
-    right:2px;
   }
 }
 
