@@ -706,7 +706,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 .mobile .page-curl-peek,
 .mobile .page-curl-flap{
   top:var(--curl-inset-t,0px);
-  right:var(--curl-inset-r,0px);
+  right:calc(var(--curl-inset-r,0px) - 3px);
   border-top-right-radius:var(--curl-radius,12px);
   overflow:hidden;
 }
@@ -748,6 +748,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   html:not(.mobile) .page-curl-peek,
   html:not(.mobile) .page-curl-flap{
     width:min(120px,14vw);
+    right:-8px;
   }
 }
 
