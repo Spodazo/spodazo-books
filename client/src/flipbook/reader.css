@@ -705,15 +705,15 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 .mobile .page-curl-peek,
 .mobile .page-curl-flap{
-  top:var(--curl-inset-t,0px);
-  border-top-right-radius:var(--curl-radius,12px);
+  top:5px;
+  border-top-right-radius:12px;
   overflow:hidden;
 }
 .mobile .page-curl-peek{
-  right:var(--curl-inset-r,0px);
+  right:5px;
 }
 .mobile .page-curl-flap{
-  right:calc(var(--curl-inset-r,0px) - 3px);
+  right:2px;
 }
 .page-curl-peek{
   overflow:hidden;
@@ -756,7 +756,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     width:min(120px,14vw);
   }
   html:not(.mobile) .page-curl-flap{
-    right:-8px;
+    top:3px;
+    right:2px;
   }
 }
 

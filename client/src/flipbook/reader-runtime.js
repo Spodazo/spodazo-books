@@ -6,7 +6,7 @@ function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===i
 function isPicturePage(p){
   return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('end-page')&&p.querySelector('img'));
 }
-function pinCurl(wrap,at){
+function pinCurl(wrap){
   if(!wrap||!book)return;
   var r=book.getBoundingClientRect();
   wrap.style.top=r.top+'px';
@@ -15,26 +15,7 @@ function pinCurl(wrap,at){
   wrap.style.height=r.height+'px';
   wrap.style.right='auto';
   wrap.style.bottom='auto';
-  var vis=pages[index]||pages[at==null?index:at];
-  var radius=vis?getComputedStyle(vis).borderRadius:getComputedStyle(book).borderRadius;
-  var insetT=0,insetR=0,cornerR=radius;
-  if(mobile&&vis&&!vis.classList.contains('title-page')&&!vis.classList.contains('end-page')&&!vis.classList.contains('cover-plate')){
-    var img=vis.querySelector(':scope > img');
-    if(img){
-      var ir=img.getBoundingClientRect();
-      if(ir.width>20){
-        insetT=Math.max(0,Math.round(ir.top-r.top));
-        insetR=Math.max(0,Math.round(r.right-ir.right));
-        cornerR=getComputedStyle(img).borderTopRightRadius||getComputedStyle(img).borderRadius;
-      }
-    }
-  }
-  wrap.style.borderRadius=radius;
-  wrap.style.setProperty('--curl-book-w',r.width+'px');
-  wrap.style.setProperty('--curl-book-h',r.height+'px');
-  wrap.style.setProperty('--curl-inset-t',insetT+'px');
-  wrap.style.setProperty('--curl-inset-r',insetR+'px');
-  wrap.style.setProperty('--curl-radius',cornerR);
+  wrap.style.borderRadius=getComputedStyle(book).borderRadius;
 }
 function pageColor(p){
   if(!p)return'';
@@ -81,7 +62,7 @@ function updateCurl(at){
   var peekFrom=next?peekPage(at)||next:null;
   var show=!!next;
   wrap.hidden=!show;
-  pinCurl(wrap,at);
+  pinCurl(wrap);
   fillPeek(wrap.querySelector('.page-curl-peek'),show?peekFrom:null);
 }
 function fits(section){return section.scrollHeight<=section.clientHeight+1;}
