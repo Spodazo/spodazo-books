@@ -706,9 +706,14 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 .mobile .page-curl-peek,
 .mobile .page-curl-flap{
   top:var(--curl-inset-t,0px);
-  right:calc(var(--curl-inset-r,0px) - 3px);
   border-top-right-radius:var(--curl-radius,12px);
   overflow:hidden;
+}
+.mobile .page-curl-peek{
+  right:var(--curl-inset-r,0px);
+}
+.mobile .page-curl-flap{
+  right:calc(var(--curl-inset-r,0px) - 3px);
 }
 .page-curl-peek{
   overflow:hidden;
@@ -725,7 +730,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 .page-curl-flap{
   z-index:1;
-  filter:sepia(.3) saturate(.42) hue-rotate(6deg) brightness(1.03);
+  filter:sepia(.75) saturate(.58) hue-rotate(4deg) brightness(1.02);
 }
 @media(min-width:701px){
   html:not(.mobile) main:after{
@@ -749,6 +754,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   html:not(.mobile) .page-curl-peek,
   html:not(.mobile) .page-curl-flap{
     width:min(120px,14vw);
+  }
+  html:not(.mobile) .page-curl-flap{
     right:-8px;
   }
 }
