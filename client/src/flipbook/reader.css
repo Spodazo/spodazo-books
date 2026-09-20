@@ -703,6 +703,13 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   aspect-ratio:939/891;
   display:block;
 }
+.mobile .page-curl-peek,
+.mobile .page-curl-flap{
+  top:var(--curl-inset-t,0px);
+  right:var(--curl-inset-r,0px);
+  border-top-right-radius:var(--curl-radius,12px);
+  overflow:hidden;
+}
 .page-curl-peek{
   overflow:hidden;
   background:#d8c38d;
@@ -740,6 +747,10 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   max-width:none;
   visibility:visible!important;
   transform:none!important;
+}
+.mobile .page-curl-peek .curl-peek-page{
+  top:calc(var(--curl-inset-t,0px)*-1)!important;
+  right:calc(var(--curl-inset-r,0px)*-1)!important;
 }
 .page-curl-peek .zone,
 .page-curl-peek .reader-close,
