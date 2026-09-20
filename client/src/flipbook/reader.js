@@ -35,7 +35,7 @@ function adminLoginHtml() {
 }
 
 function pageCurlHtml(baseUrl) {
-  return `<img class="page-curl" src="${esc(safeURL("/media/images/page-curl.png", baseUrl))}" alt="" hidden>`;
+  return `<div class="page-curl" hidden aria-hidden="true"><div class="page-curl-peek"></div><img class="page-curl-flap" src="${esc(safeURL("/media/images/page-curl.png", baseUrl))}" alt=""></div>`;
 }
 
 function storyBody(paragraphs) {
