@@ -725,6 +725,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 .page-curl-flap{
   z-index:1;
+  filter:sepia(.3) saturate(.42) hue-rotate(6deg) brightness(1.03);
 }
 @media(min-width:701px){
   html:not(.mobile) main:after{
