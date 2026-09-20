@@ -43,37 +43,46 @@ function pageColor(p){
     return (root.getPropertyValue('--title-bg')||'').trim()||'#f0dfb3';
   return '#efdda6';
 }
+function peekPage(at){
+  var next=pages[at+1];
+  if(!next||!mobile)return next;
+  var cur=pages[at]||pages[index];
+  var curImg=cur&&(cur.querySelector(':scope > img')||cur.querySelector('img'));
+  var curSrc=curImg&&(curImg.currentSrc||curImg.src)||'';
+  var i=at+1;
+  while(i<pages.length){
+    var p=pages[i];
+    if(p.classList.contains('title-page')||p.classList.contains('end-page'))return p;
+    var img=p.querySelector(':scope > img')||p.querySelector('img');
+    var src=img&&(img.currentSrc||img.src)||'';
+    if(src&&src!==curSrc)return p;
+    i++;
+  }
+  return next;
+}
 function fillPeek(peek,next){
   peek.replaceChildren();
   peek.style.background=pageColor(next);
-  if(!next)return;
-  if(mobile){
-    var clone=next.cloneNode(true);
-    clone.classList.add('current','curl-peek-page');
-    clone.classList.remove('leaf-copy');
-    clone.setAttribute('aria-hidden','true');
-    peek.appendChild(clone);
-    return;
-  }
-  if(!isPicturePage(next))return;
-  var deskImg=next.querySelector('img');
-  var deskSrc=deskImg&&(deskImg.currentSrc||deskImg.src);
-  if(!deskSrc)return;
-  var deskPeek=document.createElement('img');
-  deskPeek.className='page-curl-peek-img';
-  deskPeek.src=deskSrc;
-  deskPeek.alt='';
-  peek.appendChild(deskPeek);
+  if(!next||!isPicturePage(next))return;
+  var img=next.querySelector('img');
+  var src=img&&(img.currentSrc||img.src);
+  if(!src)return;
+  var peekImg=document.createElement('img');
+  peekImg.className='page-curl-peek-img';
+  peekImg.src=src;
+  peekImg.alt='';
+  peek.appendChild(peekImg);
 }
 function updateCurl(at){
   var wrap=document.querySelector('.page-curl');
   if(!wrap)return;
   if(at==null)at=index;
   var next=pages[at+1];
+  var peekFrom=next?peekPage(at)||next:null;
   var show=!!next;
   wrap.hidden=!show;
   pinCurl(wrap,at);
-  fillPeek(wrap.querySelector('.page-curl-peek'),show?next:null);
+  fillPeek(wrap.querySelector('.page-curl-peek'),show?peekFrom:null);
 }
 function fits(section){return section.scrollHeight<=section.clientHeight+1;}
 function isPageNum(s){return /^\d+\s*\/\s*\d+$/.test(String(s).replace(/<[^>]+>/g,'').trim());}
