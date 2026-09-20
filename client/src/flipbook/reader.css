@@ -725,8 +725,27 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   width:var(--curl-book-w,100vw);
   height:var(--curl-book-h,100dvh);
   max-width:none;
-  object-fit:cover;
+  object-fit:contain;
   object-position:center center;
+}
+.page-curl-peek .curl-peek-page{
+  position:absolute!important;
+  top:0!important;
+  right:0!important;
+  left:auto!important;
+  bottom:auto!important;
+  inset:auto!important;
+  width:var(--curl-book-w,100vw);
+  height:var(--curl-book-h,100dvh);
+  max-width:none;
+  visibility:visible!important;
+  transform:none!important;
+}
+.page-curl-peek .zone,
+.page-curl-peek .reader-close,
+.page-curl-peek .admin-login,
+.page-curl-peek .hint{
+  display:none!important;
 }
 .page-curl-flap{
   z-index:1;

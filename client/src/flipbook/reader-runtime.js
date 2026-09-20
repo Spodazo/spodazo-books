@@ -26,36 +26,16 @@ function pageColor(p){
     return (root.getPropertyValue('--title-bg')||'').trim()||'#f0dfb3';
   return '#efdda6';
 }
-function pageImg(p){
-  return p&&(p.querySelector(':scope > img')||p.querySelector('img'));
-}
-function mobilePeekPage(){
-  var cur=pages[index],curImg=pageImg(cur),curSrc=curImg&&(curImg.currentSrc||curImg.src)||'';
-  var i=index+1;
-  while(i<pages.length){
-    var p=pages[i];
-    if(p.classList.contains('title-page')||p.classList.contains('end-page'))return p;
-    var img=pageImg(p),src=img&&(img.currentSrc||img.src)||'';
-    if(src&&src!==curSrc)return p;
-    i++;
-  }
-  return pages[index+1];
-}
 function fillPeek(peek,next){
   peek.replaceChildren();
   peek.style.background=pageColor(next);
   if(!next)return;
   if(mobile){
-    if(next.classList.contains('title-page')||next.classList.contains('end-page'))return;
-    var img=pageImg(next);
-    var src=img&&(img.currentSrc||img.src);
-    if(!src)return;
-    var peekImg=document.createElement('img');
-    peekImg.className='page-curl-peek-img';
-    peekImg.src=src;
-    peekImg.alt='';
-    peekImg.style.objectPosition=img.style.objectPosition||'center center';
-    peek.appendChild(peekImg);
+    var clone=next.cloneNode(true);
+    clone.classList.add('current','curl-peek-page');
+    clone.classList.remove('leaf-copy');
+    clone.setAttribute('aria-hidden','true');
+    peek.appendChild(clone);
     return;
   }
   if(!isPicturePage(next))return;
@@ -72,18 +52,11 @@ function updateCurl(at){
   var wrap=document.querySelector('.page-curl');
   if(!wrap)return;
   if(at==null)at=index;
-  var here=pages[at],next=pages[at+1];
-  var peekFrom=next;
-  if(mobile&&next){
-    var saved=index;
-    index=at;
-    peekFrom=mobilePeekPage()||next;
-    index=saved;
-  }
+  var next=pages[at+1];
   var show=!!next;
   wrap.hidden=!show;
   pinCurl(wrap);
-  fillPeek(wrap.querySelector('.page-curl-peek'),show?peekFrom:null);
+  fillPeek(wrap.querySelector('.page-curl-peek'),show?next:null);
 }
 function fits(section){return section.scrollHeight<=section.clientHeight+1;}
 function isPageNum(s){return /^\d+\s*\/\s*\d+$/.test(String(s).replace(/<[^>]+>/g,'').trim());}
