@@ -939,7 +939,7 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
     order:2;
   }
   .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
-    font-size:clamp(13px,1.8dvh,16px)!important;
+    font-size:clamp(15.6px,2.16dvh,19.2px)!important;
     text-align:left;
   }
   .page.laid-out.end-page.current,
