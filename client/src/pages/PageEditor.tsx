@@ -13,6 +13,7 @@ import {
 import {
   DEFAULT_PAGE_BACKGROUND,
   PAGE_COLOR_PALETTE,
+  alignJustify,
   emptyStoryPage,
   ensureBookLayouts,
   newElementId,
@@ -20,7 +21,8 @@ import {
   pageFill,
   syncBookFromLayouts,
 } from "@shared/page-layout";
-import type { PageElement, PageLayout, PublicBook } from "@shared/types";
+import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
+import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
 import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } from "../lib/api";
 
 function FontSelect({
@@ -137,8 +139,7 @@ export default function PageEditorPage() {
         }
         const [next, setup] = await Promise.all([fetchBook(slug), fetchPlayerSetup()]);
         if (cancelled) return;
-        const characterUrl = /willow/i.test(next.slug) || /willow/i.test(next.title) ? "/media/images/willow-character.webp" : "";
-        setBook(ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl }));
+        setBook(ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) }));
         setCredits(setup.credits);
         setCopyright(setup.copyright);
       })
@@ -184,10 +185,12 @@ export default function PageEditorPage() {
     }, 700);
   }
 
+  const storyPages = useMemo(() => (book ? visibleStoryPages(book) : []), [book]);
+
   const screens: Screen[] = useMemo(() => {
     if (!book) return [];
-    return [{ kind: "title" }, ...book.pages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
-  }, [book]);
+    return [{ kind: "title" }, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
+  }, [book, storyPages]);
 
   const screen = screens[index];
 
@@ -241,13 +244,14 @@ export default function PageEditorPage() {
   function addPage() {
     if (!book) return;
     const page = emptyStoryPage(book.pages.length);
-    persist({ ...book, pages: [...book.pages, page] });
-    setIndex(book.pages.length + 1);
+    const pages = [...book.pages, page];
+    persist({ ...book, pages });
+    setIndex(visibleStoryPages({ ...book, pages }).length);
     setSelectedId(page.elements[0]?.id || "");
   }
 
   function removePage() {
-    if (!book || !screen || screen.kind !== "page" || book.pages.length < 2) return;
+    if (!book || !screen || screen.kind !== "page" || storyPages.length < 2) return;
     const pages = book.pages.filter((page) => page.id !== screen.pageId);
     persist({ ...book, pages });
     setIndex(Math.max(0, index - 1));
@@ -271,13 +275,14 @@ export default function PageEditorPage() {
     }
     if (!screen) return;
     const layout = layoutOf(screen);
+    const onRight = layout.elements.some((item) => item.type === "image");
     const element: PageElement = {
       id: newElementId(),
       type: "image",
-      x: layout.elements.some((item) => item.type === "image") ? 56 : 0,
-      y: 0,
-      w: 50,
-      h: 100,
+      x: onRight ? 56 : 0,
+      y: 25,
+      w: onRight ? 38 : 50,
+      h: 50,
       z: layout.elements.length + 1,
       imageAsset: uploaded.filename,
       imageUrl: uploaded.url,
@@ -345,7 +350,7 @@ export default function PageEditorPage() {
   const selectedText = selected?.type === "text" ? selected : undefined;
   const bookFont = book.textFont || DEFAULT_TEXT_FONT;
   const bookInk = book.textColor || DEFAULT_TEXT_COLOR;
-  const label = screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${book.pages.findIndex((page) => page.id === screen.pageId) + 1}`;
+  const label = screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${storyPages.findIndex((page) => page.id === screen.pageId) + 1}`;
 
   return (
     <main className="page-editor">
@@ -361,7 +366,7 @@ export default function PageEditorPage() {
         <button type="button" onClick={addText}>Add wording</button>
         <button type="button" onClick={() => { replaceId.current = ""; fileRef.current?.click(); }}>Add picture</button>
         <button type="button" onClick={addPage}>Add page</button>
-        <button type="button" disabled={screen.kind !== "page" || book.pages.length < 2} onClick={removePage}>Delete page</button>
+        <button type="button" disabled={screen.kind !== "page" || storyPages.length < 2} onClick={removePage}>Delete page</button>
         <button type="button" disabled={!selectedId} onClick={removeElement}>Delete item</button>
         {selectedId && layout.elements.find((item) => item.id === selectedId)?.type === "image" ? (
           <button type="button" onClick={() => { replaceId.current = selectedId; fileRef.current?.click(); }}>Replace picture</button>
@@ -400,6 +405,17 @@ export default function PageEditorPage() {
                 onChange={(event) => patchElement(selectedText.id, { color: event.target.value })}
               />
             </label>
+            <div className="page-editor-align" role="group" aria-label="Alignment">
+              {(["left", "center", "right"] as TextAlign[]).map((align) => (
+                <button
+                  key={align}
+                  type="button"
+                  className={(selectedText.align || "left") === align ? "active" : ""}
+                  aria-pressed={(selectedText.align || "left") === align}
+                  onClick={() => patchElement(selectedText.id, { align })}
+                >{align[0].toUpperCase() + align.slice(1)}</button>
+              ))}
+            </div>
             <button type="button" className="ghost" onClick={() => patchElement(selectedText.id, { color: "", fontFamily: "" })}>Use book type</button>
           </>
         ) : null}
@@ -461,7 +477,7 @@ export default function PageEditorPage() {
                 }}
               >
                 {element.type === "image" ? (
-                  element.imageUrl ? <img src={element.imageUrl} alt="" /> : <span className="page-editor-empty">Picture</span>
+                  element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "title-cover" || element.id === "end-art" ? "contain" : "cover" }} /> : <span className="page-editor-empty">Picture</span>
                 ) : editingId === element.id ? (
                   <textarea
                     autoFocus
@@ -470,6 +486,7 @@ export default function PageEditorPage() {
                       fontFamily: fontStack(element.fontFamily || bookFont),
                       fontSize: `${element.fontSize || 4}cqh`,
                       color: normalizeColor(element.color, "") || bookInk,
+                      textAlign: element.align || "left",
                     }}
                     onChange={(event) => patchElement(element.id, { text: event.target.value })}
                     onBlur={() => setEditingId("")}
@@ -479,6 +496,8 @@ export default function PageEditorPage() {
                     fontFamily: fontStack(element.fontFamily || bookFont),
                     fontSize: `${element.fontSize || 4}cqh`,
                     color: normalizeColor(element.color, "") || bookInk,
+                    textAlign: element.align || "left",
+                    justifyContent: alignJustify(element.align),
                   }}>{element.text || "Double-click to type"}</p>
                 )}
                 {selectedId === element.id ? (

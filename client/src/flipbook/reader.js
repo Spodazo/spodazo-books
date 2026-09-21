@@ -3,6 +3,7 @@ import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
+import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
 
 function coverSrc(book, baseUrl) {
   const cover = book.coverUrl || book.pages?.[0]?.imageUrl || book.pages?.[0]?.fullPageUrl || '';
@@ -64,7 +65,9 @@ function bookFontFamilies(book) {
 }
 
 function elementHtml(el, baseUrl, book) {
-  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4};--ff:${fontStack(el.fontFamily || book?.textFont)};--ink:${elementInk(el, book)}`;
+  const align = el.align === "center" || el.align === "right" ? el.align : "left";
+  const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
+  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4};--ff:${fontStack(el.fontFamily || book?.textFont)};--ink:${elementInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageFit(el)}`;
   if (el.type === "image") {
     const src = esc(safeURL(el.imageUrl || "", baseUrl));
     return src ? `<img class="el el-image" src="${src}" alt="" style="${style}">` : "";
@@ -88,6 +91,11 @@ function isWillow(book) {
   return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
 }
 
+function imageFit(el) {
+  if (el.fit === "contain" || el.id === "title-cover" || el.id === "end-art") return "contain";
+  return "cover";
+}
+
 function legalHtml(credits, copyright, logoUrl, baseUrl) {
   const credit = String(credits || "").trim();
   const copy = String(copyright || "").trim();
@@ -97,7 +105,7 @@ function legalHtml(credits, copyright, logoUrl, baseUrl) {
 }
 
 function characterSrc(book, baseUrl) {
-  const url = book.characterUrl || (isWillow(book) ? "/media/images/willow-character.webp" : "");
+  const url = characterUrlFor(book);
   return url ? esc(safeURL(url, baseUrl)) : "";
 }
 
@@ -129,8 +137,8 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const palette=paletteById(book.color);
   const preload=coverSrc(book,baseUrl);
   const characterPreload=characterSrc(book,baseUrl);
-  const skipCover=isWillow(book);
-  const storyPages=skipCover?book.pages.slice(1):book.pages;
+  const storyPages=visibleStoryPages(book);
+  const skipCover=storyPages.length !== (book.pages||[]).length;
   const paper=pageFill({background:book.pageBackground},book);
   const articles=titlePageHtml(book,baseUrl,libraryUrl)+storyPages.map((p,i)=>{
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;

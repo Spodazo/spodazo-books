@@ -1,5 +1,18 @@
 import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, normalizeFont } from "./book-fonts";
-import type { Book, BookPage, PageElement, PageElementRole, PageLayout } from "./types";
+import type { Book, BookPage, PageElement, PageElementRole, PageLayout, TextAlign } from "./types";
+
+const ALIGNS = new Set<TextAlign>(["left", "center", "right"]);
+
+export function normalizeAlign(raw?: string | null, role?: PageElementRole): TextAlign {
+  if (raw && ALIGNS.has(raw as TextAlign)) return raw as TextAlign;
+  return role && role !== "body" ? "center" : "left";
+}
+
+export function alignJustify(align?: string | null): "flex-start" | "center" | "flex-end" {
+  if (align === "center") return "center";
+  if (align === "right") return "flex-end";
+  return "flex-start";
+}
 
 export const DEFAULT_PAGE_BACKGROUND = "#efdda6";
 
@@ -53,9 +66,11 @@ export function normalizeElement(raw: Partial<PageElement> | null | undefined, i
     text: type === "text" ? String(raw?.text || "") : undefined,
     imageAsset: type === "image" ? String(raw?.imageAsset || "") : undefined,
     imageUrl: type === "image" ? String(raw?.imageUrl || "") : undefined,
+    fit: type === "image" && raw?.fit === "contain" ? "contain" : type === "image" ? "cover" : undefined,
     fontSize: type === "text" ? clampPercent(raw?.fontSize, 4, 2, 16) : undefined,
     fontFamily: type === "text" ? normalizeFont(raw?.fontFamily) : undefined,
     color: type === "text" ? normalizeColor(raw?.color, "") : undefined,
+    align: type === "text" ? normalizeAlign(raw?.align, role) : undefined,
     role,
   };
 }
@@ -90,9 +105,12 @@ export function layoutToJson(layout: PageLayout): string {
       z: item.z,
       text: item.text,
       imageAsset: item.imageAsset,
+      imageUrl: item.imageAsset ? undefined : item.imageUrl,
       fontSize: item.fontSize,
+      fit: item.fit,
       fontFamily: item.fontFamily,
       color: item.color,
+      align: item.align,
       role: item.role,
     })),
   });
@@ -136,7 +154,7 @@ export function defaultTitleLayout(book: Pick<Book, "title" | "tagline" | "autho
   const textX = hasArt ? 52 : 10;
   const textW = hasArt ? 42 : 80;
   if (hasArt) {
-    elements.push(imageEl({ id: "title-cover", x: 6, y: 10, w: 42, h: 80, z: 1, imageAsset: book.cover, imageUrl: coverUrl }));
+    elements.push(imageEl({ id: "title-cover", x: 6, y: 10, w: 42, h: 80, z: 1, imageAsset: book.cover, imageUrl: coverUrl, fit: "contain" }));
   }
   if (book.title) elements.push(textEl({ id: "title-title", x: textX, y: 16, w: textW, h: 22, z: 2, text: book.title, role: "title", fontSize: 6 }));
   if (book.tagline) elements.push(textEl({ id: "title-tagline", x: textX, y: 42, w: textW, h: 16, z: 3, text: book.tagline, role: "tagline", fontSize: 3.2 }));
@@ -150,7 +168,7 @@ export function defaultEndLayout(coverAsset = "", coverUrl = "", characterUrl = 
   const asset = characterUrl ? "" : coverAsset;
   const elements: PageElement[] = [];
   if (src || asset) {
-    elements.push(imageEl({ id: "end-art", x: 6, y: 10, w: 42, h: 80, z: 1, imageAsset: asset, imageUrl: src }));
+    elements.push(imageEl({ id: "end-art", x: 6, y: 10, w: 42, h: 80, z: 1, imageAsset: asset, imageUrl: src, fit: "contain" }));
   }
   elements.push(textEl({ id: "end-title", x: 52, y: 32, w: 42, h: 18, z: 2, text: "THE END", role: "end", fontSize: 6 }));
   return { elements, background: "" };
@@ -204,7 +222,9 @@ export function defaultStoryElements(page: BookPage): PageElement[] {
 }
 
 export function ensurePageElements(page: BookPage): BookPage {
-  if (page.elements.length && !isLegacySingleLeafLayout(page.elements)) return page;
+  if (page.elements.length && !isLegacySingleLeafLayout(page.elements)) {
+    return { ...page, elements: page.elements.map((item, index) => normalizeElement(item, index)) };
+  }
   const paragraphs = bodyParagraphs(page.elements);
   return {
     ...page,
@@ -212,19 +232,44 @@ export function ensurePageElements(page: BookPage): BookPage {
   };
 }
 
+function withEndArt(layout: PageLayout, coverAsset: string, coverUrl: string, characterUrl: string): PageLayout {
+  const next = normalizeLayout(layout);
+  const src = characterUrl || coverUrl;
+  const image = next.elements.find((item) => item.type === "image");
+  if (image) {
+    if (image.imageUrl || image.imageAsset) {
+      return { ...next, elements: next.elements.map((item) => (item.type === "image" && !item.fit ? { ...item, fit: "contain" } : item)) };
+    }
+    return {
+      ...next,
+      elements: next.elements.map((item) => (
+        item.id === image.id ? { ...item, imageAsset: characterUrl ? "" : coverAsset, imageUrl: src, fit: "contain" } : item
+      )),
+    };
+  }
+  if (!src && !coverAsset) return next;
+  const art = imageEl({ id: "end-art", x: 6, y: 10, w: 42, h: 80, z: 1, imageAsset: characterUrl ? "" : coverAsset, imageUrl: src, fit: "contain" });
+  return { ...next, elements: [art, ...next.elements] };
+}
+
 export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?: string; characterUrl?: string }): T {
   const pages = book.pages.map(ensurePageElements);
+  const coverUrl = extras?.coverUrl || "";
+  const characterUrl = extras?.characterUrl || "";
   return {
     ...book,
     pageBackground: normalizeColor(book.pageBackground, DEFAULT_PAGE_BACKGROUND),
     textFont: normalizeFont(book.textFont, DEFAULT_TEXT_FONT),
     textColor: normalizeColor(book.textColor, DEFAULT_TEXT_COLOR),
     titleLayout: hasLayout(book.titleLayout)
-      ? book.titleLayout
-      : defaultTitleLayout(book, extras?.coverUrl || ""),
-    endLayout: hasLayout(book.endLayout)
-      ? book.endLayout
-      : defaultEndLayout(book.cover, extras?.coverUrl || "", extras?.characterUrl || ""),
+      ? normalizeLayout(book.titleLayout)
+      : defaultTitleLayout(book, coverUrl),
+    endLayout: withEndArt(
+      hasLayout(book.endLayout) ? book.endLayout : defaultEndLayout(book.cover, coverUrl, characterUrl),
+      book.cover,
+      coverUrl,
+      characterUrl,
+    ),
     pages,
   };
 }

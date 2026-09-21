@@ -6,6 +6,7 @@ import {
   ensureBookLayouts,
   ensurePageElements,
   isLegacySingleLeafLayout,
+  normalizeAlign,
   normalizeColor,
   normalizeElement,
   pageFill,
@@ -148,4 +149,52 @@ test("normalizeElement clamps size", () => {
   const el = normalizeElement({ type: "image", x: -10, w: 200 }, 0);
   assert.equal(el.x, 0);
   assert.equal(el.w, 100);
+});
+
+test("ensureBookLayouts restores missing end art", () => {
+  const book = ensureBookLayouts({
+    id: "book-1",
+    slug: "Willows-Big-Forest-Adventure",
+    title: "Willow’s Big Forest Adventure",
+    tagline: "",
+    author: "",
+    date: "",
+    cover: "cover.webp",
+    pdf: "",
+    color: "honey",
+    sortOrder: 1,
+    hidden: false,
+    published: true,
+    audience: "children",
+    pageTemplate: "one-up",
+    characterRender: "scene",
+    pageBackground: "",
+    textFont: "",
+    textColor: "",
+    titleLayout: { elements: [{ id: "title-title", type: "text", x: 52, y: 16, w: 42, h: 22, z: 2, text: "Willow", role: "title" }] },
+    endLayout: { elements: [{ id: "end-art", type: "image", x: 6, y: 10, w: 42, h: 80, z: 1 }, { id: "end-title", type: "text", x: 52, y: 32, w: 42, h: 18, z: 2, text: "THE END", role: "end" }] },
+    pages: [{
+      id: "page-2",
+      sourcePage: 2,
+      kind: "story",
+      title: "One",
+      paragraphs: ["Hello"],
+      imageAsset: "one.webp",
+      fullPageAsset: "one.webp",
+      imageUrl: "",
+      fullPageUrl: "",
+      position: "bottom",
+      focalPoint: "50% 50%",
+      elements: [],
+      background: "",
+    }],
+  } as Book, { coverUrl: "/media/images/cover.webp", characterUrl: "/media/images/willow-character.webp" });
+  const art = book.endLayout.elements.find((item) => item.type === "image");
+  assert.equal(art?.imageUrl, "/media/images/willow-character.webp");
+});
+
+test("normalizeAlign keeps a choice and defaults by role", () => {
+  assert.equal(normalizeAlign("right", "body"), "right");
+  assert.equal(normalizeAlign("", "title"), "center");
+  assert.equal(normalizeAlign("", "body"), "left");
 });

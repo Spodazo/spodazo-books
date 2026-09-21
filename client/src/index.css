@@ -480,6 +480,9 @@ button, input, select, textarea { font: inherit; }
 }
 .page-editor-size input[type="range"] { width: 110px; padding: 0; }
 .page-editor-size span { min-width: 2.2em; }
+.page-editor-align { display: flex; gap: 4px; }
+.page-editor-align button { min-width: 58px; }
+.page-editor-align button.active { outline: 2px solid #d99028; }
 .page-editor-swatches {
   display: flex;
   flex-wrap: wrap;
@@ -558,10 +561,10 @@ button, input, select, textarea { font: inherit; }
 }
 .page-editor-handle {
   position: absolute;
-  right: -7px;
-  bottom: -7px;
-  width: 14px;
-  height: 14px;
+  right: 4px;
+  bottom: 4px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   border-radius: 3px;
   background: #d99028;

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useRoute } from "wouter";
 import AdminLoginLink from "../components/AdminLoginLink";
 import { ensureBookLayouts } from "@shared/page-layout";
+import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
 import { fetchBook } from "../lib/api";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
@@ -38,8 +39,7 @@ export default function BookPage() {
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !book) return;
-    const characterUrl = /willow/i.test(book.slug) || /willow/i.test(book.title) ? "/media/images/willow-character.webp" : "";
-    const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl }), {
+    const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
       libraryUrl: "/",
       baseUrl: location.href,
       credits: setup.credits,
