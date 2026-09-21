@@ -501,8 +501,9 @@ button, input, select, textarea { font: inherit; }
   flex: 1;
   display: grid;
   place-items: center;
-  padding: 16px 20px 20px;
+  padding: 16px 24px 28px;
   min-height: 0;
+  overflow: hidden;
 }
 .page-editor-book {
   --spine-w: 84px;

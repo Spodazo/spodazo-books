@@ -136,8 +136,11 @@ export default function PageEditorPage() {
       const finishedW = Math.max(320, window.innerWidth - 40);
       const finishedH = Math.max(240, window.innerHeight - 40);
       const ratio = finishedW / finishedH;
-      const availW = stage.clientWidth;
-      const availH = stage.clientHeight;
+      const styles = getComputedStyle(stage);
+      const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+      const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+      const availW = Math.max(160, stage.clientWidth - padX);
+      const availH = Math.max(120, stage.clientHeight - padY);
       let width = availW;
       let height = width / ratio;
       if (height > availH) {
