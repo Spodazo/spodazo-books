@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   DEFAULT_PAGE_BACKGROUND,
   defaultStoryElements,
+  elementTextHtml,
   ensureBookLayouts,
   ensurePageElements,
   isLegacySingleLeafLayout,
@@ -191,6 +192,12 @@ test("ensureBookLayouts restores missing end art", () => {
   } as Book, { coverUrl: "/media/images/cover.webp", characterUrl: "/media/images/willow-character.webp" });
   const art = book.endLayout.elements.find((item) => item.type === "image");
   assert.equal(art?.imageUrl, "/media/images/willow-character.webp");
+});
+
+test("elementTextHtml keeps paragraph and line breaks", () => {
+  const html = elementTextHtml("One line\n\nTwo\nlines", (value) => value.replace(/</g, "&lt;"));
+  assert.match(html, /<p>One line<\/p>/);
+  assert.match(html, /<p>Two<br>lines<\/p>/);
 });
 
 test("normalizeAlign keeps a choice and defaults by role", () => {

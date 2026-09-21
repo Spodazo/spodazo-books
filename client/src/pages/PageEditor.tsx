@@ -25,6 +25,33 @@ import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
 import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } from "../lib/api";
 
+function EditorText({
+  text,
+  placeholder,
+  style,
+}: {
+  text: string;
+  placeholder: string;
+  style: React.CSSProperties;
+}) {
+  const raw = text || "";
+  if (!raw) return <p style={style}>{placeholder}</p>;
+  return (
+    <div className="page-editor-text" style={style}>
+      {raw.split(/\n{2,}/).map((para, index) => (
+        <p key={index}>
+          {para.split("\n").map((line, lineIndex) => (
+            <span key={lineIndex}>
+              {lineIndex > 0 ? <br /> : null}
+              {line}
+            </span>
+          ))}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function FontSelect({
   value,
   onChange,
@@ -489,16 +516,21 @@ export default function PageEditorPage() {
                       textAlign: element.align || "left",
                     }}
                     onChange={(event) => patchElement(element.id, { text: event.target.value })}
+                    onKeyDown={(event) => event.stopPropagation()}
                     onBlur={() => setEditingId("")}
                   />
                 ) : (
-                  <p style={{
-                    fontFamily: fontStack(element.fontFamily || bookFont),
-                    fontSize: `${element.fontSize || 4}cqh`,
-                    color: normalizeColor(element.color, "") || bookInk,
-                    textAlign: element.align || "left",
-                    justifyContent: alignJustify(element.align),
-                  }}>{element.text || "Double-click to type"}</p>
+                  <EditorText
+                    text={element.text || ""}
+                    placeholder="Double-click to type"
+                    style={{
+                      fontFamily: fontStack(element.fontFamily || bookFont),
+                      fontSize: `${element.fontSize || 4}cqh`,
+                      color: normalizeColor(element.color, "") || bookInk,
+                      textAlign: element.align || "left",
+                      alignItems: alignJustify(element.align),
+                    }}
+                  />
                 )}
                 {selectedId === element.id ? (
                   <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, element, "resize")} />

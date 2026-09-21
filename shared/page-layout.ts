@@ -132,6 +132,15 @@ export function textForRole(elements: PageElement[], role: PageElementRole): str
     .join(" ");
 }
 
+export function elementTextHtml(text: string, escape: (value: string) => string): string {
+  const raw = String(text || "");
+  if (!raw) return "<p></p>";
+  return raw
+    .split(/\n{2,}/)
+    .map((para) => `<p>${escape(para).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
 export function bodyParagraphs(elements: PageElement[]): string[] {
   const body = elements
     .filter((item) => item.type === "text" && (item.role === "body" || !item.role))

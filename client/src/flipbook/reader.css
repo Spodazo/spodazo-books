@@ -764,5 +764,6 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 .page.laid-out{display:block;position:relative;container-type:size;background:var(--page-paper,#efdda6)}
 .page.laid-out>.el{position:absolute;margin:0;padding:0;border:0;box-sizing:border-box}
 .page.laid-out>.el-image{object-fit:var(--fit,cover)}
-.page.laid-out>.el-text{display:flex;align-items:center;justify-content:var(--tj,flex-start);overflow:hidden;pointer-events:none}
-.page.laid-out>.el-text p{margin:0;width:100%;font-family:var(--ff,Nunito,sans-serif);font-size:calc(var(--fs,4)*1cqh);line-height:1.25;text-align:var(--ta,left);color:var(--ink,#203b2a);-webkit-text-fill-color:var(--ink,#203b2a)}
+.page.laid-out>.el-text{display:flex;flex-direction:column;justify-content:center;align-items:var(--tj,flex-start);overflow:hidden;pointer-events:none}
+.page.laid-out>.el-text p{margin:0 0 .55em;width:100%;font-family:var(--ff,Nunito,sans-serif);font-size:calc(var(--fs,4)*1cqh);line-height:1.25;text-align:var(--ta,left);white-space:pre-wrap;color:var(--ink,#203b2a);-webkit-text-fill-color:var(--ink,#203b2a)}
+.page.laid-out>.el-text p:last-child{margin-bottom:0}

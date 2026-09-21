@@ -1,6 +1,7 @@
 import css from './reader.css?raw';
 import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
+import {elementTextHtml} from '@shared/page-layout';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
@@ -72,7 +73,7 @@ function elementHtml(el, baseUrl, book) {
     const src = esc(safeURL(el.imageUrl || "", baseUrl));
     return src ? `<img class="el el-image" src="${src}" alt="" style="${style}">` : "";
   }
-  return `<div class="el el-text" style="${style}"><p>${esc(el.text || "")}</p></div>`;
+  return `<div class="el el-text" style="${style}">${elementTextHtml(el.text || "", esc)}</div>`;
 }
 
 function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "") {
