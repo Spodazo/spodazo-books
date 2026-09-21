@@ -2,6 +2,7 @@ import css from './reader.css?raw';
 import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
 import {elementTextHtml} from '@shared/page-layout';
+import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
@@ -55,6 +56,11 @@ function elementInk(el, book) {
   return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : "#203b2a";
 }
 
+function elementFrameInk(el, book) {
+  const value = String(el?.frameColor || "").trim();
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : elementInk(el, book) || DEFAULT_FRAME_COLOR;
+}
+
 function bookFontFamilies(book) {
   const ids = [book?.textFont];
   for (const layout of [book?.titleLayout, book?.endLayout, ...(book?.pages || [])]) {
@@ -68,12 +74,13 @@ function bookFontFamilies(book) {
 function elementHtml(el, baseUrl, book) {
   const align = el.align === "center" || el.align === "right" ? el.align : "left";
   const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
-  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4};--ff:${fontStack(el.fontFamily || book?.textFont)};--ink:${elementInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageFit(el)}`;
+  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4};--ff:${fontStack(el.fontFamily || book?.textFont)};--ink:${elementInk(el, book)};--frame:${elementFrameInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageFit(el)}`;
   if (el.type === "image") {
     const src = esc(safeURL(el.imageUrl || "", baseUrl));
     return src ? `<img class="el el-image" src="${src}" alt="" style="${style}">` : "";
   }
-  return `<div class="el el-text" style="${style}">${elementTextHtml(el.text || "", esc)}</div>`;
+  const extra = frameClass(el.frame);
+  return `<div class="el el-text${extra ? ` ${extra}` : ""}" style="${style}">${frameMarkup(el.frame, (Number(el.w) || 10) / (Number(el.h) || 10))}${elementTextHtml(el.text || "", esc)}</div>`;
 }
 
 function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "") {
@@ -102,7 +109,7 @@ function legalHtml(credits, copyright, logoUrl, baseUrl) {
   const copy = String(copyright || "").trim();
   const logo = logoUrl ? esc(safeURL(logoUrl, baseUrl)) : "";
   if (!credit && !copy && !logo) return "";
-  return `<footer class="end-legal">${logo?`<img class="end-logo" src="${logo}" alt="">`:""}${credit?`<p class="end-credits">${esc(credit)}</p>`:""}${copy?`<p class="end-copyright">${esc(copy)}</p>`:""}</footer>`;
+  return `<footer class="end-legal">${logo?`<img class="end-logo" src="${logo}" alt="Spodazo Books">`:""}${credit?`<p class="end-credits">${esc(credit)}</p>`:""}${copy?`<p class="end-copyright">${esc(copy)}</p>`:""}</footer>`;
 }
 
 function characterSrc(book, baseUrl) {

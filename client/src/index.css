@@ -532,6 +532,34 @@ button, input, select, textarea { font: inherit; }
   position: absolute;
   box-sizing: border-box;
   cursor: move;
+  color: var(--frame, #203b2a);
+}
+.page-editor-el.framed .page-editor-text,
+.page-editor-el.framed textarea {
+  padding: 8%;
+}
+.page-editor-el.framed-thin { box-shadow: inset 0 0 0 1.5px var(--frame, #203b2a); }
+.page-editor-el.framed-double { box-shadow: inset 0 0 0 1px var(--frame, #203b2a), inset 0 0 0 4px var(--frame, #203b2a); }
+.page-editor-el.framed-dashed { outline: 2px dashed var(--frame, #203b2a); outline-offset: -7px; }
+.page-editor-el.framed-beads { border: 0.55em dotted var(--frame, #203b2a); }
+.page-editor-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--frame, #203b2a);
+}
+.page-editor-frame .text-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.page-editor-frame .text-frame-ribbon {
+  inset: auto;
+  left: 4%;
+  top: 3%;
+  width: 34%;
+  height: auto;
 }
 .page-editor-el.selected { outline: 2px solid #d99028; }
 .page-editor-el img {
@@ -600,5 +628,11 @@ button, input, select, textarea { font: inherit; }
   color: #3a5344;
   text-align: center;
   pointer-events: none;
+}
+.page-editor-logo {
+  display: block;
+  width: min(96px, 28%);
+  height: auto;
+  margin: 0 auto 20px;
 }
 .page-editor-error { padding: 0 14px 10px; }

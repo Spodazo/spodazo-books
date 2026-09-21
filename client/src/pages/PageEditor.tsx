@@ -22,6 +22,7 @@ import {
   syncBookFromLayouts,
 } from "@shared/page-layout";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
+import { DEFAULT_FRAME_COLOR, TEXT_FRAMES, frameClass, frameMarkup, normalizeFrame } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
 import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } from "../lib/api";
 
@@ -104,6 +105,7 @@ export default function PageEditorPage() {
   const [status, setStatus] = useState("Saved");
   const [credits, setCredits] = useState("");
   const [copyright, setCopyright] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceId = useRef("");
   const saveTimer = useRef<number>();
@@ -172,6 +174,7 @@ export default function PageEditorPage() {
         setBook(ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) }));
         setCredits(setup.credits);
         setCopyright(setup.copyright);
+        setLogoUrl(setup.logoUrl);
       })
       .catch((err: Error) => {
         if (!cancelled) setError(err.message);
@@ -446,6 +449,37 @@ export default function PageEditorPage() {
                 >{align[0].toUpperCase() + align.slice(1)}</button>
               ))}
             </div>
+            <label className="page-editor-font">
+              Frame
+              <select
+                value={selectedText.frame || ""}
+                onChange={(event) => patchElement(selectedText.id, { frame: event.target.value })}
+              >
+                {TEXT_FRAMES.filter((frame) => frame.kind === "none").map((frame) => (
+                  <option key={frame.id || "none"} value={frame.id}>{frame.label}</option>
+                ))}
+                <optgroup label="Straight">
+                  {TEXT_FRAMES.filter((frame) => frame.kind === "straight").map((frame) => (
+                    <option key={frame.id} value={frame.id}>{frame.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Decorative">
+                  {TEXT_FRAMES.filter((frame) => frame.kind === "decorative").map((frame) => (
+                    <option key={frame.id} value={frame.id}>{frame.label}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </label>
+            {normalizeFrame(selectedText.frame) ? (
+              <label className="page-editor-color">
+                Frame color
+                <input
+                  type="color"
+                  value={normalizeColor(selectedText.frameColor, "") || bookInk}
+                  onChange={(event) => patchElement(selectedText.id, { frameColor: event.target.value })}
+                />
+              </label>
+            ) : null}
             <button type="button" className="ghost" onClick={() => patchElement(selectedText.id, { color: "", fontFamily: "" })}>Use book type</button>
           </>
         ) : null}
@@ -498,14 +532,26 @@ export default function PageEditorPage() {
             {layout.elements.slice().sort((a, b) => a.z - b.z).map((element) => (
               <div
                 key={element.id}
-                className={`page-editor-el${selectedId === element.id ? " selected" : ""}`}
-                style={{ left: `${element.x}%`, top: `${element.y}%`, width: `${element.w}%`, height: `${element.h}%`, zIndex: element.z }}
+                className={`page-editor-el${selectedId === element.id ? " selected" : ""}${element.type === "text" ? ` ${frameClass(element.frame)}` : ""}`}
+                style={{
+                  left: `${element.x}%`,
+                  top: `${element.y}%`,
+                  width: `${element.w}%`,
+                  height: `${element.h}%`,
+                  zIndex: element.z,
+                  ["--frame" as string]: element.type === "text"
+                    ? (normalizeColor(element.frameColor, "") || bookInk || DEFAULT_FRAME_COLOR)
+                    : undefined,
+                }}
                 onMouseDown={(event) => event.stopPropagation()}
                 onPointerDown={(event) => onPointerDown(event, element, "move")}
                 onDoubleClick={() => {
                   if (element.type === "text") setEditingId(element.id);
                 }}
               >
+                {element.type === "text" && frameMarkup(element.frame, element.w / element.h) ? (
+                  <span className="page-editor-frame" dangerouslySetInnerHTML={{ __html: frameMarkup(element.frame, element.w / element.h) }} />
+                ) : null}
                 {element.type === "image" ? (
                   element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "title-cover" || element.id === "end-art" ? "contain" : "cover" }} /> : <span className="page-editor-empty">Picture</span>
                 ) : editingId === element.id ? (
@@ -540,8 +586,9 @@ export default function PageEditorPage() {
                 ) : null}
               </div>
             ))}
-            {screen.kind === "end" && (credits || copyright) ? (
+            {screen.kind === "end" && (logoUrl || credits || copyright) ? (
               <footer className="page-editor-legal">
+                {logoUrl ? <img className="page-editor-logo" src={logoUrl} alt="Spodazo Books" /> : null}
                 {credits ? <p>{credits}</p> : null}
                 {copyright ? <p>{copyright}</p> : null}
               </footer>

@@ -1,4 +1,5 @@
 import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, normalizeFont } from "./book-fonts";
+import { normalizeFrame } from "./text-frames";
 import type { Book, BookPage, PageElement, PageElementRole, PageLayout, TextAlign } from "./types";
 
 const ALIGNS = new Set<TextAlign>(["left", "center", "right"]);
@@ -71,6 +72,8 @@ export function normalizeElement(raw: Partial<PageElement> | null | undefined, i
     fontFamily: type === "text" ? normalizeFont(raw?.fontFamily) : undefined,
     color: type === "text" ? normalizeColor(raw?.color, "") : undefined,
     align: type === "text" ? normalizeAlign(raw?.align, role) : undefined,
+    frame: type === "text" ? normalizeFrame(raw?.frame) : undefined,
+    frameColor: type === "text" ? normalizeColor(raw?.frameColor, "") : undefined,
     role,
   };
 }
@@ -111,6 +114,8 @@ export function layoutToJson(layout: PageLayout): string {
       fontFamily: item.fontFamily,
       color: item.color,
       align: item.align,
+      frame: item.frame,
+      frameColor: item.frameColor,
       role: item.role,
     })),
   });

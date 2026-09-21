@@ -205,3 +205,9 @@ test("normalizeAlign keeps a choice and defaults by role", () => {
   assert.equal(normalizeAlign("", "title"), "center");
   assert.equal(normalizeAlign("", "body"), "left");
 });
+
+test("normalizeElement keeps a text frame and color", () => {
+  const element = normalizeElement({ type: "text", text: "Hi", frame: "wave", frameColor: "#c4a35a" }, 0);
+  assert.equal(element.frame, "wave");
+  assert.equal(element.frameColor, "#c4a35a");
+});

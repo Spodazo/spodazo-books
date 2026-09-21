@@ -19,6 +19,8 @@ export type PageElement = {
   fontFamily?: string;
   color?: string;
   align?: TextAlign;
+  frame?: string;
+  frameColor?: string;
   fit?: "cover" | "contain";
   role?: PageElementRole;
 };
