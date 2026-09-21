@@ -71,17 +71,28 @@ function bookFontFamilies(book) {
   return fontsUsed(...ids);
 }
 
+function elementLeaf(el) {
+  return (Number(el.x) || 0) + (Number(el.w) || 10) / 2 < 50 ? "left" : "right";
+}
+
+function elementSize(el) {
+  if (el.id === "title-cover" || el.id === "end-art") return "main";
+  return (Number(el.w) || 10) * (Number(el.h) || 10) >= 400 ? "main" : "small";
+}
+
 function elementHtml(el, baseUrl, book) {
   const align = el.align === "center" || el.align === "right" ? el.align : "left";
   const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
   const font = fontStack(el.fontFamily || book?.textFont).replace(/"/g, "'");
   const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4};--ff:${font};--ink:${elementInk(el, book)};--frame:${elementFrameInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageFit(el)}`;
+  const meta = `data-leaf="${elementLeaf(el)}" data-size="${elementSize(el)}"${el.role ? ` data-role="${esc(el.role)}"` : ""}${el.id ? ` data-id="${esc(el.id)}"` : ""}`;
   if (el.type === "image") {
     const src = esc(safeURL(el.imageUrl || "", baseUrl));
-    return src ? `<img class="el el-image" src="${src}" alt="" style="${style}">` : "";
+    return src ? `<img class="el el-image" src="${src}" alt="" style="${style}" ${meta}>` : "";
   }
   const extra = frameClass(el.frame);
-  return `<div class="el el-text${extra ? ` ${extra}` : ""}" style="${style}">${frameMarkup(el.frame, (Number(el.w) || 10) / (Number(el.h) || 10))}${elementTextHtml(el.text || "", esc)}</div>`;
+  const again = el.role === "end" ? `<button type="button" class="read-again">Read again</button>` : "";
+  return `<div class="el el-text${extra ? ` ${extra}` : ""}" style="${style}" ${meta}>${frameMarkup(el.frame, (Number(el.w) || 10) / (Number(el.h) || 10))}${elementTextHtml(el.text || "", esc)}${again}</div>`;
 }
 
 function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "") {
@@ -119,7 +130,7 @@ function characterSrc(book, baseUrl) {
 }
 
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
-  const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl)}<button type="button" class="read-again">Read again</button><button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
+  const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
   if (hasLayout(book.endLayout)) {
     return laidOutPage("The end", book.endLayout, book, baseUrl, extras, " end-page").replace("<article", '<article data-source="end"');
   }
