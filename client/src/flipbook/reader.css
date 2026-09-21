@@ -848,16 +848,16 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   .page.laid-out.title-page.current,
   .mobile .page.laid-out.title-page.current,
   .leaf-copy.laid-out.title-page{
-    display:flex!important;
-    flex-direction:column;
+    display:grid!important;
+    grid-template-rows:1fr auto auto auto 1fr auto auto;
+    justify-items:center;
     align-items:center;
-    justify-content:flex-start;
-    padding:56px 18px max(24px,env(safe-area-inset-bottom));
+    padding:48px 18px max(16px,env(safe-area-inset-bottom));
     overflow:hidden;
   }
   .page.laid-out.title-page>.el-text[data-role="title"],
   .mobile .page.laid-out.title-page>.el-text[data-role="title"]{
-    order:1;
+    grid-row:2;
     width:92%!important;
     margin:0 0 18px;
   }
@@ -869,7 +869,7 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   }
   .page.laid-out.title-page>.el-image[data-size="main"],
   .mobile .page.laid-out.title-page>.el-image[data-size="main"]{
-    order:2;
+    grid-row:3;
     width:auto!important;
     max-width:72%;
     max-height:36vh;
@@ -879,9 +879,9 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   }
   .page.laid-out.title-page>.el-text[data-role="tagline"],
   .mobile .page.laid-out.title-page>.el-text[data-role="tagline"]{
-    order:3;
+    grid-row:4;
     width:90%!important;
-    margin:0 0 12px;
+    margin:0;
   }
   .page.laid-out.title-page>.el-text[data-role="tagline"] p{
     font-size:clamp(16px,2.5dvh,26px)!important;
@@ -890,20 +890,20 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   }
   .page.laid-out.title-page>.el-text:not([data-role]),
   .mobile .page.laid-out.title-page>.el-text:not([data-role]){
-    order:4;
+    grid-row:4;
     width:90%!important;
   }
   .page.laid-out.title-page>.el-text[data-role="author"],
   .mobile .page.laid-out.title-page>.el-text[data-role="author"]{
-    order:5;
-    margin-top:auto;
+    grid-row:6;
     width:90%!important;
+    margin:0;
   }
   .page.laid-out.title-page>.el-text[data-role="date"],
   .mobile .page.laid-out.title-page>.el-text[data-role="date"]{
-    order:6;
+    grid-row:7;
     width:90%!important;
-    margin-bottom:8px;
+    margin:0 0 8px;
   }
   .page.laid-out.title-page>.el-text[data-role="author"] p,
   .page.laid-out.title-page>.el-text[data-role="date"] p{
@@ -922,9 +922,10 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   .page.laid-out:not(.title-page):not(.end-page)>.el-image[data-size="main"],
   .mobile .page.laid-out:not(.title-page):not(.end-page)>.el-image[data-size="main"]{
     width:100%!important;
-    max-height:calc(100% - 168px);
-    height:auto!important;
-    object-fit:contain;
+    height:min(58vh,calc(100% - 150px))!important;
+    max-height:calc(100% - 150px);
+    object-fit:cover!important;
+    object-position:center center;
     border:1px solid var(--title-outline,#285e45);
     border-radius:12px;
     order:1;
@@ -938,7 +939,7 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
     order:2;
   }
   .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
-    font-size:clamp(21px,3dvh,26px)!important;
+    font-size:clamp(13px,1.8dvh,16px)!important;
     text-align:left;
   }
   .page.laid-out.end-page.current,

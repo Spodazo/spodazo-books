@@ -164,14 +164,16 @@ p.classList.remove('current');p.style.visibility='';}
 function copy(p){var c=p.cloneNode(true);c.classList.remove('current');c.classList.add('leaf-copy');c.setAttribute('aria-hidden','true');return c;}
 function specialPage(p){return p.classList.contains('cover-plate');}
 function finishFlip(layer,n){return function(){if(!busy)return;index=n;layer.remove();pages.forEach(function(p){p.style.visibility='';});busy=false;status();};}
-function animateLeaf(leaf,forward,done){
+function animateLeaf(leaf,forward,done,ms){
+  var dur=ms||1200;
   leaf.style.transform=forward?'rotateY(0deg)':'rotateY(-180deg)';
   var timer;
   function finish(){if(leaf._done)return;leaf._done=true;clearTimeout(timer);done();}
   leaf.addEventListener('transitionend',function(e){if(e.target===leaf&&e.propertyName==='transform')finish();});
-  requestAnimationFrame(function(){requestAnimationFrame(function(){leaf.style.transition='transform 1500ms cubic-bezier(.33,.08,.18,1)';leaf.style.transform=forward?'rotateY(-180deg)':'rotateY(0deg)';timer=setTimeout(finish,1750);});});
+  requestAnimationFrame(function(){requestAnimationFrame(function(){leaf.style.transition='transform '+dur+'ms cubic-bezier(.45,.05,.2,1)';leaf.style.transform=forward?'rotateY(-180deg)':'rotateY(0deg)';timer=setTimeout(finish,dur+50);});});
 }
-function show(n){if(busy||n<0)return;if(n>=pages.length)n=0;if(n===index)return;var old=pages[index],next=pages[n];if(specialPage(old)||specialPage(next)){index=n;status();return;}busy=true;updateCurl(n);var forward=n>index;old.style.visibility='hidden';next.style.visibility='hidden';var layer=document.createElement('div');layer.setAttribute('aria-hidden','true');
+function show(n,ms,after){if(busy||n<0)return;if(n>=pages.length)n=0;if(n===index)return;var old=pages[index],next=pages[n];if(specialPage(old)||specialPage(next)){index=n;status();if(after)after();return;}busy=true;updateCurl(n);var forward=n>index;var layer=document.createElement('div');layer.setAttribute('aria-hidden','true');
+function done(){finishFlip(layer,n)();if(after)after();}
 if(mobile){
   layer.className='flip-layer mobile-flip';
   var under=document.createElement('div');under.className='mobile-under';under.appendChild(copy(next));layer.appendChild(under);
@@ -182,26 +184,22 @@ if(mobile){
   mleaf.style.transform=forward?'rotateY(0deg)':'rotateY(-180deg)';
   book.appendChild(layer);
   next.classList.add('current');
-  animateLeaf(mleaf,forward,finishFlip(layer,n));
+  old.style.visibility='hidden';
+  animateLeaf(mleaf,forward,done,ms);
   return;
 }
 layer.className='flip-layer';
 var underLeft=document.createElement('div'),underRight=document.createElement('div');underLeft.className='fixed-half left-half';underRight.className='fixed-half right-half';underLeft.appendChild(copy(forward?old:next));underRight.appendChild(copy(forward?next:old));layer.appendChild(underLeft);layer.appendChild(underRight);
 var leaf=document.createElement('div');leaf.className='leaf';var front=document.createElement('div'),back=document.createElement('div');front.className='leaf-face leaf-front';back.className='leaf-face leaf-back';front.appendChild(copy(forward?old:next));back.appendChild(copy(forward?next:old));leaf.appendChild(front);leaf.appendChild(back);layer.appendChild(leaf);book.appendChild(layer);
 next.classList.add('current');
-animateLeaf(leaf,forward,finishFlip(layer,n));
+old.style.visibility='hidden';
+animateLeaf(leaf,forward,done,ms);
 }
 function restart(){
-  if(mobile){
-    var layer=book.querySelector('.flip-layer');
-    if(layer)layer.remove();
-    busy=false;
-    index=0;
-    pages.forEach(function(p){p.style.visibility='';});
-    status();
-    return;
-  }
-  show(0);
+  if(busy||index<=0)return;
+  var hops=index,step=Math.max(90,Math.min(170,Math.round(1300/hops)));
+  function back(){if(index<=0)return;show(index-1,step,back);}
+  back();
 }
 function direction(target){var z=target.closest('[data-dir]');return z?Number(z.getAttribute('data-dir')):0;}
 book.addEventListener('touchstart',function(e){if(e.touches.length!==1){start=null;return;}start={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});
