@@ -588,9 +588,11 @@ button, input, select, textarea { font: inherit; }
 }
 .page-editor-legal {
   position: absolute;
-  left: 6%;
-  right: 6%;
-  bottom: 10px;
+  left: 50%;
+  top: 54%;
+  width: 50%;
+  padding: 0 8%;
+  box-sizing: border-box;
   font-size: 11px;
   color: #3a5344;
   text-align: center;
