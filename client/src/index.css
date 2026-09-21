@@ -483,19 +483,33 @@ button, input, select, textarea { font: inherit; }
 }
 .page-editor-stage {
   flex: 1;
-  display: grid;
-  place-items: center;
-  padding: 12px;
+  display: flex;
+  padding: 16px 20px 20px;
   min-height: 0;
 }
-.page-editor-page {
+.page-editor-book {
   position: relative;
-  width: min(92vw, calc(78vh * 0.72));
-  height: min(78vh, calc(92vw / 0.72));
-  container-type: size;
-  border-radius: 10px;
-  box-shadow: 0 12px 40px #0007;
+  flex: 1;
+  min-height: 0;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px #0007, inset 0 3px 8px #fff5, inset 0 -6px 1px #ecddb8;
   overflow: hidden;
+}
+.page-editor-page {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  overflow: hidden;
+}
+.page-editor-spine {
+  position: absolute;
+  z-index: 30;
+  pointer-events: none;
+  left: calc(50% - 42px);
+  top: 0;
+  bottom: 0;
+  width: 84px;
+  background: linear-gradient(90deg, transparent 0%, #3e2a1510 20%, #3e2a1538 40%, #24180f91 49%, #fff4d173 51%, #68482340 58%, #68482315 78%, transparent 100%);
 }
 .page-editor-el {
   position: absolute;
@@ -521,7 +535,7 @@ button, input, select, textarea { font: inherit; }
   font: inherit;
   resize: none;
 }
-.page-editor-el p { display: flex; align-items: center; }
+.page-editor-el p { display: flex; align-items: center; font-family: Georgia, "Times New Roman", serif; }
 .page-editor-empty {
   display: grid;
   place-items: center;

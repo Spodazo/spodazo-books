@@ -145,9 +145,9 @@ export default function PageEditorPage() {
     const element: PageElement = {
       id: newElementId(),
       type: "text",
-      x: 10,
-      y: 20 + (layout.elements.length % 5) * 8,
-      w: 70,
+      x: 56,
+      y: 18 + (layout.elements.filter((item) => item.type === "text").length % 4) * 10,
+      w: 38,
       h: 16,
       z: layout.elements.length + 1,
       text: "New wording",
@@ -194,10 +194,10 @@ export default function PageEditorPage() {
     const element: PageElement = {
       id: newElementId(),
       type: "image",
-      x: 20,
-      y: 18,
-      w: 40,
-      h: 50,
+      x: layout.elements.some((item) => item.type === "image") ? 56 : 0,
+      y: 0,
+      w: 50,
+      h: 100,
       z: layout.elements.length + 1,
       imageAsset: uploaded.filename,
       imageUrl: uploaded.url,
@@ -309,49 +309,52 @@ export default function PageEditorPage() {
         ))}
       </div>
       <div className="page-editor-stage">
-        <div
-          ref={pageRef}
-          className="page-editor-page"
-          style={{ background: fill }}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onMouseDown={() => { setSelectedId(""); setEditingId(""); }}
-        >
-          {layout.elements.slice().sort((a, b) => a.z - b.z).map((element) => (
-            <div
-              key={element.id}
-              className={`page-editor-el${selectedId === element.id ? " selected" : ""}`}
-              style={{ left: `${element.x}%`, top: `${element.y}%`, width: `${element.w}%`, height: `${element.h}%`, zIndex: element.z }}
-              onMouseDown={(event) => event.stopPropagation()}
-              onPointerDown={(event) => onPointerDown(event, element, "move")}
-              onDoubleClick={() => {
-                if (element.type === "text") setEditingId(element.id);
-              }}
-            >
-              {element.type === "image" ? (
-                element.imageUrl ? <img src={element.imageUrl} alt="" /> : <span className="page-editor-empty">Picture</span>
-              ) : editingId === element.id ? (
-                <textarea
-                  autoFocus
-                  value={element.text || ""}
-                  onChange={(event) => patchElement(element.id, { text: event.target.value })}
-                  onBlur={() => setEditingId("")}
-                />
-              ) : (
-                <p style={{ fontSize: `${element.fontSize || 4}cqh` }}>{element.text || "Double-click to type"}</p>
-              )}
-              {selectedId === element.id ? (
-                <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, element, "resize")} />
-              ) : null}
-            </div>
-          ))}
-          {screen.kind === "end" && (credits || copyright) ? (
-            <footer className="page-editor-legal">
-              {credits ? <p>{credits}</p> : null}
-              {copyright ? <p>{copyright}</p> : null}
-            </footer>
-          ) : null}
+        <div className="page-editor-book">
+          <div
+            ref={pageRef}
+            className="page-editor-page"
+            style={{ background: fill }}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onMouseDown={() => { setSelectedId(""); setEditingId(""); }}
+          >
+            {layout.elements.slice().sort((a, b) => a.z - b.z).map((element) => (
+              <div
+                key={element.id}
+                className={`page-editor-el${selectedId === element.id ? " selected" : ""}`}
+                style={{ left: `${element.x}%`, top: `${element.y}%`, width: `${element.w}%`, height: `${element.h}%`, zIndex: element.z }}
+                onMouseDown={(event) => event.stopPropagation()}
+                onPointerDown={(event) => onPointerDown(event, element, "move")}
+                onDoubleClick={() => {
+                  if (element.type === "text") setEditingId(element.id);
+                }}
+              >
+                {element.type === "image" ? (
+                  element.imageUrl ? <img src={element.imageUrl} alt="" /> : <span className="page-editor-empty">Picture</span>
+                ) : editingId === element.id ? (
+                  <textarea
+                    autoFocus
+                    value={element.text || ""}
+                    onChange={(event) => patchElement(element.id, { text: event.target.value })}
+                    onBlur={() => setEditingId("")}
+                  />
+                ) : (
+                  <p style={{ fontSize: `${element.fontSize || 4}cqh` }}>{element.text || "Double-click to type"}</p>
+                )}
+                {selectedId === element.id ? (
+                  <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, element, "resize")} />
+                ) : null}
+              </div>
+            ))}
+            {screen.kind === "end" && (credits || copyright) ? (
+              <footer className="page-editor-legal">
+                {credits ? <p>{credits}</p> : null}
+                {copyright ? <p>{copyright}</p> : null}
+              </footer>
+            ) : null}
+          </div>
+          <div className="page-editor-spine" aria-hidden="true" />
         </div>
       </div>
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={(event) => {

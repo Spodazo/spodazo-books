@@ -151,15 +151,30 @@ export function defaultEndLayout(coverAsset = "", coverUrl = "", characterUrl = 
   return { elements, background: "" };
 }
 
+export function isLegacySingleLeafLayout(elements: PageElement[]): boolean {
+  const images = elements.filter((item) => item.type === "image");
+  const texts = elements.filter((item) => item.type === "text");
+  if (images.length > 1 || texts.length > 2) return false;
+  const overlayText = texts.every((item) => item.w >= 70 && (item.y >= 55 || item.y <= 22));
+  if (images.length === 1) {
+    const image = images[0];
+    const fullPage = image.x <= 2 && image.y <= 2 && image.w >= 95 && image.h >= 95;
+    return fullPage && overlayText;
+  }
+  return texts.length >= 1 && overlayText;
+}
+
 export function defaultStoryElements(page: BookPage): PageElement[] {
   const image = page.imageAsset || page.fullPageAsset;
   const elements: PageElement[] = [];
-  if (image || page.imageUrl || page.fullPageUrl) {
+  const hasImage = Boolean(image || page.imageUrl || page.fullPageUrl);
+  const twoLeaf = page.kind !== "facsimile";
+  if (hasImage) {
     elements.push(imageEl({
       id: `${page.id}-art`,
       x: 0,
       y: 0,
-      w: 100,
+      w: twoLeaf ? 50 : 100,
       h: 100,
       z: 1,
       imageAsset: image,
@@ -170,10 +185,10 @@ export function defaultStoryElements(page: BookPage): PageElement[] {
   if (text && page.kind !== "facsimile") {
     elements.push(textEl({
       id: `${page.id}-text`,
-      x: 6,
-      y: page.position === "top" ? 8 : 68,
-      w: 88,
-      h: 26,
+      x: 56,
+      y: 18,
+      w: 38,
+      h: 64,
       z: 2,
       text,
       role: "body",
@@ -184,8 +199,12 @@ export function defaultStoryElements(page: BookPage): PageElement[] {
 }
 
 export function ensurePageElements(page: BookPage): BookPage {
-  if (page.elements.length) return page;
-  return { ...page, elements: defaultStoryElements(page) };
+  if (page.elements.length && !isLegacySingleLeafLayout(page.elements)) return page;
+  const paragraphs = bodyParagraphs(page.elements);
+  return {
+    ...page,
+    elements: defaultStoryElements(paragraphs.length ? { ...page, paragraphs } : page),
+  };
 }
 
 export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?: string; characterUrl?: string }): T {
@@ -245,7 +264,7 @@ export function emptyStoryPage(index: number): BookPage {
     position: "bottom",
     focalPoint: "50% 50%",
     elements: [
-      textEl({ id: newElementId(), x: 8, y: 70, w: 84, h: 22, z: 2, text: "New page", role: "body", fontSize: 3.6 }),
+      textEl({ id: newElementId(), x: 56, y: 18, w: 38, h: 64, z: 2, text: "New page", role: "body", fontSize: 3.6 }),
     ],
     background: "",
   };
