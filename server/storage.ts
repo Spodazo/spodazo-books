@@ -4,6 +4,13 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { books, curator, playerSetup } from "../shared/schema";
 import {
+  DEFAULT_PAGE_BACKGROUND,
+  layoutToJson,
+  normalizeColor,
+  normalizeLayout,
+  parseLayoutJson,
+} from "../shared/page-layout";
+import {
   DEFAULT_CURATOR,
   DEFAULT_PLAYER_SETUP,
   normalizeAudience,
@@ -38,6 +45,9 @@ export type BookInput = {
   audience?: string;
   pageTemplate?: string;
   characterRender?: string;
+  pageBackground?: string;
+  titleLayout?: Book["titleLayout"];
+  endLayout?: Book["endLayout"];
 };
 
 export interface BookStore {
@@ -63,11 +73,19 @@ function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
+function hydrateElements(elements: BookPage["elements"]): BookPage["elements"] {
+  return elements.map((item) => ({
+    ...item,
+    imageUrl: item.imageAsset ? imageUrl(item.imageAsset) : item.imageUrl || "",
+  }));
+}
+
 function hydratePages(pages: BookPage[]): BookPage[] {
   return pages.map((page) => ({
     ...page,
     imageUrl: imageUrl(page.imageAsset),
     fullPageUrl: imageUrl(page.fullPageAsset || page.imageAsset),
+    elements: hydrateElements(page.elements || []),
   }));
 }
 
@@ -80,6 +98,8 @@ function hydrateBook(book: Book): PublicBook {
     coverUrl: imageUrl(book.cover || pages[0]?.imageAsset || pages[0]?.fullPageAsset, HOME_CARD_WIDTH),
     pdfUrl: pdfUrl(book.pdf),
     pageCount: pages.length,
+    titleLayout: { ...book.titleLayout, elements: hydrateElements(book.titleLayout.elements) },
+    endLayout: { ...book.endLayout, elements: hydrateElements(book.endLayout.elements) },
   };
 }
 
@@ -149,6 +169,11 @@ function recordBook(row: {
   audience?: string | null;
   pageTemplate?: string | null;
   characterRender?: string | null;
+  pageBackground?: string | null;
+  titleLayoutJson?: string | null;
+  endLayoutJson?: string | null;
+  titleLayout?: Book["titleLayout"] | null;
+  endLayout?: Book["endLayout"] | null;
   createdAt?: Date | string | null;
   updatedAt?: Date | string | null;
 }): Book {
@@ -169,6 +194,9 @@ function recordBook(row: {
     audience: normalizeAudience(row.audience),
     pageTemplate: normalizePageTemplate(row.pageTemplate),
     characterRender: normalizeCharacterRender(row.characterRender),
+    pageBackground: normalizeColor(row.pageBackground, DEFAULT_PAGE_BACKGROUND),
+    titleLayout: row.titleLayout || parseLayoutJson(row.titleLayoutJson),
+    endLayout: row.endLayout || parseLayoutJson(row.endLayoutJson),
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : undefined,
     updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : undefined,
   };
@@ -238,6 +266,9 @@ export class JsonBookStore implements BookStore {
       audience: normalizeAudience(input.audience),
       pageTemplate: normalizePageTemplate(input.pageTemplate),
       characterRender: normalizeCharacterRender(input.characterRender),
+      pageBackground: normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND),
+      titleLayout: normalizeLayout(input.titleLayout),
+      endLayout: normalizeLayout(input.endLayout),
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
@@ -265,6 +296,9 @@ export class JsonBookStore implements BookStore {
     if (input.audience !== undefined) book.audience = normalizeAudience(input.audience);
     if (input.pageTemplate !== undefined) book.pageTemplate = normalizePageTemplate(input.pageTemplate);
     if (input.characterRender !== undefined) book.characterRender = normalizeCharacterRender(input.characterRender);
+    if (input.pageBackground !== undefined) book.pageBackground = normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND);
+    if (input.titleLayout !== undefined) book.titleLayout = normalizeLayout(input.titleLayout);
+    if (input.endLayout !== undefined) book.endLayout = normalizeLayout(input.endLayout);
     book.updatedAt = nowIso();
     this.write(catalog);
     return hydrateBook(book);
@@ -380,6 +414,9 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'children'`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_template TEXT NOT NULL DEFAULT 'one-up'`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS character_render TEXT NOT NULL DEFAULT 'scene'`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_background TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS title_layout_json TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS end_layout_json TEXT NOT NULL DEFAULT ''`);
   }
 
   async listBooks(): Promise<BookListItem[]> {
@@ -418,6 +455,9 @@ export class PostgresBookStore implements BookStore {
         audience: normalizeAudience(input.audience),
         pageTemplate: normalizePageTemplate(input.pageTemplate),
         characterRender: normalizeCharacterRender(input.characterRender),
+        pageBackground: normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND),
+        titleLayoutJson: layoutToJson(normalizeLayout(input.titleLayout)),
+        endLayoutJson: layoutToJson(normalizeLayout(input.endLayout)),
       })
       .returning();
     return hydrateBook(recordBook(row));
@@ -440,6 +480,9 @@ export class PostgresBookStore implements BookStore {
     if (input.audience !== undefined) patch.audience = normalizeAudience(input.audience);
     if (input.pageTemplate !== undefined) patch.pageTemplate = normalizePageTemplate(input.pageTemplate);
     if (input.characterRender !== undefined) patch.characterRender = normalizeCharacterRender(input.characterRender);
+    if (input.pageBackground !== undefined) patch.pageBackground = normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND);
+    if (input.titleLayout !== undefined) patch.titleLayoutJson = layoutToJson(normalizeLayout(input.titleLayout));
+    if (input.endLayout !== undefined) patch.endLayoutJson = layoutToJson(normalizeLayout(input.endLayout));
     const [row] = await this.db.update(books).set(patch).where(eq(books.id, id)).returning();
     return row ? hydrateBook(recordBook(row)) : null;
   }

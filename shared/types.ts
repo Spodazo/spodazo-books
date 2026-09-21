@@ -1,6 +1,27 @@
 export type BookAudience = "children" | "adults";
 export type PageTemplate = "one-up" | "two-up" | "three-up";
 export type CharacterRender = "scene" | "cutout";
+export type PageElementRole = "title" | "tagline" | "author" | "date" | "body" | "end";
+
+export type PageElement = {
+  id: string;
+  type: "text" | "image";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  z: number;
+  text?: string;
+  imageAsset?: string;
+  imageUrl?: string;
+  fontSize?: number;
+  role?: PageElementRole;
+};
+
+export type PageLayout = {
+  elements: PageElement[];
+  background?: string;
+};
 
 export type BookPage = {
   id: string;
@@ -15,6 +36,8 @@ export type BookPage = {
   position: "top" | "bottom";
   focalPoint: string;
   alt?: string;
+  elements: PageElement[];
+  background: string;
 };
 
 export type Book = {
@@ -33,6 +56,9 @@ export type Book = {
   audience: BookAudience;
   pageTemplate: PageTemplate;
   characterRender: CharacterRender;
+  pageBackground: string;
+  titleLayout: PageLayout;
+  endLayout: PageLayout;
   pages: BookPage[];
   createdAt?: string;
   updatedAt?: string;

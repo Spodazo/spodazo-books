@@ -413,6 +413,9 @@ export function registerRoutes(app: Express): void {
         audience: String(body.audience || ""),
         pageTemplate: String(body.pageTemplate || ""),
         characterRender: String(body.characterRender || ""),
+        pageBackground: String(body.pageBackground || ""),
+        titleLayout: body.titleLayout,
+        endLayout: body.endLayout,
       });
       res.json(book);
     } catch (err) {
@@ -449,6 +452,9 @@ export function registerRoutes(app: Express): void {
         audience: body.audience !== undefined ? String(body.audience) : undefined,
         pageTemplate: body.pageTemplate !== undefined ? String(body.pageTemplate) : undefined,
         characterRender: body.characterRender !== undefined ? String(body.characterRender) : undefined,
+        pageBackground: body.pageBackground !== undefined ? String(body.pageBackground) : undefined,
+        titleLayout: body.titleLayout !== undefined ? body.titleLayout : undefined,
+        endLayout: body.endLayout !== undefined ? body.endLayout : undefined,
       });
       res.json(updated);
     } catch (err) {

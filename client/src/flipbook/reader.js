@@ -38,6 +38,30 @@ function pageCurlHtml(baseUrl) {
   return `<div class="page-curl" hidden aria-hidden="true"><div class="page-curl-peek"></div><img class="page-curl-flap" src="${esc(safeURL("/media/images/page-curl.png", baseUrl))}" alt=""></div>`;
 }
 
+function pageFill(page, book) {
+  const value = String(page?.background || book?.pageBackground || "").trim();
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : "#efdda6";
+}
+
+function hasLayout(layout) {
+  return Boolean(layout?.elements?.length);
+}
+
+function elementHtml(el, baseUrl) {
+  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4}`;
+  if (el.type === "image") {
+    const src = esc(safeURL(el.imageUrl || "", baseUrl));
+    return src ? `<img class="el el-image" src="${src}" alt="" style="${style}">` : "";
+  }
+  return `<div class="el el-text" style="${style}"><p>${esc(el.text || "")}</p></div>`;
+}
+
+function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "") {
+  const fill = pageFill(layout, book);
+  const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl)).join("");
+  return `<article class="page laid-out${extraClass}" aria-label="${esc(label)}" style="background:${fill}">${items}${extra}</article>`;
+}
+
 function storyBody(paragraphs) {
   return (paragraphs || [])
     .map((line) => String(line).trim())
@@ -62,6 +86,10 @@ function characterSrc(book, baseUrl) {
 }
 
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
+  const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl)}<button type="button" class="read-again">Read again</button><button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
+  if (hasLayout(book.endLayout)) {
+    return laidOutPage("The end", book.endLayout, book, baseUrl, extras, " end-page").replace("<article", '<article data-source="end"');
+  }
   const src = coverSrc(book, baseUrl);
   const character = characterSrc(book, baseUrl);
   const left = character
@@ -71,8 +99,12 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl) {
+  const chrome = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>${adminLoginHtml()}<button class="zone" data-dir="1" aria-label="Next page"></button>`;
+  if (hasLayout(book.titleLayout)) {
+    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, " title-page current").replace("<article", '<article data-source="title"');
+  }
   const src = coverSrc(book, baseUrl);
-  return `<article class="page title-page current" data-source="title" aria-label="Title page"><a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>${adminLoginHtml()}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div><div id="hint" class="hint" role="status"><span class="hint-desktop">Tap left or right to turn the page</span><span class="hint-mobile">Swipe left to turn the page. Swipe right to go back</span></div></section><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
+  return `<article class="page title-page current" data-source="title" aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div><div id="hint" class="hint" role="status"><span class="hint-desktop">Tap left or right to turn the page</span><span class="hint-mobile">Swipe left to turn the page. Swipe right to go back</span></div></section></article>`;
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
@@ -83,16 +115,19 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const characterPreload=characterSrc(book,baseUrl);
   const skipCover=isWillow(book);
   const storyPages=skipCover?book.pages.slice(1):book.pages;
+  const paper=pageFill({background:book.pageBackground},book);
   const articles=titlePageHtml(book,baseUrl,libraryUrl)+storyPages.map((p,i)=>{
+    const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
+    if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;
     const fallback=p.kind==='facsimile'||coverOnly;
     const classes=`page${fallback?' facsimile':''}${coverOnly?' cover-plate':''}`;
     const focal=/^\d{1,3}% \d{1,3}%$/.test(p.focalPoint||'')?p.focalPoint:'50% 50%';
     const image=safeURL(coverOnly?(book.coverUrl||p.fullPageUrl||p.imageUrl):fallback?p.fullPageUrl||p.imageUrl:p.imageUrl,baseUrl);
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
-    return `<article class="${classes}" aria-label="Page ${i+1}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
+    return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:#efdda6"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';

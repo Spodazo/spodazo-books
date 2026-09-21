@@ -1,3 +1,4 @@
+import { normalizeColor, normalizeLayout } from "./page-layout";
 import { DEFAULT_PALETTE_ID, normalizePaletteId } from "./palettes";
 import type { BookAudience, BookPage, CharacterRender, Curator, CuratorRecord, PageTemplate, PlayerSetup } from "./types";
 
@@ -124,6 +125,8 @@ export function normalizeBookPage(raw: Partial<BookPage>, index: number): BookPa
     position: raw.position === "top" ? "top" : "bottom",
     focalPoint: /^\d{1,3}% \d{1,3}%$/.test(raw.focalPoint || "") ? String(raw.focalPoint) : "50% 50%",
     alt: raw.alt ? String(raw.alt) : undefined,
+    elements: normalizeLayout({ elements: raw.elements || [] }).elements,
+    background: normalizeColor(raw.background, ""),
   };
 }
 
@@ -150,6 +153,20 @@ export function pagesToJson(pages: BookPage[]): string {
       position: page.position,
       focalPoint: page.focalPoint,
       alt: page.alt,
+      elements: normalizeLayout({ elements: page.elements }).elements.map((item) => ({
+        id: item.id,
+        type: item.type,
+        x: item.x,
+        y: item.y,
+        w: item.w,
+        h: item.h,
+        z: item.z,
+        text: item.text,
+        imageAsset: item.imageAsset,
+        fontSize: item.fontSize,
+        role: item.role,
+      })),
+      background: page.background || "",
     })),
   );
 }

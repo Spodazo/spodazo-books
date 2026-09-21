@@ -789,6 +789,7 @@ function BookEditor({
         >
           Save
         </button>
+        <a className="ghost" href={`/admin/edit/${book.slug}`}>Edit pages</a>
         <button type="button" className="ghost" onClick={() => setPreview(true)}>Preview</button>
         {book.pdfUrl ? <a className="ghost" href={book.pdfUrl} download>Download PDF</a> : null}
         <button
