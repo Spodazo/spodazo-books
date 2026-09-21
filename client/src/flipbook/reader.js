@@ -34,10 +34,6 @@ function subtitleHtml(tagline) {
     .join("");
 }
 
-function adminLoginHtml() {
-  return `<a class="admin-login" href="/admin" target="_top" aria-label="Admin login" title="Admin login"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2H5v12h14V9h-2zm-8 0V7a3 3 0 0 1 6 0v2H9zm3 5.2a1.8 1.8 0 0 1 .8 3.4V19h-1.6v-1.4a1.8 1.8 0 0 1 .8-3.4z"/></svg></a>`;
-}
-
 function pageCurlHtml(baseUrl) {
   return `<div class="page-curl" hidden aria-hidden="true"><div class="page-curl-peek"></div><img class="page-curl-flap" src="${esc(safeURL("/media/images/page-curl.png", baseUrl))}" alt=""></div>`;
 }
@@ -143,7 +139,7 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl) {
-  const chrome = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>${adminLoginHtml()}<button class="zone" data-dir="1" aria-label="Next page"></button>`;
+  const chrome = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a><button class="zone" data-dir="1" aria-label="Next page"></button>`;
   if (hasLayout(book.titleLayout)) {
     return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, " title-page current").replace("<article", '<article data-source="title"');
   }

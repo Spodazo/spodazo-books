@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useRoute } from "wouter";
-import AdminLoginLink from "../components/AdminLoginLink";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
@@ -55,7 +54,6 @@ export default function BookPage() {
         <Link href="/" className="reader-close" aria-label="Close">
           ×
         </Link>
-        <AdminLoginLink />
         <p>{error}</p>
       </main>
     );
