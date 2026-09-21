@@ -460,13 +460,26 @@ button, input, select, textarea { font: inherit; }
 .page-editor-bar strong { margin-right: 8px; }
 .page-editor-status { color: #e8d4a0; font-size: 13px; }
 .page-editor-tools button { padding: 8px 12px; }
-.page-editor-color {
+.page-editor-color,
+.page-editor-font,
+.page-editor-size {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
 }
-.page-editor-color input { width: 42px; height: 28px; padding: 0; border: 0; }
+.page-editor-color input[type="color"] { width: 42px; height: 28px; padding: 0; border: 0; }
+.page-editor-font select,
+.page-editor-size input[type="range"] {
+  max-width: 180px;
+  background: #fff8e4;
+  color: #271911;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.page-editor-size input[type="range"] { width: 110px; padding: 0; }
+.page-editor-size span { min-width: 2.2em; }
 .page-editor-swatches {
   display: flex;
   flex-wrap: wrap;
@@ -483,14 +496,14 @@ button, input, select, textarea { font: inherit; }
 }
 .page-editor-stage {
   flex: 1;
-  display: flex;
+  display: grid;
+  place-items: center;
   padding: 16px 20px 20px;
   min-height: 0;
 }
 .page-editor-book {
+  --spine-w: 84px;
   position: relative;
-  flex: 1;
-  min-height: 0;
   border-radius: 18px;
   box-shadow: 0 12px 40px #0007, inset 0 3px 8px #fff5, inset 0 -6px 1px #ecddb8;
   overflow: hidden;
@@ -505,10 +518,10 @@ button, input, select, textarea { font: inherit; }
   position: absolute;
   z-index: 30;
   pointer-events: none;
-  left: calc(50% - 42px);
+  left: calc(50% - (var(--spine-w) / 2));
   top: 0;
   bottom: 0;
-  width: 84px;
+  width: var(--spine-w);
   background: linear-gradient(90deg, transparent 0%, #3e2a1510 20%, #3e2a1538 40%, #24180f91 49%, #fff4d173 51%, #68482340 58%, #68482315 78%, transparent 100%);
 }
 .page-editor-el {
@@ -535,7 +548,7 @@ button, input, select, textarea { font: inherit; }
   font: inherit;
   resize: none;
 }
-.page-editor-el p { display: flex; align-items: center; font-family: Georgia, "Times New Roman", serif; }
+.page-editor-el p { display: flex; align-items: center; }
 .page-editor-empty {
   display: grid;
   place-items: center;

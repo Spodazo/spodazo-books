@@ -15,6 +15,8 @@ export type PageElement = {
   imageAsset?: string;
   imageUrl?: string;
   fontSize?: number;
+  fontFamily?: string;
+  color?: string;
   role?: PageElementRole;
 };
 
@@ -57,6 +59,8 @@ export type Book = {
   pageTemplate: PageTemplate;
   characterRender: CharacterRender;
   pageBackground: string;
+  textFont: string;
+  textColor: string;
   titleLayout: PageLayout;
   endLayout: PageLayout;
   pages: BookPage[];

@@ -414,6 +414,8 @@ export function registerRoutes(app: Express): void {
         pageTemplate: String(body.pageTemplate || ""),
         characterRender: String(body.characterRender || ""),
         pageBackground: String(body.pageBackground || ""),
+        textFont: String(body.textFont || ""),
+        textColor: String(body.textColor || ""),
         titleLayout: body.titleLayout,
         endLayout: body.endLayout,
       });
@@ -453,6 +455,8 @@ export function registerRoutes(app: Express): void {
         pageTemplate: body.pageTemplate !== undefined ? String(body.pageTemplate) : undefined,
         characterRender: body.characterRender !== undefined ? String(body.characterRender) : undefined,
         pageBackground: body.pageBackground !== undefined ? String(body.pageBackground) : undefined,
+        textFont: body.textFont !== undefined ? String(body.textFont) : undefined,
+        textColor: body.textColor !== undefined ? String(body.textColor) : undefined,
         titleLayout: body.titleLayout !== undefined ? body.titleLayout : undefined,
         endLayout: body.endLayout !== undefined ? body.endLayout : undefined,
       });

@@ -10,6 +10,7 @@ import {
   normalizeLayout,
   parseLayoutJson,
 } from "../shared/page-layout";
+import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, normalizeFont } from "../shared/book-fonts";
 import {
   DEFAULT_CURATOR,
   DEFAULT_PLAYER_SETUP,
@@ -46,6 +47,8 @@ export type BookInput = {
   pageTemplate?: string;
   characterRender?: string;
   pageBackground?: string;
+  textFont?: string;
+  textColor?: string;
   titleLayout?: Book["titleLayout"];
   endLayout?: Book["endLayout"];
 };
@@ -170,6 +173,8 @@ function recordBook(row: {
   pageTemplate?: string | null;
   characterRender?: string | null;
   pageBackground?: string | null;
+  textFont?: string | null;
+  textColor?: string | null;
   titleLayoutJson?: string | null;
   endLayoutJson?: string | null;
   titleLayout?: Book["titleLayout"] | null;
@@ -195,6 +200,8 @@ function recordBook(row: {
     pageTemplate: normalizePageTemplate(row.pageTemplate),
     characterRender: normalizeCharacterRender(row.characterRender),
     pageBackground: normalizeColor(row.pageBackground, DEFAULT_PAGE_BACKGROUND),
+    textFont: normalizeFont(row.textFont, DEFAULT_TEXT_FONT),
+    textColor: normalizeColor(row.textColor, DEFAULT_TEXT_COLOR),
     titleLayout: row.titleLayout || parseLayoutJson(row.titleLayoutJson),
     endLayout: row.endLayout || parseLayoutJson(row.endLayoutJson),
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : undefined,
@@ -267,6 +274,8 @@ export class JsonBookStore implements BookStore {
       pageTemplate: normalizePageTemplate(input.pageTemplate),
       characterRender: normalizeCharacterRender(input.characterRender),
       pageBackground: normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND),
+      textFont: normalizeFont(input.textFont, DEFAULT_TEXT_FONT),
+      textColor: normalizeColor(input.textColor, DEFAULT_TEXT_COLOR),
       titleLayout: normalizeLayout(input.titleLayout),
       endLayout: normalizeLayout(input.endLayout),
       createdAt: nowIso(),
@@ -297,6 +306,8 @@ export class JsonBookStore implements BookStore {
     if (input.pageTemplate !== undefined) book.pageTemplate = normalizePageTemplate(input.pageTemplate);
     if (input.characterRender !== undefined) book.characterRender = normalizeCharacterRender(input.characterRender);
     if (input.pageBackground !== undefined) book.pageBackground = normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND);
+    if (input.textFont !== undefined) book.textFont = normalizeFont(input.textFont, DEFAULT_TEXT_FONT);
+    if (input.textColor !== undefined) book.textColor = normalizeColor(input.textColor, DEFAULT_TEXT_COLOR);
     if (input.titleLayout !== undefined) book.titleLayout = normalizeLayout(input.titleLayout);
     if (input.endLayout !== undefined) book.endLayout = normalizeLayout(input.endLayout);
     book.updatedAt = nowIso();
@@ -415,6 +426,8 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_template TEXT NOT NULL DEFAULT 'one-up'`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS character_render TEXT NOT NULL DEFAULT 'scene'`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_background TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS text_font TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS text_color TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS title_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS end_layout_json TEXT NOT NULL DEFAULT ''`);
   }
@@ -456,6 +469,8 @@ export class PostgresBookStore implements BookStore {
         pageTemplate: normalizePageTemplate(input.pageTemplate),
         characterRender: normalizeCharacterRender(input.characterRender),
         pageBackground: normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND),
+        textFont: normalizeFont(input.textFont, DEFAULT_TEXT_FONT),
+        textColor: normalizeColor(input.textColor, DEFAULT_TEXT_COLOR),
         titleLayoutJson: layoutToJson(normalizeLayout(input.titleLayout)),
         endLayoutJson: layoutToJson(normalizeLayout(input.endLayout)),
       })
@@ -481,6 +496,8 @@ export class PostgresBookStore implements BookStore {
     if (input.pageTemplate !== undefined) patch.pageTemplate = normalizePageTemplate(input.pageTemplate);
     if (input.characterRender !== undefined) patch.characterRender = normalizeCharacterRender(input.characterRender);
     if (input.pageBackground !== undefined) patch.pageBackground = normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND);
+    if (input.textFont !== undefined) patch.textFont = normalizeFont(input.textFont, DEFAULT_TEXT_FONT);
+    if (input.textColor !== undefined) patch.textColor = normalizeColor(input.textColor, DEFAULT_TEXT_COLOR);
     if (input.titleLayout !== undefined) patch.titleLayoutJson = layoutToJson(normalizeLayout(input.titleLayout));
     if (input.endLayout !== undefined) patch.endLayoutJson = layoutToJson(normalizeLayout(input.endLayout));
     const [row] = await this.db.update(books).set(patch).where(eq(books.id, id)).returning();

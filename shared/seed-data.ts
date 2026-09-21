@@ -164,6 +164,8 @@ export function pagesToJson(pages: BookPage[]): string {
         text: item.text,
         imageAsset: item.imageAsset,
         fontSize: item.fontSize,
+        fontFamily: item.fontFamily,
+        color: item.color,
         role: item.role,
       })),
       background: page.background || "",

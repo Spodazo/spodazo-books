@@ -1,6 +1,7 @@
 import css from './reader.css?raw';
 import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
+import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 
 function coverSrc(book, baseUrl) {
@@ -47,8 +48,23 @@ function hasLayout(layout) {
   return Boolean(layout?.elements?.length);
 }
 
-function elementHtml(el, baseUrl) {
-  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4}`;
+function elementInk(el, book) {
+  const value = String(el?.color || book?.textColor || "").trim();
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : "#203b2a";
+}
+
+function bookFontFamilies(book) {
+  const ids = [book?.textFont];
+  for (const layout of [book?.titleLayout, book?.endLayout, ...(book?.pages || [])]) {
+    for (const el of layout?.elements || []) {
+      if (el.fontFamily) ids.push(el.fontFamily);
+    }
+  }
+  return fontsUsed(...ids);
+}
+
+function elementHtml(el, baseUrl, book) {
+  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4};--ff:${fontStack(el.fontFamily || book?.textFont)};--ink:${elementInk(el, book)}`;
   if (el.type === "image") {
     const src = esc(safeURL(el.imageUrl || "", baseUrl));
     return src ? `<img class="el el-image" src="${src}" alt="" style="${style}">` : "";
@@ -58,7 +74,7 @@ function elementHtml(el, baseUrl) {
 
 function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "") {
   const fill = pageFill(layout, book);
-  const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl)).join("");
+  const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book)).join("");
   return `<article class="page laid-out${extraClass}" aria-label="${esc(label)}" style="background:${fill}">${items}${extra}</article>`;
 }
 
@@ -127,7 +143,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';

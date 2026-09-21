@@ -116,6 +116,8 @@ test("ensureBookLayouts and sync keep title text and cover", () => {
     pageTemplate: "one-up",
     characterRender: "scene",
     pageBackground: "",
+    textFont: "",
+    textColor: "",
     titleLayout: { elements: [] },
     endLayout: { elements: [] },
     pages: [{

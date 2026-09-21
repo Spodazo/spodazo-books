@@ -1,3 +1,4 @@
+import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, normalizeFont } from "./book-fonts";
 import type { Book, BookPage, PageElement, PageElementRole, PageLayout } from "./types";
 
 export const DEFAULT_PAGE_BACKGROUND = "#efdda6";
@@ -53,6 +54,8 @@ export function normalizeElement(raw: Partial<PageElement> | null | undefined, i
     imageAsset: type === "image" ? String(raw?.imageAsset || "") : undefined,
     imageUrl: type === "image" ? String(raw?.imageUrl || "") : undefined,
     fontSize: type === "text" ? clampPercent(raw?.fontSize, 4, 2, 16) : undefined,
+    fontFamily: type === "text" ? normalizeFont(raw?.fontFamily) : undefined,
+    color: type === "text" ? normalizeColor(raw?.color, "") : undefined,
     role,
   };
 }
@@ -88,6 +91,8 @@ export function layoutToJson(layout: PageLayout): string {
       text: item.text,
       imageAsset: item.imageAsset,
       fontSize: item.fontSize,
+      fontFamily: item.fontFamily,
+      color: item.color,
       role: item.role,
     })),
   });
@@ -212,6 +217,8 @@ export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?:
   return {
     ...book,
     pageBackground: normalizeColor(book.pageBackground, DEFAULT_PAGE_BACKGROUND),
+    textFont: normalizeFont(book.textFont, DEFAULT_TEXT_FONT),
+    textColor: normalizeColor(book.textColor, DEFAULT_TEXT_COLOR),
     titleLayout: hasLayout(book.titleLayout)
       ? book.titleLayout
       : defaultTitleLayout(book, extras?.coverUrl || ""),

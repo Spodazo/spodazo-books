@@ -1,16 +1,53 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import {
+  BOOK_FONTS,
+  DEFAULT_TEXT_COLOR,
+  DEFAULT_TEXT_FONT,
+  cursiveFonts,
+  fontStack,
+  googleFontsHref,
+  straightFonts,
+  TEXT_INK_PALETTE,
+} from "@shared/book-fonts";
+import {
   DEFAULT_PAGE_BACKGROUND,
   PAGE_COLOR_PALETTE,
   emptyStoryPage,
   ensureBookLayouts,
   newElementId,
+  normalizeColor,
   pageFill,
   syncBookFromLayouts,
 } from "@shared/page-layout";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } from "../lib/api";
+
+function FontSelect({
+  value,
+  onChange,
+  allowBook,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  allowBook?: boolean;
+}) {
+  return (
+    <select value={value} onChange={(event) => onChange(event.target.value)}>
+      {allowBook ? <option value="">Same as book</option> : null}
+      <optgroup label="Straight">
+        {straightFonts().map((font) => (
+          <option key={font.id} value={font.id} style={{ fontFamily: fontStack(font.id) }}>{font.label}</option>
+        ))}
+      </optgroup>
+      <optgroup label="Cursive">
+        {cursiveFonts().map((font) => (
+          <option key={font.id} value={font.id} style={{ fontFamily: fontStack(font.id) }}>{font.label}</option>
+        ))}
+      </optgroup>
+    </select>
+  );
+}
 
 type Screen =
   | { kind: "title" }
@@ -44,10 +81,51 @@ export default function PageEditorPage() {
   const bookRef = useRef<PublicBook | null>(null);
   const drag = useRef<DragState | null>(null);
   const pageRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [bookBox, setBookBox] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     bookRef.current = book;
   }, [book]);
+
+  useEffect(() => {
+    const href = googleFontsHref(BOOK_FONTS.map((font) => font.id));
+    let link = document.getElementById("book-editor-fonts") as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement("link");
+      link.id = "book-editor-fonts";
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+    link.href = href;
+  }, []);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const fit = () => {
+      const finishedW = Math.max(320, window.innerWidth - 40);
+      const finishedH = Math.max(240, window.innerHeight - 40);
+      const ratio = finishedW / finishedH;
+      const availW = stage.clientWidth;
+      const availH = stage.clientHeight;
+      let width = availW;
+      let height = width / ratio;
+      if (height > availH) {
+        height = availH;
+        width = height * ratio;
+      }
+      setBookBox({ width, height });
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(stage);
+    window.addEventListener("resize", fit);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [ready, book]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +167,8 @@ export default function PageEditorPage() {
         coverUrl: synced.titleLayout.elements.find((item) => item.type === "image")?.imageUrl || synced.coverUrl,
         pages: synced.pages,
         pageBackground: synced.pageBackground,
+        textFont: synced.textFont,
+        textColor: synced.textColor,
         titleLayout: synced.titleLayout,
         endLayout: synced.endLayout,
       })
@@ -261,6 +341,10 @@ export default function PageEditorPage() {
 
   const layout = layoutOf(screen);
   const fill = pageFill(layout.background, book.pageBackground);
+  const selected = layout.elements.find((item) => item.id === selectedId);
+  const selectedText = selected?.type === "text" ? selected : undefined;
+  const bookFont = book.textFont || DEFAULT_TEXT_FONT;
+  const bookInk = book.textColor || DEFAULT_TEXT_COLOR;
   const label = screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${book.pages.findIndex((page) => page.id === screen.pageId) + 1}`;
 
   return (
@@ -282,6 +366,43 @@ export default function PageEditorPage() {
         {selectedId && layout.elements.find((item) => item.id === selectedId)?.type === "image" ? (
           <button type="button" onClick={() => { replaceId.current = selectedId; fileRef.current?.click(); }}>Replace picture</button>
         ) : null}
+        <label className="page-editor-font">
+          Book font
+          <FontSelect value={bookFont} onChange={(textFont) => persist({ ...book, textFont })} />
+        </label>
+        <label className="page-editor-color">
+          Book ink
+          <input type="color" value={bookInk} onChange={(event) => persist({ ...book, textColor: event.target.value })} />
+        </label>
+        {selectedText ? (
+          <>
+            <label className="page-editor-font">
+              This wording
+              <FontSelect allowBook value={selectedText.fontFamily || ""} onChange={(fontFamily) => patchElement(selectedText.id, { fontFamily })} />
+            </label>
+            <label className="page-editor-size">
+              Size
+              <input
+                type="range"
+                min="2"
+                max="14"
+                step="0.2"
+                value={selectedText.fontSize || 4}
+                onChange={(event) => patchElement(selectedText.id, { fontSize: Number(event.target.value) })}
+              />
+              <span>{Number(selectedText.fontSize || 4).toFixed(1)}</span>
+            </label>
+            <label className="page-editor-color">
+              Text color
+              <input
+                type="color"
+                value={normalizeColor(selectedText.color, "") || bookInk}
+                onChange={(event) => patchElement(selectedText.id, { color: event.target.value })}
+              />
+            </label>
+            <button type="button" className="ghost" onClick={() => patchElement(selectedText.id, { color: "", fontFamily: "" })}>Use book type</button>
+          </>
+        ) : null}
         <label className="page-editor-color">
           Book background
           <input type="color" value={book.pageBackground || DEFAULT_PAGE_BACKGROUND} onChange={(event) => persist({ ...book, pageBackground: event.target.value })} />
@@ -297,19 +418,28 @@ export default function PageEditorPage() {
         <button type="button" className="ghost" onClick={() => writeLayout(screen, { ...layout, background: "" })}>Use book color</button>
       </div>
       <div className="page-editor-swatches" role="list">
-        {PAGE_COLOR_PALETTE.map((color) => (
+        {(selectedText ? TEXT_INK_PALETTE : PAGE_COLOR_PALETTE).map((color) => (
           <button
             key={color}
             type="button"
             className="page-editor-swatch"
             style={{ background: color }}
-            aria-label={`Page color ${color}`}
-            onClick={() => writeLayout(screen, { ...layout, background: color })}
+            aria-label={selectedText ? `Text color ${color}` : `Page color ${color}`}
+            onClick={() => selectedText
+              ? patchElement(selectedText.id, { color })
+              : writeLayout(screen, { ...layout, background: color })}
           />
         ))}
       </div>
-      <div className="page-editor-stage">
-        <div className="page-editor-book">
+      <div className="page-editor-stage" ref={stageRef}>
+        <div
+          className="page-editor-book"
+          style={bookBox.width ? {
+            width: bookBox.width,
+            height: bookBox.height,
+            ["--spine-w" as string]: `${Math.max(36, bookBox.width * (84 / Math.max(320, window.innerWidth - 40)))}px`,
+          } : undefined}
+        >
           <div
             ref={pageRef}
             className="page-editor-page"
@@ -336,11 +466,20 @@ export default function PageEditorPage() {
                   <textarea
                     autoFocus
                     value={element.text || ""}
+                    style={{
+                      fontFamily: fontStack(element.fontFamily || bookFont),
+                      fontSize: `${element.fontSize || 4}cqh`,
+                      color: normalizeColor(element.color, "") || bookInk,
+                    }}
                     onChange={(event) => patchElement(element.id, { text: event.target.value })}
                     onBlur={() => setEditingId("")}
                   />
                 ) : (
-                  <p style={{ fontSize: `${element.fontSize || 4}cqh` }}>{element.text || "Double-click to type"}</p>
+                  <p style={{
+                    fontFamily: fontStack(element.fontFamily || bookFont),
+                    fontSize: `${element.fontSize || 4}cqh`,
+                    color: normalizeColor(element.color, "") || bookInk,
+                  }}>{element.text || "Double-click to type"}</p>
                 )}
                 {selectedId === element.id ? (
                   <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, element, "resize")} />
