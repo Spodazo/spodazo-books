@@ -198,7 +198,11 @@ export default function PageEditorPage() {
         tagline: synced.tagline,
         author: synced.author,
         date: synced.date,
-        coverUrl: synced.titleLayout.elements.find((item) => item.type === "image")?.imageUrl || synced.coverUrl,
+        coverUrl: (() => {
+          const cover = synced.titleLayout.elements.find((item) => item.type === "image" && (item.imageAsset || item.imageUrl));
+          if (cover?.imageAsset) return `/media/images/${encodeURIComponent(cover.imageAsset)}`;
+          return cover?.imageUrl || synced.coverUrl;
+        })(),
         pages: synced.pages,
         pageBackground: synced.pageBackground,
         textFont: synced.textFont,

@@ -16,5 +16,11 @@ test("googleFontsHref asks Google for the chosen families", () => {
 });
 
 test("fontStack quotes the family name", () => {
-  assert.equal(fontStack("Nunito Sans"), '"Nunito Sans", sans-serif');
+  assert.equal(fontStack("Nunito Sans"), "'Nunito Sans', sans-serif");
+});
+
+test("fontStack is safe inside a double-quoted HTML style attribute", () => {
+  const style = `--ff:${fontStack("Nunito Sans")}`;
+  assert.doesNotMatch(style, /"/);
+  assert.equal(`<i style="${style}"></i>`, `<i style="--ff:'Nunito Sans', sans-serif"></i>`);
 });

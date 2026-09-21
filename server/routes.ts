@@ -10,6 +10,7 @@ import { currentIconStamp } from "./htmlIcons";
 import {
   assetVersion,
   convertUploadedImage,
+  decodeMediaFilename,
   FAVICON_PUBLIC_FILES,
   faviconPublicPath,
   imageUrl,
@@ -75,9 +76,9 @@ const upload = multer({
 function filenameFromUrl(value: string): string {
   try {
     const url = new URL(value, "http://localhost");
-    return path.basename(url.pathname);
+    return decodeMediaFilename(url.pathname);
   } catch {
-    return path.basename(String(value || "").split("?")[0]);
+    return decodeMediaFilename(value);
   }
 }
 

@@ -782,7 +782,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 
 .sr{top:0;left:0}
-.page.laid-out{display:block;position:relative;container-type:size;background:var(--page-paper,#efdda6)}
+.page.laid-out{container-type:size;background:var(--page-paper,#efdda6)}
+.page.current.laid-out{display:block}
 .page.laid-out>.el{position:absolute;margin:0;padding:0;border:0;box-sizing:border-box}
 .page.laid-out>.el-image{object-fit:var(--fit,cover)}
 .page.laid-out>.el-text{display:flex;flex-direction:column;justify-content:center;align-items:var(--tj,flex-start);overflow:visible;pointer-events:none;color:var(--frame,var(--ink,#203b2a));box-sizing:border-box}

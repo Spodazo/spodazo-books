@@ -3,6 +3,16 @@ import path from "path";
 import sharp from "sharp";
 import { dataDir, faviconDir, imagesDir, pdfsDir, uniqueFileName } from "./paths";
 
+export function decodeMediaFilename(filename: string): string {
+  const base = path.basename(String(filename || "").split("?")[0]);
+  if (!base) return "";
+  try {
+    return decodeURIComponent(base);
+  } catch {
+    return base;
+  }
+}
+
 function usableFile(full: string): string | null {
   if (!fs.existsSync(full)) return null;
   const size = fs.statSync(full).size;
@@ -10,8 +20,9 @@ function usableFile(full: string): string | null {
 }
 
 export function localImagePath(filename: string): string | null {
-  if (!filename) return null;
-  return usableFile(path.join(imagesDir(), path.basename(filename)));
+  const name = decodeMediaFilename(filename);
+  if (!name) return null;
+  return usableFile(path.join(imagesDir(), name));
 }
 
 export function localPdfPath(filename: string): string | null {
@@ -28,10 +39,11 @@ export const COLLECTION_COVER_WIDTH = 1200;
 const IMAGE_WIDTHS = new Set([360, HOME_CARD_WIDTH, COLLECTION_COVER_WIDTH]);
 
 export function imageUrl(filename: string, width?: number): string {
-  if (!filename) return "";
+  const name = decodeMediaFilename(filename);
+  if (!name) return "";
   const params = new URLSearchParams({ v: assetVersion() });
   if (width && IMAGE_WIDTHS.has(width)) params.set("w", String(width));
-  return `/media/images/${encodeURIComponent(filename)}?${params}`;
+  return `/media/images/${encodeURIComponent(name)}?${params}`;
 }
 
 export function pdfUrl(filename: string): string {

@@ -47,7 +47,7 @@ export function normalizeFont(raw?: string | null, fallback = ""): string {
 
 export function fontStack(family?: string | null): string {
   const id = normalizeFont(family, DEFAULT_TEXT_FONT);
-  return `"${id}", sans-serif`;
+  return `'${id}', sans-serif`;
 }
 
 export function fontsUsed(...values: Array<string | undefined | null>): string[] {

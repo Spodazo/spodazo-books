@@ -74,7 +74,8 @@ function bookFontFamilies(book) {
 function elementHtml(el, baseUrl, book) {
   const align = el.align === "center" || el.align === "right" ? el.align : "left";
   const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
-  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4};--ff:${fontStack(el.fontFamily || book?.textFont)};--ink:${elementInk(el, book)};--frame:${elementFrameInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageFit(el)}`;
+  const font = fontStack(el.fontFamily || book?.textFont).replace(/"/g, "'");
+  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${Number(el.z) || 1};--fs:${Number(el.fontSize) || 4};--ff:${font};--ink:${elementInk(el, book)};--frame:${elementFrameInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageFit(el)}`;
   if (el.type === "image") {
     const src = esc(safeURL(el.imageUrl || "", baseUrl));
     return src ? `<img class="el el-image" src="${src}" alt="" style="${style}">` : "";
