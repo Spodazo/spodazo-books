@@ -814,7 +814,20 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   font-size:calc(var(--fs,4)*1cqh);
   font-family:var(--ff,Nunito,sans-serif);
 }
-.page.laid-out>.el-text p:last-child{margin-bottom:0}
+html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p,
+.mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text p,
+.page.laid-out:not(.title-page):not(.end-page)>.el-text p,
+.leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-text p{
+  line-height:1.25;
+  margin:0 0 2.5em;
+  margin-bottom:2lh;
+}
+.page.laid-out>.el-text p:last-child,
+html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child,
+.mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child,
+.leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child{
+  margin-bottom:0;
+}
 .page.laid-out>.el-text.framed p{padding:0 8%}
 .page.laid-out>.el-text.framed-thin{box-shadow:inset 0 0 0 1.5px var(--frame,#203b2a)}
 .page.laid-out>.el-text.framed-double{box-shadow:inset 0 0 0 1px var(--frame,#203b2a),inset 0 0 0 4px var(--frame,#203b2a)}
@@ -911,12 +924,12 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
     font-weight:400;
     text-align:center;
   }
-  .page.laid-out.current:not(.title-page):not(.end-page),
-  .mobile .page.laid-out.current:not(.title-page):not(.end-page),
-  .leaf-copy.laid-out:not(.title-page):not(.end-page){
+  .page.laid-out.current:not(.title-page):not(.end-page):not(.cover-plate):not(.facsimile),
+  .mobile .page.laid-out.current:not(.title-page):not(.end-page):not(.cover-plate):not(.facsimile),
+  .leaf-copy.laid-out:not(.title-page):not(.end-page):not(.cover-plate):not(.facsimile){
     display:flex!important;
     flex-direction:column;
-    padding:8px 10px max(12px,env(safe-area-inset-bottom));
+    padding:8px 18px max(12px,env(safe-area-inset-bottom)) 26px!important;
     overflow:hidden;
   }
   .page.laid-out:not(.title-page):not(.end-page)>.el-image[data-size="main"],
@@ -928,6 +941,7 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
     object-position:center center;
     border:1px solid var(--title-outline,#285e45);
     border-radius:12px;
+    margin:0 0 22px;
     order:1;
   }
   .page.laid-out:not(.title-page):not(.end-page)>.el-text,
@@ -935,12 +949,22 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
     width:100%!important;
     flex:1 1 auto;
     justify-content:flex-start;
-    padding:10px 4px 0;
+    padding:6px 8px 0 10px;
     order:2;
   }
-  .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
+  .page.laid-out:not(.title-page):not(.end-page)>.el-text p,
+  .mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text p,
+  .leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-text p{
     font-size:clamp(15.6px,2.16dvh,19.2px)!important;
     text-align:left;
+    line-height:1.25;
+    margin:0 0 2.5em;
+    margin-bottom:2lh;
+  }
+  .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child,
+  .mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child,
+  .leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child{
+    margin-bottom:0;
   }
   .page.laid-out.end-page.current,
   .mobile .page.laid-out.end-page.current,
@@ -995,7 +1019,11 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
 }
 
 .flip-layer{
-  background:transparent;
+  background:var(--page-paper,#efdda6);
+}
+.fixed-half,
+.mobile-under{
+  background:var(--page-paper,#efdda6);
 }
 .leaf-sheet{
   position:absolute;
@@ -1010,14 +1038,11 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   box-shadow:12px 0 28px #2a1c0e55,0 0 20px #33281644;
 }
 .leaf-face>.leaf-copy,
-.mobile-leaf-face>.leaf-copy{
+.mobile-leaf-face>.leaf-copy,
+.fixed-half>.leaf-copy,
+.mobile-under>.leaf-copy{
   z-index:1;
   background:var(--page-paper,#efdda6);
-}
-.leaf-face.leaf-clear,
-.mobile-leaf-face.leaf-clear{
-  background:transparent!important;
-  box-shadow:none!important;
 }
 html:not(.mobile) .page.leaf-copy.laid-out{
   display:block!important;

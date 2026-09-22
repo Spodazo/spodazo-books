@@ -592,7 +592,9 @@ button, input, select, textarea { font: inherit; }
 .page-editor-text p {
   width: 100%;
   height: auto;
-  margin: 0 0 0.55em;
+  line-height: 1.25;
+  margin: 0 0 2.5em;
+  margin-bottom: 2lh;
 }
 .page-editor-text p:last-child {
   margin-bottom: 0;
