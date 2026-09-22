@@ -1099,6 +1099,23 @@ main{
 .leaf-unflip .leaf-copy{
   left:0!important;
 }
+.leaf-unflip-right .leaf-copy{
+  left:-100%!important;
+}
+.leaf.leaf-back-turn,
+.mobile-leaf.leaf-back-turn{
+  left:0;
+  transform-origin:right center;
+  perspective-origin:right center;
+}
+.page-curl-back .page-curl-peek,
+.page-curl-back .page-curl-flap{
+  right:auto;
+  left:0;
+  transform:scaleX(-1);
+  border-top-right-radius:0;
+  border-top-left-radius:var(--curl-radius);
+}
 .leaf-sheet{
   position:absolute;
   inset:0;

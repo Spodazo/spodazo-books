@@ -50,11 +50,12 @@ function pinCurl(wrap){
 function keepCurl(){
   updateCurl(index);
 }
-function mountLiftCurl(leaf){
+function mountLiftCurl(leaf,back){
   var wrap=document.querySelector('.page-curl');
   if(!wrap||wrap.hidden||!leaf)return;
   var clone=wrap.cloneNode(true);
   clone.classList.add('page-curl-lift');
+  if(back)clone.classList.add('page-curl-back');
   clone.hidden=false;
   clone.removeAttribute('hidden');
   clone.style.position='absolute';
@@ -296,10 +297,11 @@ function specialPage(p){return p.classList.contains('cover-plate');}
 function releaseFlip(layer,after){
   if(!busy)return;
   var dest=pages[index];
-  var underLeft=layer.querySelector('.left-half');
-  if(underLeft&&dest){
-    underLeft.replaceChildren(copy(dest));
-    void underLeft.offsetWidth;
+  var back=layer.classList.contains('flip-back');
+  var under=layer.querySelector(back?'.right-half':'.left-half');
+  if(under&&dest){
+    under.replaceChildren(copy(dest));
+    void under.offsetWidth;
   }
   var turning=layer.querySelector('.leaf')||layer.querySelector('.mobile-leaf');
   if(turning){
@@ -323,14 +325,15 @@ function releaseFlip(layer,after){
     });
   });
 }
-function showBack(face,page){
+function showBack(face,page,side){
   if(!face)return;
   face.classList.remove('leaf-front');
   face.classList.add('leaf-unflip');
+  if(side==='right')face.classList.add('leaf-unflip-right');
   face.replaceChildren(paperSheet(),copy(page));
   face.style.transform='scaleX(-1)';
 }
-function animateLeaf(leaf,done,ms,onMid){
+function animateLeaf(leaf,done,ms,onMid,back){
   var dur=ms||1200;
   leaf.style.transition='none';
   leaf.style.transform=pose(0);
@@ -339,7 +342,7 @@ function animateLeaf(leaf,done,ms,onMid){
   function finish(){if(leaf._done)return;leaf._done=true;clearTimeout(timer);clearTimeout(mid);done();}
   leaf.addEventListener('transitionend',function(e){if(e.target===leaf&&e.propertyName==='transform')finish();});
   leaf.style.transition='transform '+dur+'ms linear';
-  leaf.style.transform=pose(-180);
+  leaf.style.transform=pose(back?180:-180);
   if(onMid)mid=setTimeout(function(){if(!leaf._done)onMid();},Math.round(dur*0.5));
   timer=setTimeout(finish,dur+40);
 }
@@ -353,7 +356,7 @@ function show(n,ms,after){
     return;
   }
   if(n===index)return;
-  var old=pages[index],next=pages[n];
+  var from=index,old=pages[from],next=pages[n],back=n<from;
   if(!old||!next)return;
   if(specialPage(old)||specialPage(next)){
     index=n;
@@ -375,35 +378,35 @@ function show(n,ms,after){
   layer.style.height=book.clientHeight+'px';
   function done(){releaseFlip(layer,after);}
   if(mobile){
-    layer.className='flip-layer mobile-flip';
+    layer.className='flip-layer mobile-flip'+(back?' flip-back':'');
     var under=document.createElement('div');under.className='mobile-under';
     under.appendChild(paperSheet());under.appendChild(copy(next));layer.appendChild(under);
-    var mleaf=document.createElement('div');mleaf.className='mobile-leaf';
+    var mleaf=document.createElement('div');mleaf.className='mobile-leaf'+(back?' leaf-back-turn':'');
     var mface=face('mobile-leaf-face',old);
     mleaf.appendChild(mface);
     layer.appendChild(mleaf);
     book.appendChild(layer);
     old.style.visibility='hidden';
-    mountLiftCurl(mleaf);
-    animateLeaf(mleaf,done,ms,function(){showBack(mface,next);});
+    mountLiftCurl(mleaf,back);
+    animateLeaf(mleaf,done,ms,function(){showBack(mface,next);},back);
     return;
   }
-  layer.className='flip-layer';
+  layer.className='flip-layer'+(back?' flip-back':'');
   var underLeft=document.createElement('div'),underRight=document.createElement('div');
   underLeft.className='fixed-half left-half';underRight.className='fixed-half right-half';
-  underLeft.appendChild(copy(old));
-  underRight.appendChild(copy(next));
+  underLeft.appendChild(copy(back?next:old));
+  underRight.appendChild(copy(back?old:next));
   layer.appendChild(underLeft);layer.appendChild(underRight);
-  var leaf=document.createElement('div');leaf.className='leaf';
-  var front=face('leaf-face leaf-front',old);
+  var leaf=document.createElement('div');leaf.className=back?'leaf leaf-back-turn':'leaf';
+  var front=face(back?'leaf-face':'leaf-face leaf-front',old);
   leaf.appendChild(front);
   layer.appendChild(leaf);
   book.appendChild(layer);
   old.style.visibility='hidden';
-  mountLiftCurl(leaf);
+  mountLiftCurl(leaf,back);
   animateLeaf(leaf,done,ms,function(){
-    showBack(front,old);
-  });
+    showBack(front,next,back?'right':null);
+  },back);
 }
 function restart(){
   if(index<=0)return;
