@@ -1048,6 +1048,7 @@ main{
   background:var(--page-paper,#efdda6);
   perspective:none;
   overflow:hidden;
+  pointer-events:none;
 }
 .fixed-half,
 .mobile-under{
@@ -1060,7 +1061,7 @@ main{
   transform-style:flat;
   -webkit-transform-style:flat;
   perspective-origin:left center;
-  box-shadow:-16px 8px 36px #2a1c0e44;
+  box-shadow:none;
 }
 .leaf-face,
 .mobile-leaf-face{
@@ -1080,7 +1081,7 @@ main{
 .mobile-leaf-face{
   background:var(--page-paper,#efdda6);
   opacity:1;
-  box-shadow:-10px 0 28px #2a1c0e55,8px 0 22px #33281633;
+  box-shadow:none;
 }
 .leaf-face>.leaf-copy,
 .mobile-leaf-face>.leaf-copy,
