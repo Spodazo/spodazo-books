@@ -732,13 +732,6 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   pointer-events:none;
   overflow:hidden;
 }
-.page-curl-lift{
-  position:absolute!important;
-  inset:0!important;
-  width:100%!important;
-  height:100%!important;
-  z-index:6;
-}
 .page-curl[hidden]{display:none!important}
 .page-curl-peek,
 .page-curl-flap{
@@ -1076,6 +1069,19 @@ main{
   z-index:4;
   pointer-events:none;
 }
+.fade-to,
+.fade-from{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  background:var(--page-paper,#efdda6);
+}
+.fade-to{z-index:1}
+.fade-from{
+  z-index:2;
+  opacity:1;
+  transition:opacity 1.8s ease;
+}
 .fixed-half,
 .mobile-under{
   z-index:1;
@@ -1107,14 +1113,6 @@ main{
   left:0;
   transform-origin:right center;
   perspective-origin:right center;
-}
-.page-curl-back .page-curl-peek,
-.page-curl-back .page-curl-flap{
-  right:auto;
-  left:0;
-  transform:scaleX(-1);
-  border-top-right-radius:0;
-  border-top-left-radius:var(--curl-radius);
 }
 .leaf-sheet{
   position:absolute;
