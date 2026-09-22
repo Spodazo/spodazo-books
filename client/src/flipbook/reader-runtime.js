@@ -50,6 +50,21 @@ function pinCurl(wrap){
 function keepCurl(){
   updateCurl(index);
 }
+function mountLiftCurl(leaf){
+  var wrap=document.querySelector('.page-curl');
+  if(!wrap||wrap.hidden||!leaf)return;
+  var clone=wrap.cloneNode(true);
+  clone.classList.add('page-curl-lift');
+  clone.hidden=false;
+  clone.removeAttribute('hidden');
+  clone.style.position='absolute';
+  clone.style.inset='0';
+  clone.style.width='100%';
+  clone.style.height='100%';
+  clone.style.zIndex='6';
+  leaf.appendChild(clone);
+  wrap.hidden=true;
+}
 function pageImg(p){
   return p&&(p.querySelector(':scope > img')||p.querySelector('img'));
 }
@@ -280,6 +295,12 @@ function pose(deg){
 function specialPage(p){return p.classList.contains('cover-plate');}
 function releaseFlip(layer,after){
   if(!busy)return;
+  var dest=pages[index];
+  var underLeft=layer.querySelector('.left-half');
+  if(underLeft&&dest){
+    underLeft.replaceChildren(copy(dest));
+    void underLeft.offsetWidth;
+  }
   var turning=layer.querySelector('.leaf')||layer.querySelector('.mobile-leaf');
   if(turning){
     turning.style.transition='none';
@@ -363,6 +384,7 @@ function show(n,ms,after){
     layer.appendChild(mleaf);
     book.appendChild(layer);
     old.style.visibility='hidden';
+    mountLiftCurl(mleaf);
     animateLeaf(mleaf,done,ms,function(){showBack(mface,next);});
     return;
   }
@@ -378,8 +400,9 @@ function show(n,ms,after){
   layer.appendChild(leaf);
   book.appendChild(layer);
   old.style.visibility='hidden';
+  mountLiftCurl(leaf);
   animateLeaf(leaf,done,ms,function(){
-    showBack(front,next);
+    showBack(front,old);
   });
 }
 function restart(){
