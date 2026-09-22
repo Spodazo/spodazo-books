@@ -1014,6 +1014,11 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   z-index:1;
   background:var(--page-paper,#efdda6);
 }
+.leaf-face.leaf-clear,
+.mobile-leaf-face.leaf-clear{
+  background:transparent!important;
+  box-shadow:none!important;
+}
 html:not(.mobile) .page.leaf-copy.laid-out{
   display:block!important;
   width:200%;
