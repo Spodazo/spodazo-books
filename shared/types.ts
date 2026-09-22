@@ -6,7 +6,8 @@ export type TextAlign = "left" | "center" | "right";
 
 export type PageElement = {
   id: string;
-  type: "text" | "image";
+  type: "text" | "image" | "shape";
+  shape?: "rectangle" | "circle";
   x: number;
   y: number;
   w: number;

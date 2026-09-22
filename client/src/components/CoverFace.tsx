@@ -32,10 +32,21 @@ export default function CoverFace({
               : undefined,
           }}
         >
+          {element.type === "shape" ? (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                background: normalizeColor(element.color, "") || ink,
+                opacity: (element.opacity ?? 100) / 100,
+                borderRadius: element.shape === "circle" ? "50%" : "2%",
+              }}
+            />
+          ) : null}
           {element.type === "text" && frameMarkup(element.frame, element.w / element.h) ? (
             <span className="cover-frame" dangerouslySetInnerHTML={{ __html: frameMarkup(element.frame, element.w / element.h) }} />
           ) : null}
-          {element.type === "image" ? (
+          {element.type === "shape" ? null : element.type === "image" ? (
             element.imageUrl ? (
               <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "cover-art" ? "contain" : "cover", opacity: (element.opacity ?? 100) / 100, background: "transparent" }} />
             ) : null

@@ -80,10 +80,14 @@ function elementHtml(el, baseUrl, book) {
   const align = el.align === "center" || el.align === "right" ? el.align : "left";
   const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
   const font = fontStack(el.fontFamily || book?.textFont).replace(/"/g, "'");
-  const stack = el.type === "text" && (el.role === "body" || !el.role) ? Math.max(Number(el.z) || 1, 40) : (Number(el.z) || 1);
-  const fade = el.type === "image" ? `;opacity:${Math.min(100, Math.max(10, Number(el.opacity) || 100)) / 100}` : "";
+  const stack = Number(el.z) || 1;
+  const fade = el.type === "image" || el.type === "shape" ? `;opacity:${Math.min(100, Math.max(10, Number(el.opacity) || 100)) / 100}` : "";
   const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${stack}${fade};--fs:${Number(el.fontSize) || 4};--ff:${font};--ink:${elementInk(el, book)};--frame:${elementFrameInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageFit(el)}`;
   const meta = `data-leaf="${elementLeaf(el)}" data-size="${elementSize(el)}"${el.role ? ` data-role="${esc(el.role)}"` : ""}${el.id ? ` data-id="${esc(el.id)}"` : ""}`;
+  if (el.type === "shape") {
+    const radius = el.shape === "circle" ? "border-radius:50%" : "border-radius:2%";
+    return `<div class="el el-shape" style="${style};background:${elementInk(el, book)};${radius}" ${meta}></div>`;
+  }
   if (el.type === "image") {
     const src = esc(safeURL(el.imageUrl || "", baseUrl));
     return src ? `<img class="el el-image" src="${src}" alt="" style="${style}" ${meta}>` : "";

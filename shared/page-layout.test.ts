@@ -214,6 +214,11 @@ test("normalizeElement keeps a text frame and color", () => {
   assert.equal(element.frameColor, "#c4a35a");
 });
 
+test("normalizeElement keeps a circle or rectangle", () => {
+  assert.equal(normalizeElement({ type: "shape", shape: "circle", color: "#ffffff" }, 0).shape, "circle");
+  assert.equal(normalizeElement({ type: "shape" }, 0).shape, "rectangle");
+});
+
 test("normalizeElement keeps a picture fade and defaults to solid", () => {
   assert.equal(normalizeElement({ type: "image", opacity: 40 }, 0).opacity, 40);
   assert.equal(normalizeElement({ type: "image" }, 0).opacity, 100);

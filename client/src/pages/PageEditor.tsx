@@ -356,6 +356,62 @@ export default function PageEditorPage() {
     });
   }
 
+  function addShape(shape: "rectangle" | "circle") {
+    if (!screen) return;
+    const layout = layoutOf(screen);
+    const element: PageElement = {
+      id: newElementId(),
+      type: "shape",
+      shape,
+      x: 58,
+      y: 28,
+      w: shape === "circle" ? 26 : 32,
+      h: shape === "circle" ? 26 : 18,
+      z: layout.elements.reduce((max, item) => Math.max(max, item.z), 0) + 1,
+      color: "#ffffff",
+      opacity: 70,
+    };
+    writeLayout(screen, { ...layout, elements: [...layout.elements, element] });
+    setSelectedId(element.id);
+  }
+
+  function arrange(direction: "front" | "forward" | "back" | "backward") {
+    if (!screen || !selectedId) return;
+    const layout = layoutOf(screen);
+    const items = layout.elements.slice().sort((a, b) => a.z - b.z);
+    const at = items.findIndex((item) => item.id === selectedId);
+    if (at < 0) return;
+    if (direction === "front") {
+      const [item] = items.splice(at, 1);
+      items.push(item);
+    } else if (direction === "back") {
+      const [item] = items.splice(at, 1);
+      items.unshift(item);
+    } else if (direction === "forward" && at < items.length - 1) {
+      const next = items[at + 1];
+      items[at + 1] = items[at];
+      items[at] = next;
+    } else if (direction === "backward" && at > 0) {
+      const previous = items[at - 1];
+      items[at - 1] = items[at];
+      items[at] = previous;
+    } else return;
+    writeLayout(screen, { ...layout, elements: items.map((item, index) => ({ ...item, z: index + 1 })) });
+  }
+
+  function coverFont(role: "title" | "tagline" | "author") {
+    return book?.coverLayout.elements.find((item) => item.role === role)?.fontFamily || "";
+  }
+
+  function setCoverFont(role: "title" | "tagline" | "author", fontFamily: string) {
+    if (!book || screen?.kind !== "cover") return;
+    const layout = book.coverLayout;
+    writeLayout(screen, {
+      ...layout,
+      elements: layout.elements.map((item) => (item.role === role ? { ...item, fontFamily } : item)),
+    });
+  }
+
   function addText() {
     if (!screen) return;
     const layout = layoutOf(screen);
@@ -498,13 +554,59 @@ export default function PageEditorPage() {
       </header>
       <div className="page-editor-tools">
         <button type="button" onClick={addText}>Add wording</button>
+        <button type="button" onClick={() => addShape("rectangle")}>Rectangle</button>
+        <button type="button" onClick={() => addShape("circle")}>Circle</button>
         <button type="button" onClick={() => { replaceId.current = ""; fileRef.current?.click(); }}>Add picture</button>
         <button type="button" onClick={addPage}>Add page</button>
         <button type="button" disabled={screen.kind !== "page" || storyPages.length < 2} onClick={removePage}>Delete page</button>
         <button type="button" disabled={!selectedId} onClick={removeElement}>Delete item</button>
+        {selectedId ? (
+          <div className="page-editor-align" role="group" aria-label="Arrange">
+            <button type="button" onClick={() => arrange("front")}>In front</button>
+            <button type="button" onClick={() => arrange("forward")}>Forward</button>
+            <button type="button" onClick={() => arrange("backward")}>Backward</button>
+            <button type="button" onClick={() => arrange("back")}>Back</button>
+          </div>
+        ) : null}
+        {screen.kind === "cover" ? (
+          <>
+            <label className="page-editor-font">
+              Title font
+              <FontSelect allowBook value={coverFont("title")} onChange={(fontFamily) => setCoverFont("title", fontFamily)} />
+            </label>
+            <label className="page-editor-font">
+              Subtitle font
+              <FontSelect allowBook value={coverFont("tagline")} onChange={(fontFamily) => setCoverFont("tagline", fontFamily)} />
+            </label>
+            <label className="page-editor-font">
+              Author font
+              <FontSelect allowBook value={coverFont("author")} onChange={(fontFamily) => setCoverFont("author", fontFamily)} />
+            </label>
+          </>
+        ) : null}
         {selected?.type === "image" ? (
           <>
             <button type="button" onClick={() => { replaceId.current = selectedId; fileRef.current?.click(); }}>Replace picture</button>
+            <label className="page-editor-size">
+              Fade
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={selected.opacity ?? 100}
+                onChange={(event) => patchElement(selected.id, { opacity: Number(event.target.value) })}
+              />
+              <span>{Math.round(selected.opacity ?? 100)}%</span>
+            </label>
+          </>
+        ) : null}
+        {selected?.type === "shape" ? (
+          <>
+            <label className="page-editor-color">
+              Shape color
+              <input type="color" value={normalizeColor(selected.color, "") || "#ffffff"} onChange={(event) => patchElement(selected.id, { color: event.target.value })} />
+            </label>
             <label className="page-editor-size">
               Fade
               <input
@@ -625,7 +727,9 @@ export default function PageEditorPage() {
             aria-label={selectedText ? `Text color ${color}` : `Page color ${color}`}
             onClick={() => selectedText
               ? patchElement(selectedText.id, { color })
-              : writeLayout(screen, { ...layout, background: color })}
+              : selected?.type === "shape"
+                ? patchElement(selected.id, { color })
+                : writeLayout(screen, { ...layout, background: color })}
           />
         ))}
       </div>
@@ -656,7 +760,7 @@ export default function PageEditorPage() {
                   top: `${element.y}%`,
                   width: `${element.w}%`,
                   height: `${element.h}%`,
-                  zIndex: element.type === "text" && (element.role === "body" || !element.role) ? Math.max(element.z || 1, 40) : element.z,
+                  zIndex: element.z,
                   ["--frame" as string]: element.type === "text"
                     ? (normalizeColor(element.frameColor, "") || bookInk || DEFAULT_FRAME_COLOR)
                     : undefined,
@@ -670,7 +774,9 @@ export default function PageEditorPage() {
                 {element.type === "text" && frameMarkup(element.frame, element.w / element.h) ? (
                   <span className="page-editor-frame" dangerouslySetInnerHTML={{ __html: frameMarkup(element.frame, element.w / element.h) }} />
                 ) : null}
-                {element.type === "image" ? (
+                {element.type === "shape" ? (
+                  <div style={{ width: "100%", height: "100%", background: normalizeColor(element.color, "") || "#ffffff", opacity: (element.opacity ?? 100) / 100, borderRadius: element.shape === "circle" ? "50%" : "2%" }} />
+                ) : element.type === "image" ? (
                   element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "title-cover" || element.id === "end-art" || element.id === "cover-art" ? "contain" : "cover", opacity: (element.opacity ?? 100) / 100, background: "transparent" }} /> : <span className="page-editor-empty">Picture</span>
                 ) : editingId === element.id ? (
                   <textarea

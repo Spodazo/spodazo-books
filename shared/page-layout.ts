@@ -57,7 +57,7 @@ export function pageFill(pageBackground: string | undefined, bookBackground: str
 }
 
 export function normalizeElement(raw: Partial<PageElement> | null | undefined, index: number): PageElement {
-  const type = raw?.type === "image" ? "image" : "text";
+  const type = raw?.type === "image" ? "image" : raw?.type === "shape" ? "shape" : "text";
   const role = raw?.role && ROLES.has(raw.role) ? raw.role : undefined;
   return {
     id: String(raw?.id || `el-${index + 1}`),
@@ -67,14 +67,15 @@ export function normalizeElement(raw: Partial<PageElement> | null | undefined, i
     w: clampPercent(raw?.w, type === "image" ? 40 : 84, 4, 100),
     h: clampPercent(raw?.h, type === "image" ? 40 : 18, 4, 100),
     z: Math.max(0, Math.round(Number(raw?.z) || index + 1)),
+    shape: type === "shape" && raw?.shape === "circle" ? "circle" : type === "shape" ? "rectangle" : undefined,
     text: type === "text" ? String(raw?.text || "") : undefined,
     imageAsset: type === "image" ? String(raw?.imageAsset || "") : undefined,
     imageUrl: type === "image" ? String(raw?.imageUrl || "") : undefined,
     fit: type === "image" && raw?.fit === "contain" ? "contain" : type === "image" ? "cover" : undefined,
-    opacity: type === "image" ? clampPercent(raw?.opacity, 100, 10, 100) : undefined,
+    opacity: type === "image" || type === "shape" ? clampPercent(raw?.opacity, 100, 10, 100) : undefined,
     fontSize: type === "text" ? clampPercent(raw?.fontSize, 4, 2, 16) : undefined,
     fontFamily: type === "text" ? normalizeFont(raw?.fontFamily) : undefined,
-    color: type === "text" ? normalizeColor(raw?.color, "") : undefined,
+    color: type === "text" || type === "shape" ? normalizeColor(raw?.color, "") : undefined,
     align: type === "text" ? normalizeAlign(raw?.align, role) : undefined,
     frame: type === "text" ? normalizeFrame(raw?.frame) : undefined,
     frameColor: type === "text" ? normalizeColor(raw?.frameColor, "") : undefined,
@@ -105,6 +106,7 @@ export function layoutToJson(layout: PageLayout): string {
     elements: layout.elements.map((item) => ({
       id: item.id,
       type: item.type,
+      shape: item.shape,
       x: item.x,
       y: item.y,
       w: item.w,
