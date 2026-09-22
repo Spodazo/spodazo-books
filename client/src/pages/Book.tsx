@@ -40,6 +40,7 @@ export default function BookPage() {
     if (!host || !book) return;
     const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
       libraryUrl: "/",
+      fadeOpen: true,
       baseUrl: location.href,
       credits: setup.credits,
       copyright: setup.copyright,

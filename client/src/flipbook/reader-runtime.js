@@ -252,6 +252,7 @@ function rebuild(){
     index=0;
   }
   status();
+  if(first)openFade();
 }
 function copyFit(fromEl,toEl){
   if(!fromEl||!toEl)return;
@@ -405,14 +406,10 @@ function show(n,ms,after){
     showBack(front,next,back?'right':null);
   },back);
 }
-function restart(){
-  if(index<=0)return;
-  if(busy){wantRestart=true;return;}
-  var old=pages[index],dest=pages[0];
-  if(!old||!dest)return;
+function playFade(dest,from){
+  if(!dest)return;
   busy=true;
   hideCurl();
-  index=0;
   dest.classList.add('current');
   dest.style.visibility='hidden';
   void dest.offsetHeight;
@@ -425,17 +422,42 @@ function restart(){
   layer.style.height=book.clientHeight+'px';
   var incoming=document.createElement('div');incoming.className='fade-to';
   incoming.appendChild(copy(dest,true));
-  var outgoing=document.createElement('div');outgoing.className='fade-from';
-  outgoing.appendChild(copy(old,true));
-  layer.appendChild(incoming);layer.appendChild(outgoing);
+  layer.appendChild(incoming);
+  var outgoing=null;
+  if(from){
+    outgoing=document.createElement('div');outgoing.className='fade-from';
+    outgoing.appendChild(copy(from,true));
+    layer.appendChild(outgoing);
+  }else{
+    incoming.style.opacity='0';
+  }
   book.appendChild(layer);
-  old.style.visibility='hidden';
+  if(from)from.style.visibility='hidden';
+  curlHold=false;
   plantCurl(index);
-  void outgoing.offsetWidth;
+  void incoming.offsetWidth;
   function done(){if(layer._done)return;layer._done=true;releaseFlip(layer);}
-  outgoing.addEventListener('transitionend',function(e){if(e.target===outgoing&&e.propertyName==='opacity')done();});
-  outgoing.style.opacity='0';
+  if(outgoing){
+    outgoing.addEventListener('transitionend',function(e){if(e.target===outgoing&&e.propertyName==='opacity')done();});
+    outgoing.style.opacity='0';
+  }else{
+    incoming.style.transition='opacity 1.8s ease';
+    incoming.addEventListener('transitionend',function(e){if(e.target===incoming&&e.propertyName==='opacity')done();});
+    incoming.style.opacity='1';
+  }
   setTimeout(done,1900);
+}
+function openFade(){
+  if(!book.hasAttribute('data-fade-open')||busy)return;
+  playFade(pages[index]||pages[0],null);
+}
+function restart(){
+  if(index<=0)return;
+  if(busy){wantRestart=true;return;}
+  var old=pages[index],dest=pages[0];
+  if(!old||!dest)return;
+  index=0;
+  playFade(dest,old);
 }
 function go(dir){
   if(!dir)return;
