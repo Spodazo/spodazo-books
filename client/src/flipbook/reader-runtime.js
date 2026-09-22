@@ -162,6 +162,7 @@ p.classList.remove('current');p.style.visibility='';}
 
 });if(mobile){pages.forEach(function(p){if(p.classList.contains('title-page')||p.classList.contains('cover-plate')||p.classList.contains('facsimile')||p.classList.contains('end-page'))return;p.classList.add('current');p.style.visibility='hidden';var section=p.querySelector('section'),body=p.querySelector('p');if(!section||!body){p.classList.remove('current');p.style.visibility='';return;}var size=parseFloat(getComputedStyle(body).fontSize);while(section.scrollHeight>section.clientHeight+1&&size>14){size-=.5;body.style.fontSize=size+'px';}p.classList.remove('current');p.style.visibility='';});}else{pages.forEach(function(p){if(p.classList.contains('title-page')||p.classList.contains('cover-plate')||p.classList.contains('facsimile')||p.classList.contains('end-page'))return;var section=p.querySelector('section'),body=p.querySelector('p');if(!section||!body)return;p.classList.add('current');var size=parseFloat(getComputedStyle(body).fontSize);while(section.scrollHeight>section.clientHeight+1&&size>15){size-=.5;body.style.fontSize=size+'px';}p.classList.remove('current');});}index=Math.max(0,pages.findIndex(function(p){return p.getAttribute('data-source')===source}));if(index<0)index=0;status();}
 function copy(p){var c=p.cloneNode(true);c.classList.remove('current');c.classList.add('leaf-copy');c.setAttribute('aria-hidden','true');return c;}
+function paperSheet(){var sheet=document.createElement('div');sheet.className='leaf-sheet';return sheet;}
 function specialPage(p){return p.classList.contains('cover-plate');}
 function finishFlip(layer,n){return function(){if(!busy)return;index=n;layer.remove();pages.forEach(function(p){p.style.visibility='';});busy=false;status();};}
 function animateLeaf(leaf,forward,done,ms){
@@ -170,29 +171,36 @@ function animateLeaf(leaf,forward,done,ms){
   var timer;
   function finish(){if(leaf._done)return;leaf._done=true;clearTimeout(timer);done();}
   leaf.addEventListener('transitionend',function(e){if(e.target===leaf&&e.propertyName==='transform')finish();});
-  requestAnimationFrame(function(){requestAnimationFrame(function(){leaf.style.transition='transform '+dur+'ms cubic-bezier(.45,.05,.2,1)';leaf.style.transform=forward?'rotateY(-180deg)':'rotateY(0deg)';timer=setTimeout(finish,dur+50);});});
+  requestAnimationFrame(function(){requestAnimationFrame(function(){leaf.style.transition='transform '+dur+'ms cubic-bezier(.33,0,.2,1)';leaf.style.transform=forward?'rotateY(-180deg)':'rotateY(0deg)';timer=setTimeout(finish,dur+40);});});
 }
 function show(n,ms,after){if(busy||n<0)return;if(n>=pages.length)n=0;if(n===index)return;var old=pages[index],next=pages[n];if(specialPage(old)||specialPage(next)){index=n;status();if(after)after();return;}busy=true;updateCurl(n);var forward=n>index;var layer=document.createElement('div');layer.setAttribute('aria-hidden','true');
 function done(){finishFlip(layer,n)();if(after)after();}
 if(mobile){
   layer.className='flip-layer mobile-flip';
-  var under=document.createElement('div');under.className='mobile-under';under.appendChild(copy(next));layer.appendChild(under);
+  var under=document.createElement('div');under.className='mobile-under';layer.appendChild(under);
   var mleaf=document.createElement('div');mleaf.className='mobile-leaf';
   var mfront=document.createElement('div'),mback=document.createElement('div');mfront.className='mobile-leaf-face';mback.className='mobile-leaf-face mobile-leaf-back';
-  mfront.appendChild(copy(forward?old:next));mback.appendChild(copy(forward?next:old));
+  mfront.appendChild(paperSheet());mfront.appendChild(copy(forward?old:next));
+  mback.appendChild(paperSheet());mback.appendChild(copy(forward?next:old));
   mleaf.appendChild(mfront);mleaf.appendChild(mback);layer.appendChild(mleaf);
   mleaf.style.transform=forward?'rotateY(0deg)':'rotateY(-180deg)';
-  book.appendChild(layer);
   next.classList.add('current');
   old.style.visibility='hidden';
+  book.appendChild(layer);
   animateLeaf(mleaf,forward,done,ms);
   return;
 }
 layer.className='flip-layer';
-var underLeft=document.createElement('div'),underRight=document.createElement('div');underLeft.className='fixed-half left-half';underRight.className='fixed-half right-half';underLeft.appendChild(copy(forward?old:next));underRight.appendChild(copy(forward?next:old));layer.appendChild(underLeft);layer.appendChild(underRight);
-var leaf=document.createElement('div');leaf.className='leaf';var front=document.createElement('div'),back=document.createElement('div');front.className='leaf-face leaf-front';back.className='leaf-face leaf-back';front.appendChild(copy(forward?old:next));back.appendChild(copy(forward?next:old));leaf.appendChild(front);leaf.appendChild(back);layer.appendChild(leaf);book.appendChild(layer);
+var underLeft=document.createElement('div'),underRight=document.createElement('div');underLeft.className='fixed-half left-half';underRight.className='fixed-half right-half';
+if(forward)underLeft.appendChild(copy(old));else underRight.appendChild(copy(old));
+layer.appendChild(underLeft);layer.appendChild(underRight);
+var leaf=document.createElement('div');leaf.className='leaf';var front=document.createElement('div'),back=document.createElement('div');front.className='leaf-face leaf-front';back.className='leaf-face leaf-back';
+front.appendChild(paperSheet());front.appendChild(copy(forward?old:next));
+back.appendChild(paperSheet());back.appendChild(copy(forward?next:old));
+leaf.appendChild(front);leaf.appendChild(back);layer.appendChild(leaf);
 next.classList.add('current');
 old.style.visibility='hidden';
+book.appendChild(layer);
 animateLeaf(leaf,forward,done,ms);
 }
 function restart(){

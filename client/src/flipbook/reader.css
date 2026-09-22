@@ -995,6 +995,12 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
 }
 
 .flip-layer{
+  background:transparent;
+}
+.leaf-sheet{
+  position:absolute;
+  inset:0;
+  z-index:0;
   background:var(--page-paper,#efdda6);
 }
 .leaf-face,
@@ -1002,6 +1008,11 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p{
   background:var(--page-paper,#efdda6);
   opacity:1;
   box-shadow:12px 0 28px #2a1c0e55,0 0 20px #33281644;
+}
+.leaf-face>.leaf-copy,
+.mobile-leaf-face>.leaf-copy{
+  z-index:1;
+  background:var(--page-paper,#efdda6);
 }
 html:not(.mobile) .page.leaf-copy.laid-out{
   display:block!important;
