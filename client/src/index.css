@@ -206,6 +206,11 @@ button, input, select, textarea { font: inherit; }
     background: #322616;
   }
 }
+@media (orientation: landscape) and (max-height: 700px) {
+  .reader-host {
+    background: #322616;
+  }
+}
 .reader-missing { padding: 48px 24px; }
 .reader-preview { margin-top: 20px; }
 .reader-preview .reader-host {
