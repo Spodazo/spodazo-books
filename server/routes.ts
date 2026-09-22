@@ -418,6 +418,7 @@ export function registerRoutes(app: Express): void {
         textFont: String(body.textFont || ""),
         textColor: String(body.textColor || ""),
         titleLayout: body.titleLayout,
+        coverLayout: body.coverLayout,
         endLayout: body.endLayout,
       });
       res.json(book);
@@ -459,6 +460,7 @@ export function registerRoutes(app: Express): void {
         textFont: body.textFont !== undefined ? String(body.textFont) : undefined,
         textColor: body.textColor !== undefined ? String(body.textColor) : undefined,
         titleLayout: body.titleLayout !== undefined ? body.titleLayout : undefined,
+        coverLayout: body.coverLayout !== undefined ? body.coverLayout : undefined,
         endLayout: body.endLayout !== undefined ? body.endLayout : undefined,
       });
       res.json(updated);

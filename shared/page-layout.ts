@@ -17,6 +17,9 @@ export function alignJustify(align?: string | null): "flex-start" | "center" | "
 
 export const DEFAULT_PAGE_BACKGROUND = "#efdda6";
 
+/** One leaf of the open book. The spread is 8:5, so a single leaf is 4:5. */
+export const LEAF_RATIO = 0.8;
+
 export const PAGE_COLOR_PALETTE = [
   "#efdda6", "#fff8e4", "#f7e9c4", "#f0dfb3", "#ffffff", "#f4f1ea",
   "#f6d6c4", "#f2c4c4", "#e8c4d4", "#d4c4e8", "#c4d4f2", "#c4e8e4",
@@ -68,6 +71,7 @@ export function normalizeElement(raw: Partial<PageElement> | null | undefined, i
     imageAsset: type === "image" ? String(raw?.imageAsset || "") : undefined,
     imageUrl: type === "image" ? String(raw?.imageUrl || "") : undefined,
     fit: type === "image" && raw?.fit === "contain" ? "contain" : type === "image" ? "cover" : undefined,
+    opacity: type === "image" ? clampPercent(raw?.opacity, 100, 10, 100) : undefined,
     fontSize: type === "text" ? clampPercent(raw?.fontSize, 4, 2, 16) : undefined,
     fontFamily: type === "text" ? normalizeFont(raw?.fontFamily) : undefined,
     color: type === "text" ? normalizeColor(raw?.color, "") : undefined,
@@ -111,6 +115,7 @@ export function layoutToJson(layout: PageLayout): string {
       imageUrl: item.imageAsset ? undefined : item.imageUrl,
       fontSize: item.fontSize,
       fit: item.fit,
+      opacity: item.opacity,
       fontFamily: item.fontFamily,
       color: item.color,
       align: item.align,
@@ -160,6 +165,17 @@ function textEl(partial: Partial<PageElement> & { text: string }): PageElement {
 
 function imageEl(partial: Partial<PageElement>): PageElement {
   return normalizeElement({ type: "image", ...partial }, 0);
+}
+
+export function defaultCoverLayout(book: Pick<Book, "title" | "tagline" | "author" | "cover">, coverUrl = ""): PageLayout {
+  const elements: PageElement[] = [];
+  if (book.cover || coverUrl) {
+    elements.push(imageEl({ id: "cover-art", x: 6, y: 4, w: 88, h: 58, z: 1, imageAsset: book.cover, imageUrl: coverUrl, fit: "contain" }));
+  }
+  if (book.title) elements.push(textEl({ id: "cover-title", x: 8, y: 64, w: 84, h: 14, z: 2, text: book.title, role: "title", align: "center", fontSize: 5 }));
+  if (book.tagline) elements.push(textEl({ id: "cover-tagline", x: 10, y: 79, w: 80, h: 8, z: 3, text: book.tagline, role: "tagline", align: "center", fontSize: 2.4 }));
+  if (book.author) elements.push(textEl({ id: "cover-author", x: 10, y: 88, w: 80, h: 7, z: 4, text: book.author, role: "author", align: "center", fontSize: 2.2 }));
+  return { elements, background: "" };
 }
 
 export function defaultTitleLayout(book: Pick<Book, "title" | "tagline" | "author" | "date" | "cover">, coverUrl = ""): PageLayout {
@@ -278,6 +294,9 @@ export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?:
     titleLayout: hasLayout(book.titleLayout)
       ? normalizeLayout(book.titleLayout)
       : defaultTitleLayout(book, coverUrl),
+    coverLayout: hasLayout(book.coverLayout)
+      ? normalizeLayout(book.coverLayout)
+      : defaultCoverLayout(book, coverUrl),
     endLayout: withEndArt(
       hasLayout(book.endLayout) ? book.endLayout : defaultEndLayout(book.cover, coverUrl, characterUrl),
       book.cover,
@@ -293,7 +312,7 @@ export function syncBookFromLayouts<T extends Book>(book: T): T {
   const tagline = textForRole(book.titleLayout.elements, "tagline");
   const author = textForRole(book.titleLayout.elements, "author");
   const date = textForRole(book.titleLayout.elements, "date");
-  const cover = firstImageAsset(book.titleLayout.elements) || firstImageAsset(book.pages[0]?.elements || []) || book.cover;
+  const cover = firstImageAsset(book.coverLayout?.elements || []) || firstImageAsset(book.titleLayout.elements) || firstImageAsset(book.pages[0]?.elements || []) || book.cover;
   return {
     ...book,
     title,

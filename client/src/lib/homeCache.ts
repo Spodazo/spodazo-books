@@ -2,7 +2,7 @@ import type { BookListItem, PlayerSetup } from "@shared/types";
 import { fetchBooks, fetchPlayerSetup } from "./api";
 import { applySiteIcons } from "./siteIcons";
 
-export const HOME_BOOKS_KEY = "spodazo-home-books-v1";
+export const HOME_BOOKS_KEY = "spodazo-home-books-v2";
 export const HOME_SETUP_KEY = "spodazo-home-setup-v1";
 
 const decodedSrcs = new Set<string>();

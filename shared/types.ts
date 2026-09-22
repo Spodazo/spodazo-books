@@ -22,6 +22,7 @@ export type PageElement = {
   frame?: string;
   frameColor?: string;
   fit?: "cover" | "contain";
+  opacity?: number;
   role?: PageElementRole;
 };
 
@@ -67,6 +68,7 @@ export type Book = {
   textFont: string;
   textColor: string;
   titleLayout: PageLayout;
+  coverLayout: PageLayout;
   endLayout: PageLayout;
   pages: BookPage[];
   createdAt?: string;
@@ -95,6 +97,10 @@ export type BookListItem = {
   published: boolean;
   audience: BookAudience;
   pageCount: number;
+  pageBackground: string;
+  textFont: string;
+  textColor: string;
+  coverLayout: PageLayout;
 };
 
 export type PlayerSetup = {

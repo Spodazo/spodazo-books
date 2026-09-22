@@ -16,6 +16,7 @@ import {
   alignJustify,
   emptyStoryPage,
   ensureBookLayouts,
+  LEAF_RATIO,
   newElementId,
   normalizeColor,
   pageFill,
@@ -53,6 +54,83 @@ function EditorText({
   );
 }
 
+function storyText(item: PageElement) {
+  return item.type === "text" && (item.role === "body" || !item.role);
+}
+
+function measureStoryHeight(text: string, widthPx: number, fontPx: number, family: string, framed: boolean) {
+  const host = document.createElement("div");
+  host.style.cssText = `position:absolute;left:-9999px;top:0;width:${Math.max(40, widthPx)}px;visibility:hidden;`;
+  const inner = document.createElement("div");
+  inner.className = "page-editor-text";
+  inner.style.fontFamily = family;
+  inner.style.fontSize = `${fontPx}px`;
+  inner.style.width = "100%";
+  inner.style.textAlign = "center";
+  if (framed) inner.style.padding = "8%";
+  const paras = (text || " ").split(/\n{2,}/);
+  paras.forEach((para) => {
+    const p = document.createElement("p");
+    para.split("\n").forEach((line, lineIndex) => {
+      if (lineIndex > 0) p.appendChild(document.createElement("br"));
+      p.appendChild(document.createTextNode(line || " "));
+    });
+    inner.appendChild(p);
+  });
+  host.appendChild(inner);
+  document.body.appendChild(host);
+  const height = inner.scrollHeight;
+  host.remove();
+  return height;
+}
+
+function placeStoryText(elements: PageElement[], fontSize: number, pageW: number, pageH: number, bookFont: string) {
+  const bodies = elements.filter(storyText);
+  if (!bodies.length || pageW < 40 || pageH < 40) {
+    return elements.map((item) => (storyText(item) ? { ...item, fontSize, align: "center" as const } : item));
+  }
+  const artOnLeft = elements.some((item) => item.type === "image" && item.x < 40 && item.w >= 30);
+  const area = artOnLeft
+    ? { left: 54, right: 94, top: 8, bottom: 92 }
+    : { left: 8, right: 92, top: 8, bottom: 92 };
+  const maxW = area.right - area.left;
+  const maxH = area.bottom - area.top;
+  const gap = 3;
+  const fitted = bodies.map((item) => {
+    const family = fontStack(item.fontFamily || bookFont);
+    const framed = Boolean(item.frame);
+    let w = Math.min(maxW, Math.max(28, item.w));
+    const heightFor = (width: number) => {
+      const px = measureStoryHeight(item.text || "", pageW * (width / 100), pageH * (fontSize / 100), family, framed);
+      return Math.min(maxH, (px / pageH) * 100 + 3);
+    };
+    let h = heightFor(w);
+    while (h >= maxH - 0.5 && w < maxW) {
+      w = Math.min(maxW, w + 4);
+      h = heightFor(w);
+    }
+    return { item, w, h };
+  });
+  const total = fitted.reduce((sum, box) => sum + box.h, 0) + gap * Math.max(0, fitted.length - 1);
+  let y = area.top + Math.max(0, (maxH - Math.min(maxH, total)) / 2);
+  const placed = new Map<string, PageElement>();
+  fitted.forEach((box) => {
+    const h = Math.min(box.h, Math.max(8, area.bottom - y));
+    const x = area.left + (maxW - box.w) / 2;
+    placed.set(box.item.id, {
+      ...box.item,
+      fontSize,
+      align: "center",
+      x: Math.round(x * 10) / 10,
+      y: Math.round(y * 10) / 10,
+      w: Math.round(box.w * 10) / 10,
+      h: Math.round(h * 10) / 10,
+    });
+    y += h + gap;
+  });
+  return elements.map((item) => placed.get(item.id) || item);
+}
+
 function FontSelect({
   value,
   onChange,
@@ -80,6 +158,7 @@ function FontSelect({
 }
 
 type Screen =
+  | { kind: "cover" }
   | { kind: "title" }
   | { kind: "page"; pageId: string }
   | { kind: "end" };
@@ -137,7 +216,8 @@ export default function PageEditorPage() {
     const fit = () => {
       const finishedW = Math.max(320, window.innerWidth - 40);
       const finishedH = Math.max(240, window.innerHeight - 40);
-      const ratio = finishedW / finishedH;
+      const onCover = index === 0;
+      const ratio = onCover ? LEAF_RATIO : finishedW / finishedH;
       const styles = getComputedStyle(stage);
       const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
       const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
@@ -159,7 +239,7 @@ export default function PageEditorPage() {
       observer.disconnect();
       window.removeEventListener("resize", fit);
     };
-  }, [ready, book]);
+  }, [ready, book, index]);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,7 +279,7 @@ export default function PageEditorPage() {
         author: synced.author,
         date: synced.date,
         coverUrl: (() => {
-          const cover = synced.titleLayout.elements.find((item) => item.type === "image" && (item.imageAsset || item.imageUrl));
+          const cover = synced.coverLayout.elements.find((item) => item.type === "image" && (item.imageAsset || item.imageUrl));
           if (cover?.imageAsset) return `/media/images/${encodeURIComponent(cover.imageAsset)}`;
           return cover?.imageUrl || synced.coverUrl;
         })(),
@@ -208,6 +288,7 @@ export default function PageEditorPage() {
         textFont: synced.textFont,
         textColor: synced.textColor,
         titleLayout: synced.titleLayout,
+        coverLayout: synced.coverLayout,
         endLayout: synced.endLayout,
       })
         .then((saved) => {
@@ -226,13 +307,14 @@ export default function PageEditorPage() {
 
   const screens: Screen[] = useMemo(() => {
     if (!book) return [];
-    return [{ kind: "title" }, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
+    return [{ kind: "cover" }, { kind: "title" }, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
   }, [book, storyPages]);
 
   const screen = screens[index];
 
   function layoutOf(target: Screen | undefined): PageLayout {
     if (!book || !target) return { elements: [], background: "" };
+    if (target.kind === "cover") return book.coverLayout;
     if (target.kind === "title") return book.titleLayout;
     if (target.kind === "end") return book.endLayout;
     return book.pages.find((page) => page.id === target.pageId) || { elements: [], background: "" };
@@ -240,7 +322,8 @@ export default function PageEditorPage() {
 
   function writeLayout(target: Screen, layout: PageLayout) {
     if (!book) return;
-    if (target.kind === "title") persist({ ...book, titleLayout: layout });
+    if (target.kind === "cover") persist({ ...book, coverLayout: layout });
+    else if (target.kind === "title") persist({ ...book, titleLayout: layout });
     else if (target.kind === "end") persist({ ...book, endLayout: layout });
     else {
       persist({
@@ -261,13 +344,14 @@ export default function PageEditorPage() {
 
   function applyStorySize(fontSize: number) {
     if (!book) return;
+    const pageBox = pageRef.current;
+    const pageW = pageBox?.clientWidth || bookBox.width;
+    const pageH = pageBox?.clientHeight || bookBox.height;
     persist({
       ...book,
       pages: book.pages.map((page) => ({
         ...page,
-        elements: page.elements.map((item) => (
-          item.type === "text" && (item.role === "body" || !item.role) ? { ...item, fontSize } : item
-        )),
+        elements: placeStoryText(page.elements, fontSize, pageW, pageH, book.textFont || DEFAULT_TEXT_FONT),
       })),
     });
   }
@@ -282,7 +366,7 @@ export default function PageEditorPage() {
       y: 18 + (layout.elements.filter((item) => item.type === "text").length % 4) * 10,
       w: 38,
       h: 16,
-      z: layout.elements.length + 1,
+      z: 40 + layout.elements.filter((item) => item.type === "text").length,
       text: "New wording",
       role: screen.kind === "end" ? "end" : "body",
       fontSize: 3.6,
@@ -296,7 +380,7 @@ export default function PageEditorPage() {
     const page = emptyStoryPage(book.pages.length);
     const pages = [...book.pages, page];
     persist({ ...book, pages });
-    setIndex(visibleStoryPages({ ...book, pages }).length);
+    setIndex(visibleStoryPages({ ...book, pages }).length + 1);
     setSelectedId(page.elements[0]?.id || "");
   }
 
@@ -333,7 +417,7 @@ export default function PageEditorPage() {
       y: 25,
       w: onRight ? 38 : 50,
       h: 50,
-      z: layout.elements.length + 1,
+      z: 1 + layout.elements.filter((item) => item.type === "image").length,
       imageAsset: uploaded.filename,
       imageUrl: uploaded.url,
     };
@@ -400,7 +484,7 @@ export default function PageEditorPage() {
   const selectedText = selected?.type === "text" ? selected : undefined;
   const bookFont = book.textFont || DEFAULT_TEXT_FONT;
   const bookInk = book.textColor || DEFAULT_TEXT_COLOR;
-  const label = screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${storyPages.findIndex((page) => page.id === screen.pageId) + 1}`;
+  const label = screen.kind === "cover" ? "Cover" : screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${storyPages.findIndex((page) => page.id === screen.pageId) + 1}`;
 
   return (
     <main className="page-editor">
@@ -418,8 +502,22 @@ export default function PageEditorPage() {
         <button type="button" onClick={addPage}>Add page</button>
         <button type="button" disabled={screen.kind !== "page" || storyPages.length < 2} onClick={removePage}>Delete page</button>
         <button type="button" disabled={!selectedId} onClick={removeElement}>Delete item</button>
-        {selectedId && layout.elements.find((item) => item.id === selectedId)?.type === "image" ? (
-          <button type="button" onClick={() => { replaceId.current = selectedId; fileRef.current?.click(); }}>Replace picture</button>
+        {selected?.type === "image" ? (
+          <>
+            <button type="button" onClick={() => { replaceId.current = selectedId; fileRef.current?.click(); }}>Replace picture</button>
+            <label className="page-editor-size">
+              Fade
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={selected.opacity ?? 100}
+                onChange={(event) => patchElement(selected.id, { opacity: Number(event.target.value) })}
+              />
+              <span>{Math.round(selected.opacity ?? 100)}%</span>
+            </label>
+          </>
         ) : null}
         <label className="page-editor-font">
           Book font
@@ -558,7 +656,7 @@ export default function PageEditorPage() {
                   top: `${element.y}%`,
                   width: `${element.w}%`,
                   height: `${element.h}%`,
-                  zIndex: element.z,
+                  zIndex: element.type === "text" && (element.role === "body" || !element.role) ? Math.max(element.z || 1, 40) : element.z,
                   ["--frame" as string]: element.type === "text"
                     ? (normalizeColor(element.frameColor, "") || bookInk || DEFAULT_FRAME_COLOR)
                     : undefined,
@@ -573,7 +671,7 @@ export default function PageEditorPage() {
                   <span className="page-editor-frame" dangerouslySetInnerHTML={{ __html: frameMarkup(element.frame, element.w / element.h) }} />
                 ) : null}
                 {element.type === "image" ? (
-                  element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "title-cover" || element.id === "end-art" ? "contain" : "cover" }} /> : <span className="page-editor-empty">Picture</span>
+                  element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "title-cover" || element.id === "end-art" || element.id === "cover-art" ? "contain" : "cover", opacity: (element.opacity ?? 100) / 100, background: "transparent" }} /> : <span className="page-editor-empty">Picture</span>
                 ) : editingId === element.id ? (
                   <textarea
                     autoFocus
@@ -614,7 +712,7 @@ export default function PageEditorPage() {
               </footer>
             ) : null}
           </div>
-          <div className="page-editor-spine" aria-hidden="true" />
+          {screen.kind === "cover" ? null : <div className="page-editor-spine" aria-hidden="true" />}
         </div>
       </div>
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={(event) => {

@@ -139,6 +139,8 @@ test("ensureBookLayouts and sync keep title text and cover", () => {
     }],
   } as Book, { coverUrl: "/media/images/cover.webp" });
   assert.ok(book.titleLayout.elements.length >= 2);
+  assert.ok(book.coverLayout.elements.some((item) => item.type === "image"));
+  assert.ok(book.coverLayout.elements.some((item) => item.role === "title"));
   assert.ok(book.pages[0].elements.length >= 1);
   const titleEl = book.titleLayout.elements.find((item) => item.role === "title");
   if (titleEl) titleEl.text = "Night Walk";
@@ -210,4 +212,9 @@ test("normalizeElement keeps a text frame and color", () => {
   const element = normalizeElement({ type: "text", text: "Hi", frame: "wave", frameColor: "#c4a35a" }, 0);
   assert.equal(element.frame, "wave");
   assert.equal(element.frameColor, "#c4a35a");
+});
+
+test("normalizeElement keeps a picture fade and defaults to solid", () => {
+  assert.equal(normalizeElement({ type: "image", opacity: 40 }, 0).opacity, 40);
+  assert.equal(normalizeElement({ type: "image" }, 0).opacity, 100);
 });

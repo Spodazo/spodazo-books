@@ -21,6 +21,7 @@ export const books = pgTable("books", {
   textFont: text("text_font").notNull().default(""),
   textColor: text("text_color").notNull().default(""),
   titleLayoutJson: text("title_layout_json").notNull().default(""),
+  coverLayoutJson: text("cover_layout_json").notNull().default(""),
   endLayoutJson: text("end_layout_json").notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

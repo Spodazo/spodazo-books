@@ -153,13 +153,48 @@ button, input, select, textarea { font: inherit; }
   background: var(--card);
   box-shadow: 0 10px 28px var(--shadow);
 }
-.book-card img, .cover-empty {
-  width: 100%;
-  height: 350px;
-  object-fit: contain;
-  object-position: center center;
+.cover-link {
   display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.cover-face {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  container-type: size;
   background: var(--portrait);
+}
+.cover-el {
+  position: absolute;
+  box-sizing: border-box;
+  color: var(--frame, #203b2a);
+}
+.cover-el img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-position: center center;
+}
+.cover-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.cover-text p {
+  width: 100%;
+  margin: 0;
+  line-height: 1.15;
+}
+.cover-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--frame, #203b2a);
 }
 .caption { padding: 20px; }
 .caption h2 { font-size: 24px; line-height: 1.2; margin: 0 0 12px; }
@@ -416,10 +451,6 @@ button, input, select, textarea { font: inherit; }
   .library-grid {
     gap: 16px;
   }
-  .book-card img,
-  .cover-empty {
-    height: clamp(168px, calc(100svh - 300px), 320px);
-  }
   .caption {
     padding: 12px 14px 14px;
   }
@@ -540,13 +571,18 @@ button, input, select, textarea { font: inherit; }
   color: var(--frame, #203b2a);
 }
 .page-editor-el.framed .page-editor-text,
-.page-editor-el.framed textarea {
+.page-editor-el.framed textarea,
+.cover-el.framed .cover-text {
   padding: 8%;
 }
-.page-editor-el.framed-thin { box-shadow: inset 0 0 0 1.5px var(--frame, #203b2a); }
-.page-editor-el.framed-double { box-shadow: inset 0 0 0 1px var(--frame, #203b2a), inset 0 0 0 4px var(--frame, #203b2a); }
-.page-editor-el.framed-dashed { outline: 2px dashed var(--frame, #203b2a); outline-offset: -7px; }
-.page-editor-el.framed-beads { border: 0.55em dotted var(--frame, #203b2a); }
+.page-editor-el.framed-thin,
+.cover-el.framed-thin { box-shadow: inset 0 0 0 1.5px var(--frame, #203b2a); }
+.page-editor-el.framed-double,
+.cover-el.framed-double { box-shadow: inset 0 0 0 1px var(--frame, #203b2a), inset 0 0 0 4px var(--frame, #203b2a); }
+.page-editor-el.framed-dashed,
+.cover-el.framed-dashed { outline: 2px dashed var(--frame, #203b2a); outline-offset: -7px; }
+.page-editor-el.framed-beads,
+.cover-el.framed-beads { border: 0.55em dotted var(--frame, #203b2a); }
 .page-editor-frame {
   position: absolute;
   inset: 0;
@@ -573,6 +609,7 @@ button, input, select, textarea { font: inherit; }
   object-fit: cover;
   display: block;
   pointer-events: none;
+  background: transparent;
 }
 .page-editor-el p,
 .page-editor-el textarea,

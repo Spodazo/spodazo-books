@@ -67,7 +67,7 @@ export async function preparedImagePath(full: string, width?: number): Promise<s
   await sharp(full)
     .rotate()
     .resize(width, width, { fit: "inside", withoutEnlargement: true })
-    .webp({ quality: 78 })
+    .webp({ quality: 78, alphaQuality: 100 })
     .toFile(tmp);
   fs.renameSync(tmp, dest);
   return dest;
@@ -116,7 +116,7 @@ export async function convertUploadedImage(filename: string, dir = imagesDir()):
   await sharp(source)
     .rotate()
     .resize(2400, 2400, { fit: "inside", withoutEnlargement: true })
-    .webp({ quality: 82 })
+    .webp({ quality: 82, alphaQuality: 100 })
     .toFile(tmp);
   try {
     fs.renameSync(tmp, dest);
