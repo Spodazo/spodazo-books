@@ -327,7 +327,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   left:auto!important;
   width:100%;
   height:auto!important;
-  max-height:calc(100% - 168px);
+  max-height:none!important;
+  flex:0 0 auto;
   object-fit:contain!important;
   object-position:center center!important;
   border:1px solid var(--title-outline,#285e45);
@@ -382,7 +383,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     left:auto!important;
     width:100%;
     height:auto!important;
-    max-height:calc(100% - 168px);
+    max-height:none!important;
+    flex:0 0 auto;
     object-fit:contain!important;
     object-position:center center!important;
     border:1px solid var(--title-outline,#285e45);
@@ -935,9 +937,10 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
   .page.laid-out:not(.title-page):not(.end-page)>.el-image[data-size="main"],
   .mobile .page.laid-out:not(.title-page):not(.end-page)>.el-image[data-size="main"]{
     width:100%!important;
-    height:min(58vh,calc(100% - 150px))!important;
-    max-height:calc(100% - 150px);
-    object-fit:cover!important;
+    height:auto!important;
+    max-height:none!important;
+    flex:0 0 auto;
+    object-fit:contain!important;
     object-position:center center;
     border:1px solid var(--title-outline,#285e45);
     border-radius:12px;
@@ -948,6 +951,8 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
   .mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text{
     width:100%!important;
     flex:1 1 auto;
+    min-height:0;
+    overflow:hidden;
     justify-content:flex-start;
     padding:6px 8px 0 10px;
     order:2;
@@ -1023,7 +1028,20 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
 }
 .fixed-half,
 .mobile-under{
+  z-index:1;
   background:var(--page-paper,#efdda6);
+}
+.leaf,
+.mobile-leaf{
+  z-index:3;
+  transform-style:flat;
+  -webkit-transform-style:flat;
+  box-shadow:-16px 8px 36px #2a1c0e44;
+}
+.leaf-face,
+.mobile-leaf-face{
+  backface-visibility:visible;
+  -webkit-backface-visibility:visible;
 }
 .leaf-sheet{
   position:absolute;
@@ -1035,7 +1053,7 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
 .mobile-leaf-face{
   background:var(--page-paper,#efdda6);
   opacity:1;
-  box-shadow:12px 0 28px #2a1c0e55,0 0 20px #33281644;
+  box-shadow:-10px 0 28px #2a1c0e55,8px 0 22px #33281633;
 }
 .leaf-face>.leaf-copy,
 .mobile-leaf-face>.leaf-copy,
