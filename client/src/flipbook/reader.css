@@ -846,8 +846,12 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
     left:auto!important;
     top:auto!important;
     width:auto!important;
-    height:auto!important;
     max-width:100%;
+  }
+  .page.laid-out>.el-image,
+  .mobile .page.laid-out>.el-image,
+  .leaf-copy.laid-out>.el-image{
+    height:auto!important;
   }
   .page.laid-out>.el-image[data-size="small"],
   .mobile .page.laid-out>.el-image[data-size="small"],
@@ -950,7 +954,8 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
   .page.laid-out:not(.title-page):not(.end-page)>.el-text,
   .mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text{
     width:100%!important;
-    flex:1 1 auto;
+    height:auto;
+    flex:1 1 0;
     min-height:0;
     overflow:hidden;
     justify-content:flex-start;
@@ -1038,16 +1043,6 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
   -webkit-transform-style:flat;
   perspective-origin:left center;
   box-shadow:-16px 8px 36px #2a1c0e44;
-}
-.leaf-closing{
-  left:0;
-  transform-origin:right center;
-  perspective-origin:right center;
-  box-shadow:16px 8px 36px #2a1c0e44;
-}
-.mobile-leaf-closing{
-  perspective-origin:left center;
-  box-shadow:16px 8px 36px #2a1c0e44;
 }
 .leaf-face,
 .mobile-leaf-face{
