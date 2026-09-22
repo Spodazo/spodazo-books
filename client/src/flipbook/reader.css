@@ -1049,6 +1049,9 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
   backface-visibility:visible;
   -webkit-backface-visibility:visible;
 }
+.leaf-unflip .leaf-copy{
+  left:0!important;
+}
 .leaf-sheet{
   position:absolute;
   inset:0;
