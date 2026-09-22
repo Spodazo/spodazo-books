@@ -259,6 +259,19 @@ export default function PageEditorPage() {
     });
   }
 
+  function applyStorySize(fontSize: number) {
+    if (!book) return;
+    persist({
+      ...book,
+      pages: book.pages.map((page) => ({
+        ...page,
+        elements: page.elements.map((item) => (
+          item.type === "text" && (item.role === "body" || !item.role) ? { ...item, fontSize } : item
+        )),
+      })),
+    });
+  }
+
   function addText() {
     if (!screen) return;
     const layout = layoutOf(screen);
@@ -433,6 +446,9 @@ export default function PageEditorPage() {
                 onChange={(event) => patchElement(selectedText.id, { fontSize: Number(event.target.value) })}
               />
               <span>{Number(selectedText.fontSize || 4).toFixed(1)}</span>
+              {(selectedText.role === "body" || !selectedText.role) ? (
+                <button type="button" className="ghost" onClick={() => applyStorySize(selectedText.fontSize || 4)}>All pages</button>
+              ) : null}
             </label>
             <label className="page-editor-color">
               Text color
