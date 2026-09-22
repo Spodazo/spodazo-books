@@ -439,6 +439,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
     height:auto;
     border-radius:18px;
     overflow:hidden;
+    clip-path:inset(0 round 18px);
+    isolation:isolate;
   }
   html:not(.mobile) .page,
   html:not(.mobile) .page.leaf-copy{
@@ -1048,6 +1050,7 @@ html,body{
 }
 main{
   overflow:hidden;
+  isolation:isolate;
   clip-path:inset(0);
 }
 .flip-layer{
@@ -1060,8 +1063,10 @@ main{
   background:var(--page-paper,#efdda6);
   perspective:none;
   overflow:hidden;
+  isolation:isolate;
   clip-path:inset(0);
-  contain:paint;
+  border-radius:inherit;
+  z-index:4;
   pointer-events:none;
 }
 .fixed-half,
