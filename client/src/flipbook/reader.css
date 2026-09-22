@@ -1239,7 +1239,7 @@ html:not(.mobile) .page.leaf-copy.laid-out{
     margin-top:8px;
   }
   html:not(.mobile) .page.end-page .end-logo{
-    width:min(64px,18%);
+    width:min(96px,27%);
     margin-bottom:10px;
   }
   html:not(.mobile) .page.end-page .end-credits{
