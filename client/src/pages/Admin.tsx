@@ -746,6 +746,7 @@ function BookEditor({
       <label>Subtitle</label>
       <input value={tagline} onChange={(event) => setTagline(event.target.value)} />
       <label>Book Cover</label>
+      <p className="hint">This picture, the title, and the author appear on the opening cover page.</p>
       {coverUrl ? <img className="book-cover-preview" src={coverUrl} alt="" /> : null}
       <input
         type="file"
@@ -762,7 +763,7 @@ function BookEditor({
         }}
       />
       <label>Author</label>
-      <input value={author} onChange={(event) => setAuthor(event.target.value)} />
+      <input value={author} onChange={(event) => setAuthor(event.target.value)} placeholder="Shown on the cover" />
       <label>Date</label>
       <input value={date} onChange={(event) => setDate(event.target.value)} placeholder="2026" />
       <label>Audience</label>

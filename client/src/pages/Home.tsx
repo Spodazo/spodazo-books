@@ -28,8 +28,8 @@ export default function HomePage() {
         {setup.logoUrl ? <img className="library-logo" src={setup.logoUrl} alt={setup.appName} /> : <small>SPODAZO</small>}
         {setup.theme ? <p className="library-theme">{setup.theme}</p> : null}
       </header>
-      <LibrarySection title="Children’s books" books={children} />
-      <LibrarySection title="Books for adults" books={adults} />
+      <LibrarySection books={children} />
+      <LibrarySection books={adults} />
       {!books.length ? <p className="empty">Books will appear here after they are published in Admin.</p> : null}
       {setup.logoUrl || setup.credits || setup.copyright ? (
         <footer className="library-legal">
@@ -42,11 +42,10 @@ export default function HomePage() {
   );
 }
 
-function LibrarySection({ title, books }: { title: string; books: BookListItem[] }) {
+function LibrarySection({ books }: { books: BookListItem[] }) {
   if (!books.length) return null;
   return (
     <section className="library-section">
-      <h2 className="library-section-title">{title}</h2>
       <div className="library-grid">
         {books.map((book) => (
           <article key={book.id} className="book-card">
@@ -56,9 +55,6 @@ function LibrarySection({ title, books }: { title: string; books: BookListItem[]
             <div className="caption">
               <h2>{book.title}</h2>
               {book.tagline ? <p>{book.tagline}</p> : null}
-              <div className="actions">
-                <Link href={`/${book.slug}`}>Read</Link>
-              </div>
             </div>
           </article>
         ))}

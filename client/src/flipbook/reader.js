@@ -138,13 +138,21 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
+function coverPageHtml(book, baseUrl, libraryUrl) {
+  const src = coverSrc(book, baseUrl);
+  const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>`;
+  const zone = `<button class="zone" data-dir="1" aria-label="Open book"></button>`;
+  const author = String(book.author || "").trim();
+  return `<article class="page cover-page current" data-source="cover" aria-label="Cover">${close}${src?`<img class="cover-art" src="${src}" alt="">`:''}<div class="cover-meta"><h1 class="cover-title">${esc(book.title)}</h1>${author?`<p class="cover-author">${esc(author)}</p>`:''}</div><div id="hint" class="hint" role="status"><span class="hint-desktop">Tap the cover to open the book</span><span class="hint-mobile">Swipe left or tap to open the book</span></div>${zone}</article>`;
+}
+
 function titlePageHtml(book, baseUrl, libraryUrl) {
-  const chrome = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a><button class="zone" data-dir="1" aria-label="Next page"></button>`;
+  const chrome = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a><button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
   if (hasLayout(book.titleLayout)) {
-    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, " title-page current").replace("<article", '<article data-source="title"');
+    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, " title-page").replace("<article", '<article data-source="title"');
   }
   const src = coverSrc(book, baseUrl);
-  return `<article class="page title-page current" data-source="title" aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div><div id="hint" class="hint" role="status"><span class="hint-desktop">Tap left or right to turn the page</span><span class="hint-mobile">Swipe left to turn the page. Swipe right to go back</span></div></section></article>`;
+  return `<article class="page title-page" data-source="title" aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
@@ -156,7 +164,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const storyPages=visibleStoryPages(book);
   const skipCover=storyPages.length !== (book.pages||[]).length;
   const paper=pageFill({background:book.pageBackground},book);
-  const articles=titlePageHtml(book,baseUrl,libraryUrl)+storyPages.map((p,i)=>{
+  const articles=coverPageHtml(book,baseUrl,libraryUrl)+titlePageHtml(book,baseUrl,libraryUrl)+storyPages.map((p,i)=>{
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
     if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;
