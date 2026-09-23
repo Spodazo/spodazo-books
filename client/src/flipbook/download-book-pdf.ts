@@ -109,8 +109,8 @@ function addElement(root: HTMLElement, element: PageElement, height: number, ink
 function addLegal(root: HTMLElement, book: PublicBook, credits: string, copyright: string, logoUrl: string, leaf = false) {
   const footer = document.createElement("footer");
   footer.style.cssText = leaf
-    ? "position:absolute;left:8%;right:8%;width:auto;bottom:18px;text-align:center;padding:0;box-sizing:border-box;color:#203b2a;z-index:30;"
-    : "position:absolute;left:50%;width:50%;bottom:18px;text-align:center;padding:0 8%;box-sizing:border-box;color:#203b2a;z-index:30;";
+    ? "position:absolute;left:8%;right:8%;width:auto;bottom:36px;text-align:center;padding:0;box-sizing:border-box;color:#203b2a;z-index:30;"
+    : "position:absolute;left:50%;width:50%;bottom:36px;text-align:center;padding:0 8%;box-sizing:border-box;color:#203b2a;z-index:30;";
   const published = publishedLabel(book.date);
   if (logoUrl) {
     const logo = document.createElement("img");

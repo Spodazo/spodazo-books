@@ -672,7 +672,7 @@ button, input, select, textarea { font: inherit; }
   right: 0;
   width: 50%;
   top: auto;
-  bottom: 10px;
+  bottom: 24px;
   padding: 0 8%;
   box-sizing: border-box;
   font-size: 11px;
@@ -684,6 +684,7 @@ button, input, select, textarea { font: inherit; }
   left: 8%;
   right: 8%;
   width: auto;
+  bottom: 24px;
   padding: 0;
 }
 .page-editor-logo {
