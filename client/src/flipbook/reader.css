@@ -1360,6 +1360,7 @@ html:not(.mobile) .front-cover-leaf{
   -webkit-text-fill-color:var(--ink,#203b2a)!important;
   font-family:var(--ff,Nunito,sans-serif)!important;
   font-size:calc(var(--fs,4) * 1cqh);
+  text-align:var(--ta,center)!important;
   text-shadow:none!important;
   line-height:1.15!important;
 }

@@ -5,13 +5,13 @@ var count=document.getElementById('count'),mobile=false;
 function fitBoxFont(el){
   if(!el||el.clientHeight<8)return;
   if(!el.getAttribute('data-base-size'))el.setAttribute('data-base-size',getComputedStyle(el).fontSize);
-  el.style.fontSize=el.getAttribute('data-base-size');
+  el.style.setProperty('font-size',el.getAttribute('data-base-size'),'important');
   var size=parseFloat(getComputedStyle(el).fontSize),min=Math.max(8,size*0.45),n=0,paras,i;
   while((el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1)&&size>min&&n<40){
     size=Math.round(size*0.94*10)/10;
-    el.style.fontSize=size+'px';
+    el.style.setProperty('font-size',size+'px','important');
     paras=el.querySelectorAll('p');
-    for(i=0;i<paras.length;i++)paras[i].style.fontSize=size+'px';
+    for(i=0;i<paras.length;i++)paras[i].style.setProperty('font-size',size+'px','important');
     n++;
   }
 }
@@ -19,7 +19,7 @@ function fitPageText(root){
   var nodes=(root||book).querySelectorAll('.el-text, .cover-bit-text'),i;
   for(i=0;i<nodes.length;i++)fitBoxFont(nodes[i]);
 }
-function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});fitPageText(pages[index]);count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
+function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
 function isPicturePage(p){
   return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('end-page')&&!p.classList.contains('cover-page')&&p.querySelector('img'));
 }
@@ -272,6 +272,7 @@ function rebuild(){
   }else{
     index=0;
   }
+  fitPageText(pages[index]);
   status();
   if(first)openFade();
 }
@@ -436,6 +437,7 @@ function playFade(dest,from){
   dest.style.visibility='hidden';
   void dest.offsetHeight;
   if(!alreadyFit(dest))fitLaidOut(dest);
+  fitPageText(dest);
   dest.style.visibility='hidden';
   var layer=document.createElement('div');
   layer.className='flip-layer fade-layer';
