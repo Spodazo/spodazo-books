@@ -1298,19 +1298,8 @@ html:not(.mobile) .front-cover-leaf{
   height:auto;
   box-shadow:-18px 0 28px #24180f33;
 }
-.mobile .page.front-cover{
-  background:var(--page-paper,#efdda6)!important;
-}
 .mobile .front-cover-leaf{
-  inset:auto;
-  top:50%;
-  left:50%;
-  width:min(100%, calc((100dvh - 24px) * 0.8));
-  height:auto;
-  aspect-ratio:4 / 5;
-  max-height:100%;
-  transform:translate(-50%, -50%);
-  box-shadow:0 12px 28px #24180f33;
+  inset:0;
 }
 .page.front-cover .zone[data-dir="1"]{
   left:50%;
@@ -1352,6 +1341,17 @@ html:not(.mobile) .front-cover-leaf{
   line-height:1.15;
   color:inherit;
   -webkit-text-fill-color:inherit;
+}
+.page.front-cover .cover-bit-text,
+.page.front-cover .cover-bit-text p,
+.mobile .page.front-cover .cover-bit-text,
+.mobile .page.front-cover .cover-bit-text p{
+  color:var(--ink,#203b2a)!important;
+  -webkit-text-fill-color:var(--ink,#203b2a)!important;
+  font-family:var(--ff,Nunito,sans-serif)!important;
+  font-size:calc(var(--fs,4) * 1cqh)!important;
+  text-shadow:none!important;
+  line-height:1.15!important;
 }
 .cover-bit-text p:last-child{margin-bottom:0}
 .cover-bit-shape{display:block}
