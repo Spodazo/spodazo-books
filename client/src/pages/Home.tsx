@@ -6,6 +6,8 @@ import { BOOK_FONTS, DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, googleFontsHref } fr
 import { DEFAULT_PAGE_BACKGROUND, defaultCoverLayout, hasLayout } from "@shared/page-layout";
 import { DEFAULT_PLAYER_SETUP, groupBooksByAudience } from "@shared/seed-data";
 import type { BookListItem, PageLayout, PlayerSetup } from "@shared/types";
+import { fetchBook } from "../lib/api";
+import { markBookOpen } from "../lib/bookOpen";
 import { loadHomeBooks, loadHomeSetup, readCachedBooks, readCachedSetup } from "../lib/homeCache";
 import { applyPalette } from "../lib/palette";
 
@@ -71,7 +73,7 @@ function LibrarySection({ books }: { books: BookListItem[] }) {
       <div className="library-grid">
         {books.map((book) => (
           <article key={book.id} className="book-card">
-            <Link href={`/${book.slug}`} className="cover-link" aria-label={`Read ${book.title}`}>
+            <Link href={`/${book.slug}`} className="cover-link" aria-label={`Read ${book.title}`} onClick={() => { markBookOpen(); void fetchBook(book.slug); }}>
               <CoverFace
                 layout={coverLayoutFor(book)}
                 background={book.pageBackground || DEFAULT_PAGE_BACKGROUND}

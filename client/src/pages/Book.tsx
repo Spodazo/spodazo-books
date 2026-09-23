@@ -4,6 +4,7 @@ import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
 import { fetchBook } from "../lib/api";
+import { clearBookOpen, openingSince } from "../lib/bookOpen";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
 import type { PlayerSetup, PublicBook } from "@shared/types";
 import { mountReader } from "../flipbook/reader.js";
@@ -38,15 +39,31 @@ export default function BookPage() {
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !book) return;
+    const fromHome = openingSince() > 0;
+    host.style.opacity = fromHome ? "0" : "1";
     const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
       libraryUrl: "/",
-      fadeOpen: true,
+      fadeOpen: !fromHome,
       baseUrl: location.href,
       credits: setup.credits,
       copyright: setup.copyright,
       logoUrl: setup.logoUrl,
     });
-    return () => handle.destroy();
+    const reveal = () => {
+      const started = openingSince();
+      const left = started ? Math.max(700, 1800 - (performance.now() - started)) : 1800;
+      host.style.transition = `opacity ${fromHome ? left : 1800}ms ease`;
+      host.style.opacity = "1";
+      window.setTimeout(clearBookOpen, fromHome ? left : 0);
+    };
+    if (fromHome) {
+      if (handle.frame.contentDocument?.readyState === "complete") reveal();
+      else handle.frame.addEventListener("load", reveal, { once: true });
+    }
+    return () => {
+      handle.frame.removeEventListener("load", reveal);
+      handle.destroy();
+    };
   }, [book, setup.credits, setup.copyright, setup.logoUrl]);
 
   if (error) {
@@ -60,5 +77,5 @@ export default function BookPage() {
     );
   }
 
-  return <div id="reader" ref={hostRef} className="reader-host" />;
+  return <div id="reader" ref={hostRef} className="reader-host" style={{ opacity: 0 }} />;
 }

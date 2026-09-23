@@ -20,8 +20,16 @@ export function fetchBooks(): Promise<BookListItem[]> {
   return fetch("/api/books").then((res) => parse<BookListItem[]>(res));
 }
 
+const bookLoads = new Map<string, Promise<PublicBook>>();
+
 export function fetchBook(slug: string): Promise<PublicBook> {
-  return fetch(`/api/books/${encodeURIComponent(slug)}`).then((res) => parse<PublicBook>(res));
+  const key = String(slug || "");
+  const pending = bookLoads.get(key);
+  if (pending) return pending;
+  const load = fetch(`/api/books/${encodeURIComponent(key)}`).then((res) => parse<PublicBook>(res));
+  bookLoads.set(key, load);
+  load.catch(() => bookLoads.delete(key));
+  return load;
 }
 
 export function adminMe(): Promise<{ admin: boolean }> {

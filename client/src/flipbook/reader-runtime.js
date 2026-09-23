@@ -77,7 +77,7 @@ function hideCurl(){
   var wrap=document.querySelector('.page-curl');
   if(wrap)wrap.hidden=true;
 }
-function plantCurl(at){
+function plantCurl(at,under){
   var wrap=document.querySelector('.page-curl');
   if(!wrap)return;
   if(curlHold){wrap.hidden=true;return;}
@@ -88,6 +88,7 @@ function plantCurl(at){
   var peekFrom=next?peekPage(at)||next:null;
   applyCurlBox(wrap,box);
   fillPeek(wrap.querySelector('.page-curl-peek'),!!next?peekFrom:null);
+  wrap.style.zIndex=under?'3':'';
   wrap.hidden=!next;
 }
 function pageImg(p){
@@ -384,6 +385,8 @@ function openUnderCover(old,next,done){
   void next.offsetWidth;
   next.style.transition='clip-path 1.6s cubic-bezier(.22,.6,.2,1)';
   next.style.clipPath='inset(0 0 0 0)';
+  curlHold=false;
+  plantCurl(index,true);
   var timer=setTimeout(function(){top.classList.add('away');},900);
   var end=setTimeout(finish,1850);
   function finish(){
@@ -393,6 +396,8 @@ function openUnderCover(old,next,done){
     clearTimeout(end);
     next.style.transition='none';
     next.style.clipPath='';
+    var wrap=document.querySelector('.page-curl');
+    if(wrap)wrap.style.zIndex='';
     done(layer);
   }
 }
@@ -572,7 +577,7 @@ function openFade(){
     img.addEventListener('load',one);
     img.addEventListener('error',one);
   });
-  setTimeout(start,900);
+  setTimeout(start,80);
 }
 function restart(){
   if(index<=0)return;

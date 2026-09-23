@@ -115,6 +115,14 @@ button, input, select, textarea { font: inherit; }
   padding: 48px 24px 32px;
   display: flex;
   flex-direction: column;
+  transition: opacity 1.8s ease;
+}
+html.book-opening .library {
+  opacity: 0;
+  pointer-events: none;
+}
+html.book-opening .reader-host {
+  background: transparent;
 }
 .library-head {
   border-bottom: 1px solid var(--border);
