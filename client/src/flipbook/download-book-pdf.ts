@@ -54,7 +54,7 @@ async function ensureFonts(book: PublicBook) {
 }
 
 function addElement(root: HTMLElement, element: PageElement, height: number, ink: string, font: string) {
-  const node = document.createElement(element.type === "image" ? "img" : "div");
+  const node = document.createElement("div");
   node.style.position = "absolute";
   node.style.left = `${element.x}%`;
   node.style.top = `${element.y}%`;
@@ -62,11 +62,16 @@ function addElement(root: HTMLElement, element: PageElement, height: number, ink
   node.style.height = `${element.h}%`;
   node.style.zIndex = String(element.z || 1);
   node.style.boxSizing = "border-box";
-  if (element.type === "image" && node instanceof HTMLImageElement) {
-    node.src = element.imageUrl || "";
-    node.alt = "";
-    node.style.objectFit = element.fit === "contain" ? "contain" : "cover";
+  if (element.type === "image") {
+    node.style.overflow = "hidden";
     node.style.opacity = String((element.opacity ?? 100) / 100);
+    const img = document.createElement("img");
+    img.src = element.imageUrl || "";
+    img.alt = "";
+    img.dataset.fit = element.fit === "contain" || element.id === "cover-art" || element.id === "title-cover" || element.id === "end-art" ? "contain" : "cover";
+    img.style.position = "absolute";
+    img.style.maxWidth = "none";
+    node.appendChild(img);
   } else if (element.type === "shape") {
     node.style.background = element.color || "#ffffff";
     node.style.opacity = String((element.opacity ?? 100) / 100);
@@ -132,13 +137,62 @@ function addLegal(root: HTMLElement, book: PublicBook, credits: string, copyrigh
   if (footer.childElementCount) root.appendChild(footer);
 }
 
+function fitTextBox(el: HTMLElement) {
+  const start = parseFloat(getComputedStyle(el).fontSize);
+  if (!start || el.clientHeight < 8) return;
+  let size = start;
+  const min = Math.max(8, start * 0.45);
+  let n = 0;
+  while (el.scrollHeight > el.clientHeight + 1 && size > min && n < 30) {
+    size = Math.round(size * 0.94 * 10) / 10;
+    el.style.fontSize = `${size}px`;
+    n += 1;
+  }
+}
+
+function loadHtmlImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Could not load a picture"));
+    img.src = src;
+  });
+}
+
+function drawFittedImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement, element: PageElement, pageW: number, pageH: number) {
+  const boxX = (element.x / 100) * pageW;
+  const boxY = (element.y / 100) * pageH;
+  const boxW = (element.w / 100) * pageW;
+  const boxH = (element.h / 100) * pageH;
+  const contain = element.fit === "contain" || element.id === "cover-art" || element.id === "title-cover" || element.id === "end-art";
+  const scale = contain
+    ? Math.min(boxW / img.naturalWidth, boxH / img.naturalHeight)
+    : Math.max(boxW / img.naturalWidth, boxH / img.naturalHeight);
+  const width = img.naturalWidth * scale;
+  const height = img.naturalHeight * scale;
+  ctx.save();
+  ctx.globalAlpha = (element.opacity ?? 100) / 100;
+  ctx.beginPath();
+  ctx.rect(boxX, boxY, boxW, boxH);
+  ctx.clip();
+  ctx.drawImage(img, boxX + (boxW - width) / 2, boxY + (boxH - height) / 2, width, height);
+  ctx.restore();
+}
+
 async function snapshot(node: HTMLElement): Promise<Rendered> {
-  const images = [...node.querySelectorAll("img")];
-  await Promise.all(images.map((img) => img.complete ? Promise.resolve() : new Promise((resolve) => {
-    img.addEventListener("load", resolve, { once: true });
-    img.addEventListener("error", resolve, { once: true });
-  })));
-  const canvas = await html2canvas(node, { scale: 2, backgroundColor: null, useCORS: true, logging: false });
+  node.querySelectorAll<HTMLElement>(":scope > div").forEach((el) => {
+    if (el.querySelector("p")) fitTextBox(el);
+  });
+  const canvas = await html2canvas(node, {
+    scale: 2,
+    backgroundColor: null,
+    useCORS: true,
+    logging: false,
+    width: node.offsetWidth,
+    height: node.offsetHeight,
+    windowWidth: node.offsetWidth,
+    windowHeight: node.offsetHeight,
+  });
   const png = await new Promise<Uint8Array>((resolve, reject) => {
     canvas.toBlob(async (blob) => {
       if (!blob) reject(new Error("Could not draw a page"));
@@ -151,18 +205,57 @@ async function snapshot(node: HTMLElement): Promise<Rendered> {
 async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" | "spread", legal = false, extras?: { credits: string; copyright: string; logoUrl: string }) {
   const width = kind === "cover" ? 800 : 1600;
   const height = 1000;
-  const root = document.createElement("div");
-  root.style.cssText = `position:fixed;left:0;top:0;z-index:-1;pointer-events:none;width:${width}px;height:${height}px;overflow:hidden;background:${pageFill(layout.background, book.pageBackground || DEFAULT_PAGE_BACKGROUND)};`;
+  const paper = pageFill(layout.background, book.pageBackground || DEFAULT_PAGE_BACKGROUND);
+  const canvas = document.createElement("canvas");
+  canvas.width = width * 2;
+  canvas.height = height * 2;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not draw a page");
+  ctx.scale(2, 2);
+  ctx.fillStyle = paper;
+  ctx.fillRect(0, 0, width, height);
   const ink = book.textColor || DEFAULT_TEXT_COLOR;
   const font = book.textFont || DEFAULT_TEXT_FONT;
-  layout.elements.slice().sort((a, b) => a.z - b.z).forEach((element) => addElement(root, element, height, ink, font));
+  const elements = layout.elements.slice().sort((a, b) => a.z - b.z);
+  for (const element of elements) {
+    if (element.type !== "image" || !element.imageUrl) continue;
+    const img = await loadHtmlImage(element.imageUrl);
+    drawFittedImage(ctx, img, element, width, height);
+  }
+  for (const element of elements) {
+    if (element.type !== "shape") continue;
+    const boxX = (element.x / 100) * width;
+    const boxY = (element.y / 100) * height;
+    const boxW = (element.w / 100) * width;
+    const boxH = (element.h / 100) * height;
+    ctx.save();
+    ctx.globalAlpha = (element.opacity ?? 100) / 100;
+    ctx.fillStyle = element.color || "#ffffff";
+    ctx.beginPath();
+    if (element.shape === "circle") ctx.ellipse(boxX + boxW / 2, boxY + boxH / 2, boxW / 2, boxH / 2, 0, 0, Math.PI * 2);
+    else ctx.rect(boxX, boxY, boxW, boxH);
+    ctx.fill();
+    ctx.restore();
+  }
+  const root = document.createElement("div");
+  root.style.cssText = `position:fixed;left:0;top:0;z-index:-1;pointer-events:none;width:${width}px;height:${height}px;overflow:hidden;background:transparent;`;
+  elements.filter((element) => element.type === "text").forEach((element) => addElement(root, element, height, ink, font));
   if (legal && extras) addLegal(root, book, extras.credits, extras.copyright, extras.logoUrl);
   document.body.appendChild(root);
   try {
-    return await snapshot(root);
+    const text = await snapshot(root);
+    const textImg = await loadImage(text.png);
+    ctx.drawImage(textImg, 0, 0, width, height);
   } finally {
     root.remove();
   }
+  const png = await new Promise<Uint8Array>((resolve, reject) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) reject(new Error("Could not draw a page"));
+      else resolve(new Uint8Array(await blob.arrayBuffer()));
+    }, "image/png");
+  });
+  return { png, width: canvas.width, height: canvas.height };
 }
 
 function blankLeaf(color: string): Rendered {
