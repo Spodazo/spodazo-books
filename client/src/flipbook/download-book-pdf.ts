@@ -69,7 +69,7 @@ function addElement(root: HTMLElement, element: PageElement, height: number, ink
     const img = document.createElement("img");
     img.src = element.imageUrl || "";
     img.alt = "";
-    img.dataset.fit = element.fit === "contain" || element.id === "cover-art" || element.id === "title-cover" || element.id === "end-art" ? "contain" : "cover";
+    img.dataset.fit = element.fit === "contain" || element.id === "cover-art" || element.id === "title-cover" || element.id === "end-art" || element.id === "back-art" ? "contain" : "cover";
     img.style.position = "absolute";
     img.style.maxWidth = "none";
     node.appendChild(img);
@@ -106,9 +106,11 @@ function addElement(root: HTMLElement, element: PageElement, height: number, ink
   root.appendChild(node);
 }
 
-function addLegal(root: HTMLElement, book: PublicBook, credits: string, copyright: string, logoUrl: string) {
+function addLegal(root: HTMLElement, book: PublicBook, credits: string, copyright: string, logoUrl: string, leaf = false) {
   const footer = document.createElement("footer");
-  footer.style.cssText = "position:absolute;left:50%;width:50%;bottom:18px;text-align:center;padding:0 8%;box-sizing:border-box;color:#203b2a;z-index:30;";
+  footer.style.cssText = leaf
+    ? "position:absolute;left:8%;right:8%;width:auto;bottom:18px;text-align:center;padding:0;box-sizing:border-box;color:#203b2a;z-index:30;"
+    : "position:absolute;left:50%;width:50%;bottom:18px;text-align:center;padding:0 8%;box-sizing:border-box;color:#203b2a;z-index:30;";
   const published = publishedLabel(book.date);
   if (logoUrl) {
     const logo = document.createElement("img");
@@ -165,7 +167,7 @@ function drawFittedImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement, e
   const boxY = (element.y / 100) * pageH;
   const boxW = (element.w / 100) * pageW;
   const boxH = (element.h / 100) * pageH;
-  const contain = element.fit === "contain" || element.id === "cover-art" || element.id === "title-cover" || element.id === "end-art";
+  const contain = element.fit === "contain" || element.id === "cover-art" || element.id === "title-cover" || element.id === "end-art" || element.id === "back-art";
   const scale = contain
     ? Math.min(boxW / img.naturalWidth, boxH / img.naturalHeight)
     : Math.max(boxW / img.naturalWidth, boxH / img.naturalHeight);
@@ -203,7 +205,7 @@ async function snapshot(node: HTMLElement): Promise<Rendered> {
   return { png, width: canvas.width, height: canvas.height };
 }
 
-async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" | "spread", legal = false, extras?: { credits: string; copyright: string; logoUrl: string }) {
+async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" | "spread", legal: false | "end" | "back" = false, extras?: { credits: string; copyright: string; logoUrl: string }) {
   const width = kind === "cover" ? 800 : 1600;
   const height = 1000;
   const paper = pageFill(layout.background, book.pageBackground || DEFAULT_PAGE_BACKGROUND);
@@ -241,7 +243,7 @@ async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" 
   const root = document.createElement("div");
   root.style.cssText = `position:fixed;left:0;top:0;z-index:-1;pointer-events:none;width:${width}px;height:${height}px;overflow:hidden;background:transparent;`;
   elements.filter((element) => element.type === "text").forEach((element) => addElement(root, element, height, ink, font));
-  if (legal && extras) addLegal(root, book, extras.credits, extras.copyright, extras.logoUrl);
+  if (legal && extras) addLegal(root, book, extras.credits, extras.copyright, extras.logoUrl, legal === "back");
   document.body.appendChild(root);
   try {
     const text = await snapshot(root);
@@ -366,13 +368,13 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   await ensureFonts(book);
   const legal = { credits: setup.credits || "", copyright: setup.copyright || "", logoUrl: setup.logoUrl || "" };
   const cover = await renderLayout(book.coverLayout, book, "cover");
-  const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover") : null;
+  const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover", "back", legal) : null;
   const spreads: Rendered[] = [];
   spreads.push(await renderLayout(book.titleLayout, book, "spread"));
   for (const page of visibleStoryPages(book)) {
     spreads.push(await renderLayout(page, book, "spread"));
   }
-  spreads.push(await renderLayout(book.endLayout, book, "spread", true, legal));
+  spreads.push(await renderLayout(book.endLayout, book, "spread", "end", legal));
   const name = slugFile(book.title);
   if (kind === "standard") {
     downloadBlob(await standardPdf(cover, spreads, back), `${name}-standard.pdf`);

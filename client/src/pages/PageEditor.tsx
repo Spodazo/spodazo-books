@@ -875,7 +875,7 @@ export default function PageEditorPage() {
                 {element.type === "shape" ? (
                   <div style={{ width: "100%", height: "100%", background: normalizeColor(element.color, "") || "#ffffff", opacity: (element.opacity ?? 100) / 100, borderRadius: element.shape === "circle" ? "50%" : "2%" }} />
                 ) : element.type === "image" ? (
-                  element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "title-cover" || element.id === "end-art" || element.id === "cover-art" ? "contain" : "cover", opacity: (element.opacity ?? 100) / 100, background: "transparent" }} /> : <span className="page-editor-empty">Picture</span>
+                    element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "title-cover" || element.id === "end-art" || element.id === "cover-art" || element.id === "back-art" ? "contain" : "cover", opacity: (element.opacity ?? 100) / 100, background: "transparent" }} /> : <span className="page-editor-empty">Picture</span>
                 ) : editingId === element.id ? (
                   <textarea
                     autoFocus
@@ -908,8 +908,8 @@ export default function PageEditorPage() {
                 ) : null}
               </div>
             ))}
-            {screen.kind === "end" && (logoUrl || credits || copyright || book.date) ? (
-              <footer className="page-editor-legal">
+            {(screen.kind === "end" || screen.kind === "back") && (logoUrl || credits || copyright || book.date) ? (
+              <footer className={`page-editor-legal${screen.kind === "back" ? " leaf" : ""}`}>
                 {logoUrl ? <img className="page-editor-logo" src={logoUrl} alt="Spodazo Books" /> : null}
                 {publishedLabel(book.date) ? <p>{publishedLabel(book.date)}</p> : null}
                 {credits ? <p>{credits}</p> : null}

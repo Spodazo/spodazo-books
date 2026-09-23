@@ -680,6 +680,12 @@ button, input, select, textarea { font: inherit; }
   text-align: center;
   pointer-events: none;
 }
+.page-editor-legal.leaf {
+  left: 8%;
+  right: 8%;
+  width: auto;
+  padding: 0;
+}
 .page-editor-logo {
   display: block;
   width: min(96px, 28%);

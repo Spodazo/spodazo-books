@@ -146,7 +146,13 @@ test("ensureBookLayouts and sync keep title text and cover", () => {
   if (titleEl) titleEl.text = "Night Walk";
   const synced = syncBookFromLayouts(book);
   assert.equal(synced.title, "Night Walk");
-  assert.deepEqual(book.backCoverLayout, { elements: [], background: "" });
+  const art = book.backCoverLayout.elements.find((item) => item.id === "back-art");
+  assert.ok(art);
+  assert.equal(art?.y, 40);
+  assert.equal(art?.h, 20);
+  assert.equal(art?.fit, "contain");
+  assert.equal(book.backCoverLayout.elements.find((item) => item.role === "title")?.text, "Lantern Walk");
+  assert.equal(book.backCoverLayout.elements.find((item) => item.role === "tagline")?.text, "A quiet evening");
   const designed = ensureBookLayouts({
     ...book,
     backCoverLayout: {

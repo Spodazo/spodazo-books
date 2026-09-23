@@ -182,6 +182,16 @@ function imageEl(partial: Partial<PageElement>): PageElement {
   return normalizeElement({ type: "image", ...partial }, 0);
 }
 
+export function defaultBackCoverLayout(book: Pick<Book, "title" | "tagline" | "cover">, coverUrl = ""): PageLayout {
+  const elements: PageElement[] = [];
+  if (book.cover || coverUrl) {
+    elements.push(imageEl({ id: "back-art", x: 20, y: 40, w: 60, h: 20, z: 1, imageAsset: book.cover, imageUrl: coverUrl, fit: "contain" }));
+  }
+  if (book.title) elements.push(textEl({ id: "back-title", x: 10, y: 62, w: 80, h: 6, z: 2, text: book.title, role: "title", align: "center", fontSize: 2.2, fontFamily: DEFAULT_TEXT_FONT }));
+  if (book.tagline) elements.push(textEl({ id: "back-tagline", x: 12, y: 69, w: 76, h: 5, z: 3, text: book.tagline, role: "tagline", align: "center", fontSize: 1.8, fontFamily: DEFAULT_TEXT_FONT }));
+  return { elements, background: "" };
+}
+
 export function defaultCoverLayout(book: Pick<Book, "title" | "tagline" | "author" | "cover">, coverUrl = ""): PageLayout {
   const elements: PageElement[] = [];
   if (book.cover || coverUrl) {
@@ -312,7 +322,9 @@ export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?:
     coverLayout: hasLayout(book.coverLayout)
       ? normalizeLayout(book.coverLayout)
       : defaultCoverLayout(book, coverUrl),
-    backCoverLayout: normalizeLayout(book.backCoverLayout),
+    backCoverLayout: hasLayout(book.backCoverLayout)
+      ? normalizeLayout(book.backCoverLayout)
+      : defaultBackCoverLayout(book, coverUrl),
     endLayout: withEndArt(
       hasLayout(book.endLayout) ? book.endLayout : defaultEndLayout(book.cover, coverUrl, characterUrl),
       book.cover,
