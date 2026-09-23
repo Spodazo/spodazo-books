@@ -31,7 +31,9 @@ export default function HomePage() {
       setSetup(next);
       applyPalette(next.collectionColor);
     });
-    void loadHomeBooks().then(setBooks);
+    void loadHomeBooks().then((next) => {
+      setBooks((current) => JSON.stringify(current) === JSON.stringify(next) ? current : next);
+    });
   }, []);
 
   const { children, adults } = groupBooksByAudience(books);

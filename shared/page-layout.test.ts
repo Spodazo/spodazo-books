@@ -146,6 +146,17 @@ test("ensureBookLayouts and sync keep title text and cover", () => {
   if (titleEl) titleEl.text = "Night Walk";
   const synced = syncBookFromLayouts(book);
   assert.equal(synced.title, "Night Walk");
+  assert.deepEqual(book.backCoverLayout, { elements: [], background: "" });
+  const designed = ensureBookLayouts({
+    ...book,
+    backCoverLayout: {
+      background: "#fff8e4",
+      elements: [{ id: "blurb", type: "text", x: 10, y: 40, w: 80, h: 20, z: 1, text: "About this book", role: "back" }],
+    },
+  });
+  assert.equal(designed.backCoverLayout.elements[0]?.text, "About this book");
+  assert.equal(designed.backCoverLayout.elements[0]?.align, "center");
+  assert.equal(designed.backCoverLayout.background, "#fff8e4");
 });
 
 test("normalizeElement clamps size", () => {

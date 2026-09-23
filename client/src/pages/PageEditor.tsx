@@ -226,6 +226,7 @@ function FontSelect({
 
 type Screen =
   | { kind: "cover" }
+  | { kind: "back" }
   | { kind: "title" }
   | { kind: "page"; pageId: string }
   | { kind: "end" };
@@ -284,8 +285,8 @@ export default function PageEditorPage() {
     const fit = () => {
       const finishedW = Math.max(320, window.innerWidth - 40);
       const finishedH = Math.max(240, window.innerHeight - 40);
-      const onCover = index === 0;
-      const ratio = onCover ? LEAF_RATIO : finishedW / finishedH;
+      const singleLeaf = index === 0 || index === 1;
+      const ratio = singleLeaf ? LEAF_RATIO : finishedW / finishedH;
       const styles = getComputedStyle(stage);
       const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
       const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
@@ -357,6 +358,7 @@ export default function PageEditorPage() {
         textColor: synced.textColor,
         titleLayout: synced.titleLayout,
         coverLayout: synced.coverLayout,
+        backCoverLayout: synced.backCoverLayout,
         endLayout: synced.endLayout,
       })
         .then((saved) => {
@@ -375,7 +377,7 @@ export default function PageEditorPage() {
 
   const screens: Screen[] = useMemo(() => {
     if (!book) return [];
-    return [{ kind: "cover" }, { kind: "title" }, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
+    return [{ kind: "cover" }, { kind: "back" }, { kind: "title" }, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
   }, [book, storyPages]);
 
   const screen = screens[index];
@@ -383,6 +385,7 @@ export default function PageEditorPage() {
   function layoutOf(target: Screen | undefined): PageLayout {
     if (!book || !target) return { elements: [], background: "" };
     if (target.kind === "cover") return book.coverLayout;
+    if (target.kind === "back") return book.backCoverLayout;
     if (target.kind === "title") return book.titleLayout;
     if (target.kind === "end") return book.endLayout;
     return book.pages.find((page) => page.id === target.pageId) || { elements: [], background: "" };
@@ -391,6 +394,7 @@ export default function PageEditorPage() {
   function writeLayout(target: Screen, layout: PageLayout) {
     if (!book) return;
     if (target.kind === "cover") persist({ ...book, coverLayout: layout });
+    else if (target.kind === "back") persist({ ...book, backCoverLayout: layout });
     else if (target.kind === "title") persist({ ...book, titleLayout: layout });
     else if (target.kind === "end") persist({ ...book, endLayout: layout });
     else {
@@ -492,7 +496,7 @@ export default function PageEditorPage() {
       h: 16,
       z: 40 + layout.elements.filter((item) => item.type === "text").length,
       text: "New wording",
-      role: screen.kind === "end" ? "end" : "body",
+      role: screen.kind === "end" ? "end" : screen.kind === "back" ? "back" : "body",
       fontSize: 3.6,
     };
     writeLayout(screen, { ...layout, elements: [...layout.elements, element] });
@@ -504,7 +508,7 @@ export default function PageEditorPage() {
     const page = emptyStoryPage(book.pages.length);
     const pages = [...book.pages, page];
     persist({ ...book, pages });
-    setIndex(visibleStoryPages({ ...book, pages }).length + 1);
+    setIndex(visibleStoryPages({ ...book, pages }).length + 2);
     setSelectedId(page.elements[0]?.id || "");
   }
 
@@ -629,7 +633,7 @@ export default function PageEditorPage() {
   const selectedText = selected?.type === "text" ? selected : undefined;
   const bookFont = book.textFont || DEFAULT_TEXT_FONT;
   const bookInk = book.textColor || DEFAULT_TEXT_COLOR;
-  const label = screen.kind === "cover" ? "Cover" : screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${storyPages.findIndex((page) => page.id === screen.pageId) + 1}`;
+  const label = screen.kind === "cover" ? "Cover" : screen.kind === "back" ? "Back cover" : screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${storyPages.findIndex((page) => page.id === screen.pageId) + 1}`;
 
   return (
     <main className="page-editor">
@@ -657,6 +661,7 @@ export default function PageEditorPage() {
             <button type="button" onClick={() => arrange("back")}>Back</button>
           </div>
         ) : null}
+        {screen.kind === "back" ? <span className="hint">Print only. This cover is not shown in the online book.</span> : null}
         {screen.kind === "cover" ? (
           <>
             <label className="page-editor-font">
@@ -912,7 +917,7 @@ export default function PageEditorPage() {
               </footer>
             ) : null}
           </div>
-          {screen.kind === "cover" ? null : <div className="page-editor-spine" aria-hidden="true" />}
+          {screen.kind === "cover" || screen.kind === "back" ? null : <div className="page-editor-spine" aria-hidden="true" />}
         </div>
       </div>
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={(event) => {

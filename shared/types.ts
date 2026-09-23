@@ -1,7 +1,7 @@
 export type BookAudience = "children" | "adults";
 export type PageTemplate = "one-up" | "two-up" | "three-up";
 export type CharacterRender = "scene" | "cutout";
-export type PageElementRole = "title" | "tagline" | "author" | "date" | "body" | "end";
+export type PageElementRole = "title" | "tagline" | "author" | "date" | "body" | "end" | "back";
 export type TextAlign = "left" | "center" | "right";
 
 export type PageElement = {
@@ -70,6 +70,7 @@ export type Book = {
   textColor: string;
   titleLayout: PageLayout;
   coverLayout: PageLayout;
+  backCoverLayout: PageLayout;
   endLayout: PageLayout;
   pages: BookPage[];
   createdAt?: string;

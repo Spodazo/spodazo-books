@@ -29,7 +29,7 @@ export const PAGE_COLOR_PALETTE = [
   "#0f766e", "#ca8a04", "#334155", "#78716c", "#000000", "#ece8e0",
 ];
 
-const ROLES = new Set<PageElementRole>(["title", "tagline", "author", "date", "body", "end"]);
+const ROLES = new Set<PageElementRole>(["title", "tagline", "author", "date", "body", "end", "back"]);
 
 export function newElementId(): string {
   return `el-${crypto.randomUUID()}`;
@@ -312,6 +312,7 @@ export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?:
     coverLayout: hasLayout(book.coverLayout)
       ? normalizeLayout(book.coverLayout)
       : defaultCoverLayout(book, coverUrl),
+    backCoverLayout: normalizeLayout(book.backCoverLayout),
     endLayout: withEndArt(
       hasLayout(book.endLayout) ? book.endLayout : defaultEndLayout(book.cover, coverUrl, characterUrl),
       book.cover,

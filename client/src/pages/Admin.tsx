@@ -811,7 +811,7 @@ function BookEditor({
             {pdfBusy === kind ? "Preparing PDF…" : kind === "standard" ? "Standard PDF" : kind === "a3-a4" ? "A3 folded to A4" : "A4 folded to A5"}
           </button>
         ))}
-        <p className="hint">Folded PDFs are for double-sided printing. Print at actual size, flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside.</p>
+        <p className="hint">Folded PDFs are for double-sided printing. Print at actual size, flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside. The designed back cover prints on the outside left of that sheet, and is not shown in the online book.</p>
         <button
           type="button"
           className="danger"

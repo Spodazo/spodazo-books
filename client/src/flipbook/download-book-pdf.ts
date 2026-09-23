@@ -4,6 +4,7 @@ import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, fontStack, fontsUsed, googleFont
 import {
   DEFAULT_PAGE_BACKGROUND,
   ensureBookLayouts,
+  hasLayout,
   pageFill,
   publishedLabel,
 } from "@shared/page-layout";
@@ -11,7 +12,7 @@ import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
-import { bookletSheets, paddedPageCount } from "../lib/booklet";
+import { bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
 
 export type BookPdfKind = "standard" | "a3-a4" | "a4-a5";
 
@@ -37,7 +38,7 @@ function slugFile(title: string) {
 async function ensureFonts(book: PublicBook) {
   const families = fontsUsed(
     book.textFont,
-    ...[book.coverLayout, book.titleLayout, book.endLayout, ...book.pages].flatMap((layout) =>
+    ...[book.coverLayout, book.backCoverLayout, book.titleLayout, book.endLayout, ...book.pages].flatMap((layout) =>
       (layout?.elements || []).map((item) => item.fontFamily),
     ),
   );
@@ -316,9 +317,9 @@ function fitRect(image: { width: number; height: number }, boxW: number, boxH: n
   return { width, height, x: (boxW - width) / 2, y: (boxH - height) / 2 };
 }
 
-async function standardPdf(cover: Rendered, spreads: Rendered[]) {
+async function standardPdf(cover: Rendered, spreads: Rendered[], back: Rendered | null) {
   const pdf = await PDFDocument.create();
-  const pages = [cover, ...spreads];
+  const pages = back ? [cover, ...spreads, back] : [cover, ...spreads];
   for (const shot of pages) {
     const embedded = await pdf.embedPng(shot.png);
     const page = pdf.addPage([shot.width > shot.height ? 960 : 480, 600]);
@@ -365,6 +366,7 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   await ensureFonts(book);
   const legal = { credits: setup.credits || "", copyright: setup.copyright || "", logoUrl: setup.logoUrl || "" };
   const cover = await renderLayout(book.coverLayout, book, "cover");
+  const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover") : null;
   const spreads: Rendered[] = [];
   spreads.push(await renderLayout(book.titleLayout, book, "spread"));
   for (const page of visibleStoryPages(book)) {
@@ -373,7 +375,7 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   spreads.push(await renderLayout(book.endLayout, book, "spread", true, legal));
   const name = slugFile(book.title);
   if (kind === "standard") {
-    downloadBlob(await standardPdf(cover, spreads), `${name}-standard.pdf`);
+    downloadBlob(await standardPdf(cover, spreads, back), `${name}-standard.pdf`);
     return;
   }
   const leaves = [cover];
@@ -381,7 +383,9 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
     const [left, right] = await halves(spread);
     leaves.push(left, right);
   }
+  const paper = book.pageBackground || DEFAULT_PAGE_BACKGROUND;
+  const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper)) : leaves;
   const sheet = kind === "a3-a4" ? A3_LANDSCAPE : A4_LANDSCAPE;
   const label = kind === "a3-a4" ? "A3-folded-to-A4" : "A4-folded-to-A5";
-  downloadBlob(await bookletPdf(leaves, sheet, book.pageBackground || DEFAULT_PAGE_BACKGROUND), `${name}-${label}.pdf`);
+  downloadBlob(await bookletPdf(ordered, sheet, paper), `${name}-${label}.pdf`);
 }

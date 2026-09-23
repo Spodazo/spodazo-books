@@ -145,8 +145,8 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
-function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true}={}) {
-  const hintHtml = hint ? `<div id="hint" class="hint" role="status"><span class="hint-desktop">Tap the right page to turn</span><span class="hint-mobile">Swipe left to turn the page</span></div>` : "";
+function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hintDesktop="Tap the right page to turn", hintMobile="Swipe left to turn the page"}={}) {
+  const hintHtml = hint ? `<div id="hint" class="hint" role="status"><span class="hint-desktop">${esc(hintDesktop)}</span><span class="hint-mobile">${esc(hintMobile)}</span></div>` : "";
   const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>`;
   const zones = `${back?`<button class="zone" data-dir="-1" aria-label="Previous page"></button>`:""}${next?`<button class="zone" data-dir="1" aria-label="Next page"></button>`:""}`;
   return `${close}${hintHtml}${zones}`;
@@ -157,7 +157,7 @@ function frontCoverHtml(book, baseUrl, libraryUrl) {
   const layout = book.coverLayout;
   const fill = pageFill(layout, book);
   const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
-  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false})}<div class="front-cover-leaf" style="background:${fill}">${items}</div></article>`;
+  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"})}<div class="front-cover-leaf" style="background:${fill}">${items}</div></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
@@ -191,9 +191,9 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;document.documentElement.classList.toggle('mobile',m);}catch(e){}})();`;
+  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
-  return `<!doctype html><html lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html${fadeOpen?' class="opening"':''} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';

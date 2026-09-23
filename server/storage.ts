@@ -51,6 +51,7 @@ export type BookInput = {
   textColor?: string;
   titleLayout?: Book["titleLayout"];
   coverLayout?: Book["coverLayout"];
+  backCoverLayout?: Book["backCoverLayout"];
   endLayout?: Book["endLayout"];
 };
 
@@ -104,6 +105,7 @@ function hydrateBook(book: Book): PublicBook {
     pageCount: pages.length,
     titleLayout: { ...book.titleLayout, elements: hydrateElements(book.titleLayout.elements) },
     coverLayout: { ...book.coverLayout, elements: hydrateElements(book.coverLayout?.elements || []) },
+    backCoverLayout: { ...book.backCoverLayout, elements: hydrateElements(book.backCoverLayout?.elements || []) },
     endLayout: { ...book.endLayout, elements: hydrateElements(book.endLayout.elements) },
   };
 }
@@ -183,9 +185,11 @@ function recordBook(row: {
   textColor?: string | null;
   titleLayoutJson?: string | null;
   coverLayoutJson?: string | null;
+  backCoverLayoutJson?: string | null;
   endLayoutJson?: string | null;
   titleLayout?: Book["titleLayout"] | null;
   coverLayout?: Book["coverLayout"] | null;
+  backCoverLayout?: Book["backCoverLayout"] | null;
   endLayout?: Book["endLayout"] | null;
   createdAt?: Date | string | null;
   updatedAt?: Date | string | null;
@@ -212,6 +216,7 @@ function recordBook(row: {
     textColor: normalizeColor(row.textColor, DEFAULT_TEXT_COLOR),
     titleLayout: row.titleLayout || parseLayoutJson(row.titleLayoutJson),
     coverLayout: row.coverLayout || parseLayoutJson(row.coverLayoutJson),
+    backCoverLayout: row.backCoverLayout || parseLayoutJson(row.backCoverLayoutJson),
     endLayout: row.endLayout || parseLayoutJson(row.endLayoutJson),
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : undefined,
     updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : undefined,
@@ -287,6 +292,7 @@ export class JsonBookStore implements BookStore {
       textColor: normalizeColor(input.textColor, DEFAULT_TEXT_COLOR),
       titleLayout: normalizeLayout(input.titleLayout),
       coverLayout: normalizeLayout(input.coverLayout),
+      backCoverLayout: normalizeLayout(input.backCoverLayout),
       endLayout: normalizeLayout(input.endLayout),
       createdAt: nowIso(),
       updatedAt: nowIso(),
@@ -320,6 +326,7 @@ export class JsonBookStore implements BookStore {
     if (input.textColor !== undefined) book.textColor = normalizeColor(input.textColor, DEFAULT_TEXT_COLOR);
     if (input.titleLayout !== undefined) book.titleLayout = normalizeLayout(input.titleLayout);
     if (input.coverLayout !== undefined) book.coverLayout = normalizeLayout(input.coverLayout);
+    if (input.backCoverLayout !== undefined) book.backCoverLayout = normalizeLayout(input.backCoverLayout);
     if (input.endLayout !== undefined) book.endLayout = normalizeLayout(input.endLayout);
     book.updatedAt = nowIso();
     this.write(catalog);
@@ -441,6 +448,7 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS text_color TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS title_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS cover_layout_json TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS back_cover_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS end_layout_json TEXT NOT NULL DEFAULT ''`);
   }
 
@@ -485,6 +493,7 @@ export class PostgresBookStore implements BookStore {
         textColor: normalizeColor(input.textColor, DEFAULT_TEXT_COLOR),
         titleLayoutJson: layoutToJson(normalizeLayout(input.titleLayout)),
         coverLayoutJson: layoutToJson(normalizeLayout(input.coverLayout)),
+        backCoverLayoutJson: layoutToJson(normalizeLayout(input.backCoverLayout)),
         endLayoutJson: layoutToJson(normalizeLayout(input.endLayout)),
       })
       .returning();
@@ -513,6 +522,7 @@ export class PostgresBookStore implements BookStore {
     if (input.textColor !== undefined) patch.textColor = normalizeColor(input.textColor, DEFAULT_TEXT_COLOR);
     if (input.titleLayout !== undefined) patch.titleLayoutJson = layoutToJson(normalizeLayout(input.titleLayout));
     if (input.coverLayout !== undefined) patch.coverLayoutJson = layoutToJson(normalizeLayout(input.coverLayout));
+    if (input.backCoverLayout !== undefined) patch.backCoverLayoutJson = layoutToJson(normalizeLayout(input.backCoverLayout));
     if (input.endLayout !== undefined) patch.endLayoutJson = layoutToJson(normalizeLayout(input.endLayout));
     const [row] = await this.db.update(books).set(patch).where(eq(books.id, id)).returning();
     return row ? hydrateBook(recordBook(row)) : null;
