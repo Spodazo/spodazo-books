@@ -20,6 +20,7 @@ import {
   newElementId,
   normalizeColor,
   pageFill,
+  publishedLabel,
   syncBookFromLayouts,
 } from "@shared/page-layout";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
@@ -902,9 +903,10 @@ export default function PageEditorPage() {
                 ) : null}
               </div>
             ))}
-            {screen.kind === "end" && (logoUrl || credits || copyright) ? (
+            {screen.kind === "end" && (logoUrl || credits || copyright || book.date) ? (
               <footer className="page-editor-legal">
                 {logoUrl ? <img className="page-editor-logo" src={logoUrl} alt="Spodazo Books" /> : null}
+                {publishedLabel(book.date) ? <p>{publishedLabel(book.date)}</p> : null}
                 {credits ? <p>{credits}</p> : null}
                 {copyright ? <p>{copyright}</p> : null}
               </footer>

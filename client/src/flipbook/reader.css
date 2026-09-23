@@ -654,8 +654,10 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   height:auto;
   margin:0 auto 20px;
 }
+.page.end-page .end-published,
 .page.end-page .end-credits,
 .page.end-page .end-copyright,
+.mobile .page.end-page .end-published,
 .mobile .page.end-page .end-credits,
 .mobile .page.end-page .end-copyright{
   margin:0;
@@ -663,6 +665,11 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   -webkit-text-fill-color:var(--title-ink,#203b2a)!important;
   text-shadow:none!important;
   opacity:.72;
+}
+.page.end-page .end-published,
+.mobile .page.end-page .end-published{
+  margin-bottom:6px;
+  font:600 12px Story,sans-serif;
 }
 .page.end-page .end-credits,
 .mobile .page.end-page .end-credits{

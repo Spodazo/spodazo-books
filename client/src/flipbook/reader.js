@@ -1,7 +1,7 @@
 import css from './reader.css?raw';
 import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
-import {elementTextHtml} from '@shared/page-layout';
+import {elementTextHtml, publishedLabel} from '@shared/page-layout';
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
@@ -118,12 +118,13 @@ function imageFit(el) {
   return "cover";
 }
 
-function legalHtml(credits, copyright, logoUrl, baseUrl) {
+function legalHtml(credits, copyright, logoUrl, baseUrl, date) {
   const credit = String(credits || "").trim();
   const copy = String(copyright || "").trim();
   const logo = logoUrl ? esc(safeURL(logoUrl, baseUrl)) : "";
-  if (!credit && !copy && !logo) return "";
-  return `<footer class="end-legal">${logo?`<img class="end-logo" src="${logo}" alt="Spodazo Books">`:""}${credit?`<p class="end-credits">${esc(credit)}</p>`:""}${copy?`<p class="end-copyright">${esc(copy)}</p>`:""}</footer>`;
+  const published = publishedLabel(date);
+  if (!credit && !copy && !logo && !published) return "";
+  return `<footer class="end-legal">${logo?`<img class="end-logo" src="${logo}" alt="Spodazo Books">`:""}${published?`<p class="end-published">${esc(published)}</p>`:""}${credit?`<p class="end-credits">${esc(credit)}</p>`:""}${copy?`<p class="end-copyright">${esc(copy)}</p>`:""}</footer>`;
 }
 
 function characterSrc(book, baseUrl) {
@@ -132,7 +133,7 @@ function characterSrc(book, baseUrl) {
 }
 
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
-  const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
+  const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
   if (hasLayout(book.endLayout)) {
     return laidOutPage("The end", book.endLayout, book, baseUrl, extras, " end-page").replace("<article", '<article data-source="end"');
   }
@@ -141,7 +142,7 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   const left = character
     ? `<div class="end-cover-wrap end-character-wrap"><img class="end-character" src="${character}" alt="" width="560" height="860"></div>`
     : (src ? `<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>` : "");
-  return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl) {

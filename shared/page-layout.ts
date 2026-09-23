@@ -52,6 +52,19 @@ export function clampPercent(raw: unknown, fallback: number, min = 0, max = 100)
   return Math.min(max, Math.max(min, n));
 }
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+export function publishedLabel(date?: string | null): string {
+  const raw = String(date || "").trim();
+  if (!raw) return "";
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!iso) return `Published ${raw}`;
+  const day = Number(iso[3]);
+  const month = MONTHS[Number(iso[2]) - 1];
+  if (!month || day < 1 || day > 31) return `Published ${raw}`;
+  return `Published ${day} ${month} ${iso[1]}`;
+}
+
 export function pageFill(pageBackground: string | undefined, bookBackground: string | undefined): string {
   return normalizeColor(pageBackground, "") || normalizeColor(bookBackground, DEFAULT_PAGE_BACKGROUND);
 }
