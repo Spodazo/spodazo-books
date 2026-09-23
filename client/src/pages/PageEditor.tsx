@@ -41,7 +41,7 @@ function useFitText(text: string, fontSize?: CSSProperties["fontSize"]) {
     let size = start;
     const min = Math.max(8, start * 0.45);
     let n = 0;
-    while (el.scrollHeight > el.clientHeight + 1 && size > min && n < 30) {
+    while ((el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) && size > min && n < 30) {
       size = Math.round(size * 0.94 * 10) / 10;
       el.style.fontSize = `${size}px`;
       n += 1;
@@ -885,6 +885,7 @@ export default function PageEditorPage() {
                       fontSize: `${element.fontSize || 4}cqh`,
                       color: normalizeColor(element.color, "") || bookInk,
                       textAlign: element.align || "left",
+                      whiteSpace: element.id === "back-title" ? "nowrap" : undefined,
                     }}
                     onChange={(event) => patchElement(element.id, { text: event.target.value })}
                     onKeyDown={(event) => event.stopPropagation()}
@@ -900,6 +901,7 @@ export default function PageEditorPage() {
                       color: normalizeColor(element.color, "") || bookInk,
                       textAlign: element.align || "left",
                       alignItems: alignJustify(element.align),
+                      whiteSpace: element.id === "back-title" ? "nowrap" : undefined,
                     }}
                   />
                 )}

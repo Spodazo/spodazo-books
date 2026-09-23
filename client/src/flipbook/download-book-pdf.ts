@@ -87,7 +87,7 @@ function addElement(root: HTMLElement, element: PageElement, height: number, ink
     node.style.lineHeight = "1.25";
     node.style.color = element.color || ink;
     node.style.textAlign = element.align || "left";
-    node.style.whiteSpace = "pre-wrap";
+    node.style.whiteSpace = element.id === "back-title" ? "nowrap" : "pre-wrap";
     const frame = frameMarkup(element.frame, element.w / element.h);
     if (frame) node.insertAdjacentHTML("afterbegin", frame);
     const text = document.createElement("div");

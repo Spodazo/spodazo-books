@@ -151,8 +151,23 @@ test("ensureBookLayouts and sync keep title text and cover", () => {
   assert.equal(art?.y, 40);
   assert.equal(art?.h, 20);
   assert.equal(art?.fit, "contain");
-  assert.equal(book.backCoverLayout.elements.find((item) => item.role === "title")?.text, "Lantern Walk");
-  assert.equal(book.backCoverLayout.elements.find((item) => item.role === "tagline")?.text, "A quiet evening");
+  const backTitle = book.backCoverLayout.elements.find((item) => item.id === "back-title");
+  assert.equal(backTitle?.text, "Lantern Walk");
+  assert.equal(backTitle?.w, 92);
+  assert.equal(backTitle?.h, 4);
+  assert.equal(book.backCoverLayout.elements.some((item) => item.role === "tagline" || item.id === "back-tagline"), false);
+  const tidied = ensureBookLayouts({
+    ...book,
+    backCoverLayout: {
+      elements: [
+        { id: "back-art", type: "image", x: 20, y: 40, w: 60, h: 20, z: 1, imageAsset: "cover.webp", fit: "contain" },
+        { id: "back-title", type: "text", x: 10, y: 62, w: 80, h: 6, z: 2, text: "Willow’s Big\nForest Adventure", role: "title" },
+        { id: "back-tagline", type: "text", x: 12, y: 69, w: 76, h: 5, z: 3, text: "A quiet evening", role: "tagline" },
+      ],
+    },
+  });
+  assert.equal(tidied.backCoverLayout.elements.find((item) => item.id === "back-title")?.text, "Willow’s Big Forest Adventure");
+  assert.equal(tidied.backCoverLayout.elements.some((item) => item.id === "back-tagline"), false);
   const designed = ensureBookLayouts({
     ...book,
     backCoverLayout: {
