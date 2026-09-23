@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import {
   BOOK_FONTS,
@@ -29,29 +29,33 @@ import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } fro
 
 function useFitText(text: string, fontSize?: CSSProperties["fontSize"]) {
   const ref = useRef<HTMLElement>(null);
-  useEffect(() => {
+  const fitRef = useRef<() => void>(() => {});
+  fitRef.current = () => {
     const el = ref.current;
     if (!el) return;
     const base = fontSize ? String(fontSize) : "";
-    const fit = () => {
-      if (base) el.style.fontSize = base;
-      const start = parseFloat(getComputedStyle(el).fontSize);
-      if (!start || el.clientHeight < 8) return;
-      let size = start;
-      const min = Math.max(8, start * 0.45);
-      let n = 0;
-      while (el.scrollHeight > el.clientHeight + 1 && size > min && n < 30) {
-        size = Math.round(size * 0.94 * 10) / 10;
-        el.style.fontSize = `${size}px`;
-        n += 1;
-      }
-    };
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(el);
-    if (el.parentElement) observer.observe(el.parentElement);
+    if (base) el.style.fontSize = base;
+    const start = parseFloat(getComputedStyle(el).fontSize);
+    if (!start || el.clientHeight < 8) return;
+    let size = start;
+    const min = Math.max(8, start * 0.45);
+    let n = 0;
+    while (el.scrollHeight > el.clientHeight + 1 && size > min && n < 30) {
+      size = Math.round(size * 0.94 * 10) / 10;
+      el.style.fontSize = `${size}px`;
+      n += 1;
+    }
+  };
+  useLayoutEffect(() => {
+    fitRef.current();
+  });
+  useEffect(() => {
+    const parent = ref.current?.parentElement;
+    if (!parent) return;
+    const observer = new ResizeObserver(() => fitRef.current());
+    observer.observe(parent);
     return () => observer.disconnect();
-  }, [text, fontSize]);
+  }, [text]);
   return ref;
 }
 
