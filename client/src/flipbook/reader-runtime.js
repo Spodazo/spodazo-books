@@ -7,7 +7,7 @@ function fitBoxFont(el){
   if(!el.getAttribute('data-base-size'))el.setAttribute('data-base-size',getComputedStyle(el).fontSize);
   el.style.fontSize=el.getAttribute('data-base-size');
   var size=parseFloat(getComputedStyle(el).fontSize),min=Math.max(8,size*0.45),n=0,paras,i;
-  while(el.scrollHeight>el.clientHeight+1&&size>min&&n<30){
+  while((el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1)&&size>min&&n<40){
     size=Math.round(size*0.94*10)/10;
     el.style.fontSize=size+'px';
     paras=el.querySelectorAll('p');
