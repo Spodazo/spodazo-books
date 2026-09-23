@@ -1298,8 +1298,19 @@ html:not(.mobile) .front-cover-leaf{
   height:auto;
   box-shadow:-18px 0 28px #24180f33;
 }
+.mobile .page.front-cover{
+  background:var(--page-paper,#efdda6)!important;
+}
 .mobile .front-cover-leaf{
-  inset:0;
+  inset:auto;
+  top:50%;
+  left:50%;
+  width:min(100%, calc((100dvh - 24px) * 0.8));
+  height:auto;
+  aspect-ratio:4 / 5;
+  max-height:100%;
+  transform:translate(-50%, -50%);
+  box-shadow:0 12px 28px #24180f33;
 }
 .page.front-cover .zone[data-dir="1"]{
   left:50%;

@@ -24,7 +24,11 @@ function isPicturePage(p){
   return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('end-page')&&!p.classList.contains('cover-page')&&p.querySelector('img'));
 }
 function curlFrame(){
-  var page=pages[index],img,r;
+  var page=pages[index],img,r,leaf;
+  if(page&&page.classList.contains('front-cover')){
+    leaf=page.querySelector('.front-cover-leaf');
+    if(leaf)return leaf;
+  }
   if(mobile&&page&&!page.classList.contains('title-page')&&!page.classList.contains('end-page')){
     img=page.querySelector('.el-image[data-size="main"]')||page.querySelector('img');
     if(!img)return null;
