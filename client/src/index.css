@@ -554,6 +554,13 @@ button, input, select, textarea { font: inherit; }
   container-type: size;
   overflow: hidden;
 }
+.page-editor-page.picking,
+.page-editor-page.picking * {
+  cursor: crosshair !important;
+}
+.page-editor-color .active {
+  outline: 2px solid #d99028;
+}
 .page-editor-spine {
   position: absolute;
   z-index: 30;

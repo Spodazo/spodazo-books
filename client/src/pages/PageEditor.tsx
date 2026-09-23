@@ -83,6 +83,39 @@ function EditorText({
   );
 }
 
+function samplePicture(page: HTMLElement, clientX: number, clientY: number) {
+  const images = Array.prototype.slice.call(page.querySelectorAll("img")) as HTMLImageElement[];
+  const hits = images.filter((img) => {
+    const rect = img.getBoundingClientRect();
+    return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+  }).sort((a, b) => Number(getComputedStyle(a.parentElement || a).zIndex || 0) - Number(getComputedStyle(b.parentElement || b).zIndex || 0));
+  const img = hits[hits.length - 1];
+  if (!img || !img.naturalWidth || !img.naturalHeight) return "";
+  const rect = img.getBoundingClientRect();
+  const fit = getComputedStyle(img).objectFit === "contain" ? "contain" : "cover";
+  const scale = fit === "contain"
+    ? Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight)
+    : Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+  const drawnW = img.naturalWidth * scale;
+  const drawnH = img.naturalHeight * scale;
+  const localX = clientX - rect.left - (rect.width - drawnW) / 2;
+  const localY = clientY - rect.top - (rect.height - drawnH) / 2;
+  if (localX < 0 || localY < 0 || localX > drawnW || localY > drawnH) return "";
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return "";
+  try {
+    ctx.drawImage(img, localX / scale, localY / scale, 1, 1, 0, 0, 1, 1);
+    const pixel = ctx.getImageData(0, 0, 1, 1).data;
+    if (pixel[3] < 16) return "";
+    return `#${[pixel[0], pixel[1], pixel[2]].map((part) => part.toString(16).padStart(2, "0")).join("")}`;
+  } catch {
+    return "";
+  }
+}
+
 function storyText(item: PageElement) {
   return item.type === "text" && (item.role === "body" || !item.role);
 }
@@ -222,6 +255,7 @@ export default function PageEditorPage() {
   const pageRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [bookBox, setBookBox] = useState({ width: 0, height: 0 });
+  const [picking, setPicking] = useState<"" | "text" | "frame" | "shape" | "page" | "ink">("");
 
   useEffect(() => {
     bookRef.current = book;
@@ -510,7 +544,28 @@ export default function PageEditorPage() {
     setSelectedId(element.id);
   }
 
+  function applySample(color: string) {
+    if (!book || !screen || !color) return;
+    const current = layoutOf(screen).elements.find((item) => item.id === selectedId);
+    if (picking === "text" && current) patchElement(current.id, { color });
+    else if (picking === "frame" && current) patchElement(current.id, { frameColor: color });
+    else if (picking === "shape" && current) patchElement(current.id, { color });
+    else if (picking === "page") writeLayout(screen, { ...layoutOf(screen), background: color });
+    else if (picking === "ink") persist({ ...book, textColor: color });
+    setPicking("");
+    setStatus("Matched");
+  }
+
   function onPointerDown(event: React.PointerEvent, element: PageElement, mode: "move" | "resize") {
+    if (picking) {
+      event.preventDefault();
+      event.stopPropagation();
+      const page = pageRef.current;
+      const color = page ? samplePicture(page, event.clientX, event.clientY) : "";
+      if (color) applySample(color);
+      else setStatus("Click the picture");
+      return;
+    }
     if (editingId === element.id && mode === "move") return;
     event.preventDefault();
     event.stopPropagation();
@@ -635,6 +690,7 @@ export default function PageEditorPage() {
             <label className="page-editor-color">
               Shape color
               <input type="color" value={normalizeColor(selected.color, "") || "#ffffff"} onChange={(event) => patchElement(selected.id, { color: event.target.value })} />
+              <button type="button" className={picking === "shape" ? "active" : "ghost"} onClick={() => setPicking(picking === "shape" ? "" : "shape")}>{picking === "shape" ? "Click the picture" : "Match picture"}</button>
             </label>
             <label className="page-editor-size">
               Fade
@@ -686,6 +742,7 @@ export default function PageEditorPage() {
                 value={normalizeColor(selectedText.color, "") || bookInk}
                 onChange={(event) => patchElement(selectedText.id, { color: event.target.value })}
               />
+              <button type="button" className={picking === "text" ? "active" : "ghost"} onClick={() => setPicking(picking === "text" ? "" : "text")}>{picking === "text" ? "Click the picture" : "Match picture"}</button>
             </label>
             <div className="page-editor-align" role="group" aria-label="Alignment">
               {(["left", "center", "right"] as TextAlign[]).map((align) => (
@@ -727,6 +784,7 @@ export default function PageEditorPage() {
                   value={normalizeColor(selectedText.frameColor, "") || bookInk}
                   onChange={(event) => patchElement(selectedText.id, { frameColor: event.target.value })}
                 />
+                <button type="button" className={picking === "frame" ? "active" : "ghost"} onClick={() => setPicking(picking === "frame" ? "" : "frame")}>{picking === "frame" ? "Click the picture" : "Match picture"}</button>
               </label>
             ) : null}
             <button type="button" className="ghost" onClick={() => patchElement(selectedText.id, { color: "", fontFamily: "" })}>Use book type</button>
@@ -743,6 +801,7 @@ export default function PageEditorPage() {
             value={layout.background || book.pageBackground || DEFAULT_PAGE_BACKGROUND}
             onChange={(event) => writeLayout(screen, { ...layout, background: event.target.value })}
           />
+          <button type="button" className={picking === "page" ? "active" : "ghost"} onClick={() => setPicking(picking === "page" ? "" : "page")}>{picking === "page" ? "Click the picture" : "Match picture"}</button>
         </label>
         <button type="button" className="ghost" onClick={() => writeLayout(screen, { ...layout, background: "" })}>Use book color</button>
       </div>
@@ -773,7 +832,7 @@ export default function PageEditorPage() {
         >
           <div
             ref={pageRef}
-            className="page-editor-page"
+            className={`page-editor-page${picking ? " picking" : ""}`}
             style={{ background: fill }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
