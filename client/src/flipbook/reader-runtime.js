@@ -16,7 +16,7 @@ function fitBoxFont(el){
   }
 }
 function fitPageText(root){
-  var nodes=(root||book).querySelectorAll('.el-text'),i;
+  var nodes=(root||book).querySelectorAll('.el-text, .cover-bit-text'),i;
   for(i=0;i<nodes.length;i++)fitBoxFont(nodes[i]);
 }
 function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});fitPageText(pages[index]);count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
@@ -191,7 +191,7 @@ function takeComplete(article,units){
   return [];
 }
 function splitStory(p,template,i){
-  if(!mobile||p.classList.contains('facsimile')||p.classList.contains('title-page')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('end-page'))return;
+  if(!mobile||p.classList.contains('facsimile')||p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('end-page'))return;
   var keep=p.classList.contains('current');
   p.classList.add('current');
   p.style.visibility='hidden';
@@ -224,7 +224,7 @@ function splitStory(p,template,i){
   p.style.visibility=keep?'':'';
 }
 function shrinkStory(p){
-  if(p.classList.contains('title-page')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('end-page'))return;
+  if(p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('end-page'))return;
   var section=p.querySelector('section'),body=p.querySelector('p');
   if(!section||!body)return;
   var keep=p.classList.contains('current');
@@ -497,7 +497,7 @@ function shortSpread(){
   return !mobile&&matchMedia('(orientation: landscape) and (max-height: 700px)').matches;
 }
 function storyPage(p){
-  return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('cover-plate')&&!p.classList.contains('cover-page')&&!p.classList.contains('facsimile')&&!p.classList.contains('end-page'));
+  return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('front-cover')&&!p.classList.contains('cover-plate')&&!p.classList.contains('cover-page')&&!p.classList.contains('facsimile')&&!p.classList.contains('end-page'));
 }
 function contentHeight(box){
   var h=0,kids=box.children,i,el,cs;

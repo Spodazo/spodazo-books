@@ -59,7 +59,7 @@ function elementFrameInk(el, book) {
 
 function bookFontFamilies(book) {
   const ids = [book?.textFont];
-  for (const layout of [book?.titleLayout, book?.endLayout, ...(book?.pages || [])]) {
+  for (const layout of [book?.coverLayout, book?.titleLayout, book?.endLayout, ...(book?.pages || [])]) {
     for (const el of layout?.elements || []) {
       if (el.fontFamily) ids.push(el.fontFamily);
     }
@@ -145,14 +145,29 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
-function titlePageHtml(book, baseUrl, libraryUrl) {
-  const hint = `<div id="hint" class="hint" role="status"><span class="hint-desktop">Tap the right page to turn</span><span class="hint-mobile">Swipe left to turn the page</span></div>`;
-  const chrome = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>${hint}<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
+function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true}={}) {
+  const hintHtml = hint ? `<div id="hint" class="hint" role="status"><span class="hint-desktop">Tap the right page to turn</span><span class="hint-mobile">Swipe left to turn the page</span></div>` : "";
+  const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>`;
+  const zones = `${back?`<button class="zone" data-dir="-1" aria-label="Previous page"></button>`:""}${next?`<button class="zone" data-dir="1" aria-label="Next page"></button>`:""}`;
+  return `${close}${hintHtml}${zones}`;
+}
+
+function frontCoverHtml(book, baseUrl, libraryUrl) {
+  if (!hasLayout(book.coverLayout)) return "";
+  const layout = book.coverLayout;
+  const fill = pageFill(layout, book);
+  const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
+  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false})}<div class="front-cover-leaf" style="background:${fill}">${items}</div></article>`;
+}
+
+function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
+  const chrome = readerChrome(libraryUrl, baseUrl, {hint: isCurrent});
+  const current = isCurrent ? " current" : "";
   if (hasLayout(book.titleLayout)) {
-    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, " title-page current").replace("<article", '<article data-source="title"');
+    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, ` title-page${current}`).replace("<article", '<article data-source="title"');
   }
   const src = coverSrc(book, baseUrl);
-  return `<article class="page title-page current" data-source="title" aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
+  return `<article class="page title-page${current}" data-source="title" aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
@@ -164,7 +179,8 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const storyPages=visibleStoryPages(book);
   const skipCover=storyPages.length !== (book.pages||[]).length;
   const paper=pageFill({background:book.pageBackground},book);
-  const articles=titlePageHtml(book,baseUrl,libraryUrl)+storyPages.map((p,i)=>{
+  const cover=frontCoverHtml(book,baseUrl,libraryUrl);
+  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
     if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;

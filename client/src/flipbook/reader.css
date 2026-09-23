@@ -210,7 +210,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   .mobile .page.title-page .zone{display:none}
 }
 
-.page.title-page .reader-close{
+.page.title-page .reader-close,
+.page.front-cover .reader-close{
   position:absolute;
   left:max(12px,env(safe-area-inset-left));
   top:16px;
@@ -226,7 +227,8 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   font:600 34px/1 Arial,sans-serif;
   text-decoration:none;
 }
-.page.title-page .reader-close:hover{
+.page.title-page .reader-close:hover,
+.page.front-cover .reader-close:hover{
   color:color-mix(in srgb,var(--title-ink,#203b2a) 55%,transparent);
 }
 .page.title-page .admin-login{
@@ -1271,4 +1273,75 @@ html:not(.mobile) .page.leaf-copy.laid-out{
     padding-bottom:0.45em;
   }
 }
+
+.page.front-cover{
+  background:transparent!important;
+}
+html:not(.mobile) .page.front-cover::before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:50%;
+  background:color-mix(in srgb, var(--page-paper, #efdda6) 82%, #4a3824);
+}
+.front-cover-leaf{
+  position:absolute;
+  overflow:hidden;
+  container-type:size;
+}
+html:not(.mobile) .front-cover-leaf{
+  top:0;
+  right:0;
+  bottom:0;
+  left:50%;
+  width:auto;
+  height:auto;
+  box-shadow:-18px 0 28px #24180f33;
+}
+.mobile .front-cover-leaf{
+  inset:0;
+}
+.page.front-cover .zone[data-dir="1"]{
+  left:50%;
+  width:50%;
+}
+.mobile .page.front-cover .zone[data-dir="1"]{
+  left:0;
+  width:100%;
+}
+.cover-bit{
+  position:absolute;
+  margin:0;
+  padding:0;
+  border:0;
+  box-sizing:border-box;
+  background:transparent;
+}
+.cover-bit-image{
+  width:100%;
+  height:100%;
+  object-fit:var(--fit, cover);
+  background:transparent;
+}
+.cover-bit-text{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  overflow:hidden;
+  font-size:calc(var(--fs, 4) * 1cqh);
+  font-family:var(--ff, Nunito, sans-serif);
+  color:var(--ink, #203b2a);
+  -webkit-text-fill-color:var(--ink, #203b2a);
+  text-align:var(--ta, left);
+}
+.cover-bit-text p{
+  margin:0 0 1.6lh;
+  font:inherit;
+  font-size:inherit;
+  line-height:1.15;
+  color:inherit;
+  -webkit-text-fill-color:inherit;
+}
+.cover-bit-text p:last-child{margin-bottom:0}
+.cover-bit-shape{display:block}
 
