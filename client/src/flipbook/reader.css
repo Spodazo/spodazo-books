@@ -835,8 +835,8 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p,
 .page.laid-out:not(.title-page):not(.end-page)>.el-text p,
 .leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-text p{
   line-height:1.25;
-  margin:0 0 2.5em;
-  margin-bottom:2lh;
+  margin:0 0 2em;
+  margin-bottom:1.6lh;
 }
 .page.laid-out>.el-text p:last-child,
 html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child,
@@ -987,8 +987,8 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
     font-size:clamp(15.6px,2.16dvh,19.2px)!important;
     text-align:left;
     line-height:1.25;
-    margin:0 0 2.5em;
-    margin-bottom:2lh;
+    margin:0 0 2em;
+    margin-bottom:1.6lh;
   }
   .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child,
   .mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last-child,

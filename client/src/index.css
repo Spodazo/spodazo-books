@@ -635,8 +635,8 @@ button, input, select, textarea { font: inherit; }
   width: 100%;
   height: auto;
   line-height: 1.25;
-  margin: 0 0 2.5em;
-  margin-bottom: 2lh;
+  margin: 0 0 2em;
+  margin-bottom: 1.6lh;
 }
 .page-editor-text p:last-child {
   margin-bottom: 0;

@@ -2,7 +2,24 @@
 'use strict';
 var book=document.querySelector('main'),originals=Array.prototype.slice.call(book.querySelectorAll('.page')).map(function(p){return p.cloneNode(true)}),pages=[],index=0,busy=false,start=null,lastTouch=0,pendingN=null,pendingAfter=null,wantRestart=false,curlHold=true;
 var count=document.getElementById('count'),mobile=false;
-function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
+function fitBoxFont(el){
+  if(!el||el.clientHeight<8)return;
+  if(!el.getAttribute('data-base-size'))el.setAttribute('data-base-size',getComputedStyle(el).fontSize);
+  el.style.fontSize=el.getAttribute('data-base-size');
+  var size=parseFloat(getComputedStyle(el).fontSize),min=Math.max(8,size*0.45),n=0,paras,i;
+  while(el.scrollHeight>el.clientHeight+1&&size>min&&n<30){
+    size=Math.round(size*0.94*10)/10;
+    el.style.fontSize=size+'px';
+    paras=el.querySelectorAll('p');
+    for(i=0;i<paras.length;i++)paras[i].style.fontSize=size+'px';
+    n++;
+  }
+}
+function fitPageText(root){
+  var nodes=(root||book).querySelectorAll('.el-text'),i;
+  for(i=0;i<nodes.length;i++)fitBoxFont(nodes[i]);
+}
+function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});fitPageText(pages[index]);count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
 function isPicturePage(p){
   return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('end-page')&&!p.classList.contains('cover-page')&&p.querySelector('img'));
 }
@@ -368,6 +385,7 @@ function show(n,ms,after){
   next.style.visibility='hidden';
   void next.offsetHeight;
   if(!alreadyFit(next))fitLaidOut(next);
+  fitPageText(next);
   next.style.visibility='hidden';
   void next.offsetHeight;
   var layer=document.createElement('div');
@@ -494,7 +512,7 @@ function contentHeight(box){
 function fitTextBox(p,box){
   var paras=box.querySelectorAll('p');
   if(!paras.length)return;
-  var nodes=[box],i,lh=1.25,gap=shortSpread()?1.5:2,size,cs,pad,img,imgH,available,inner,room,floor;
+  var nodes=[box],i,lh=1.25,gap=shortSpread()?1.2:1.6,size,cs,pad,img,imgH,available,inner,room,floor;
   for(i=0;i<paras.length;i++){
     nodes.push(paras[i]);
     paras[i].style.marginBottom='';

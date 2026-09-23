@@ -1,7 +1,55 @@
+import { useEffect, useRef } from "react";
 import { fontStack } from "@shared/book-fonts";
 import { alignJustify, normalizeColor, pageFill } from "@shared/page-layout";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageLayout } from "@shared/types";
+
+function CoverText({
+  text,
+  style,
+}: {
+  text: string;
+  style: React.CSSProperties;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const base = String(style.fontSize || "");
+    const fit = () => {
+      if (base) el.style.fontSize = base;
+      const start = parseFloat(getComputedStyle(el).fontSize);
+      if (!start || el.clientHeight < 8) return;
+      let size = start;
+      const min = Math.max(8, start * 0.45);
+      let n = 0;
+      while (el.scrollHeight > el.clientHeight + 1 && size > min && n < 30) {
+        size = Math.round(size * 0.94 * 10) / 10;
+        el.style.fontSize = `${size}px`;
+        n += 1;
+      }
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    if (el.parentElement) observer.observe(el.parentElement);
+    return () => observer.disconnect();
+  }, [text, style.fontSize]);
+  return (
+    <div ref={ref} className="cover-text" style={style}>
+      {text.split(/\n{2,}/).map((para, index) => (
+        <p key={index}>
+          {para.split("\n").map((line, lineIndex) => (
+            <span key={lineIndex}>
+              {lineIndex > 0 ? <br /> : null}
+              {line}
+            </span>
+          ))}
+        </p>
+      ))}
+    </div>
+  );
+}
 
 export default function CoverFace({
   layout,
@@ -51,8 +99,8 @@ export default function CoverFace({
               <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "cover-art" ? "contain" : "cover", opacity: (element.opacity ?? 100) / 100, background: "transparent" }} />
             ) : null
           ) : (
-            <div
-              className="cover-text"
+            <CoverText
+              text={element.text || ""}
               style={{
                 fontFamily: fontStack(element.fontFamily || font),
                 fontSize: `${element.fontSize || 4}cqh`,
@@ -60,18 +108,7 @@ export default function CoverFace({
                 textAlign: element.align || "left",
                 alignItems: alignJustify(element.align),
               }}
-            >
-              {(element.text || "").split(/\n{2,}/).map((para, index) => (
-                <p key={index}>
-                  {para.split("\n").map((line, lineIndex) => (
-                    <span key={lineIndex}>
-                      {lineIndex > 0 ? <br /> : null}
-                      {line}
-                    </span>
-                  ))}
-                </p>
-              ))}
-            </div>
+            />
           )}
         </div>
       ))}

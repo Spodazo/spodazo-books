@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import {
   BOOK_FONTS,
@@ -27,6 +27,34 @@ import { DEFAULT_FRAME_COLOR, TEXT_FRAMES, frameClass, frameMarkup, normalizeFra
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
 import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } from "../lib/api";
 
+function useFitText(text: string, fontSize?: CSSProperties["fontSize"]) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const base = fontSize ? String(fontSize) : "";
+    const fit = () => {
+      if (base) el.style.fontSize = base;
+      const start = parseFloat(getComputedStyle(el).fontSize);
+      if (!start || el.clientHeight < 8) return;
+      let size = start;
+      const min = Math.max(8, start * 0.45);
+      let n = 0;
+      while (el.scrollHeight > el.clientHeight + 1 && size > min && n < 30) {
+        size = Math.round(size * 0.94 * 10) / 10;
+        el.style.fontSize = `${size}px`;
+        n += 1;
+      }
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    if (el.parentElement) observer.observe(el.parentElement);
+    return () => observer.disconnect();
+  }, [text, fontSize]);
+  return ref;
+}
+
 function EditorText({
   text,
   placeholder,
@@ -34,12 +62,13 @@ function EditorText({
 }: {
   text: string;
   placeholder: string;
-  style: React.CSSProperties;
+  style: CSSProperties;
 }) {
   const raw = text || "";
-  if (!raw) return <p style={style}>{placeholder}</p>;
+  const ref = useFitText(raw || placeholder, style.fontSize);
+  if (!raw) return <p ref={ref} style={style}>{placeholder}</p>;
   return (
-    <div className="page-editor-text" style={style}>
+    <div ref={ref} className="page-editor-text" style={style}>
       {raw.split(/\n{2,}/).map((para, index) => (
         <p key={index}>
           {para.split("\n").map((line, lineIndex) => (
