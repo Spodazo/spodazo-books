@@ -619,7 +619,7 @@ button, input, select, textarea { font: inherit; }
   margin: 0;
   border: 0;
   background: transparent;
-  color: #203b2a;
+  color: inherit;
   font: inherit;
   resize: none;
   white-space: pre-wrap;
