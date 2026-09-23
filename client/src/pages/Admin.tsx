@@ -26,6 +26,7 @@ import { applyPalette } from "../lib/palette";
 import { applySiteIcons } from "../lib/siteIcons";
 import { importPDF } from "../flipbook/pdf-import.js";
 import { persistImportedBook } from "../flipbook/persistence.js";
+import { downloadBookPdf, type BookPdfKind } from "../flipbook/download-book-pdf";
 import { mountReader } from "../flipbook/reader.js";
 
 type Imported = Awaited<ReturnType<typeof importPDF>>;
@@ -720,6 +721,7 @@ function BookEditor({
   const [audience, setAudience] = useState(book.audience || "children");
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState<BookPdfKind | "">("");
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -792,7 +794,24 @@ function BookEditor({
         </button>
         <a className="ghost" href={`/admin/edit/${book.slug}`}>Edit pages</a>
         <button type="button" className="ghost" onClick={() => setPreview(true)}>Preview</button>
-        {book.pdfUrl ? <a className="ghost" href={book.pdfUrl} download>Download PDF</a> : null}
+        {(["standard", "a3-a4", "a4-a5"] as BookPdfKind[]).map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            className="ghost"
+            disabled={Boolean(pdfBusy)}
+            onClick={() => {
+              setPdfBusy(kind);
+              setError("");
+              void downloadBookPdf(book, kind)
+                .catch((err: Error) => setError(err.message || "Could not make the PDF"))
+                .finally(() => setPdfBusy(""));
+            }}
+          >
+            {pdfBusy === kind ? "Preparing PDF…" : kind === "standard" ? "Standard PDF" : kind === "a3-a4" ? "A3 folded to A4" : "A4 folded to A5"}
+          </button>
+        ))}
+        <p className="hint">Folded PDFs are for double-sided printing. Print at actual size, flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside.</p>
         <button
           type="button"
           className="danger"
