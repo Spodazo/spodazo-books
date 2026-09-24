@@ -143,7 +143,7 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
 
 function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hintDesktop="Tap the right page to turn", hintMobile="Swipe left to turn the page"}={}) {
   const hintHtml = hint ? `<div id="hint" class="hint" role="status"><span class="hint-desktop">${esc(hintDesktop)}</span><span class="hint-mobile">${esc(hintMobile)}</span></div>` : "";
-  const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>`;
+  const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" aria-label="Close">×</a>`;
   const zones = `${back?`<button class="zone" data-dir="-1" aria-label="Previous page"></button>`:""}${next?`<button class="zone" data-dir="1" aria-label="Next page"></button>`:""}`;
   return `${close}${hintHtml}${zones}`;
 }

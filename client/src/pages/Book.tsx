@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useRoute } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
@@ -11,6 +11,7 @@ import { mountReader } from "../flipbook/reader.js";
 
 export default function BookPage() {
   const [, params] = useRoute("/:slug");
+  const [, setLocation] = useLocation();
   const slug = params?.slug || "";
   const hostRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
@@ -35,6 +36,16 @@ export default function BookPage() {
       cancelled = true;
     };
   }, [slug]);
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.origin && event.origin !== "null" && event.origin !== window.location.origin) return;
+      if (event.data?.type !== "spodazo-close-book") return;
+      setLocation("/");
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [setLocation]);
 
   useEffect(() => {
     const host = hostRef.current;

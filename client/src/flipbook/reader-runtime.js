@@ -203,7 +203,7 @@ function pct(el,prop){
 function cropPhoneLeaf(source,side){
   var page=source.cloneNode(true);
   var els=Array.prototype.slice.call(page.querySelectorAll('.el'));
-  var kept=0,leafX=side==='left'?0:50,x,w,i,el;
+  var kept=0,leafX=side==='left'?0:50,x,w,i,el,crosses,home;
   page.classList.add('phone-leaf');
   page.setAttribute('data-phone-leaf',side);
   for(i=0;i<els.length;i++){
@@ -211,6 +211,15 @@ function cropPhoneLeaf(source,side){
     x=pct(el,'left');
     w=pct(el,'width');
     if(x==null||w==null||x+w<=leafX||x>=leafX+50){el.remove();continue;}
+    crosses=x<50&&x+w>50;
+    if(crosses&&el.classList.contains('el-text')){
+      home=x+w/2<50?'left':'right';
+      if(home!==side){el.remove();continue;}
+      el.style.left='6%';
+      el.style.width='88%';
+      kept++;
+      continue;
+    }
     el.style.left=((x-leafX)*2)+'%';
     el.style.width=(w*2)+'%';
     kept++;
@@ -222,7 +231,7 @@ function splitLaidOutLeaves(){
   var next=[],i,p,left,right;
   for(i=0;i<pages.length;i++){
     p=pages[i];
-    if(!p.classList.contains('laid-out')||p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('phone-leaf')){
+    if(!p.classList.contains('laid-out')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('phone-leaf')){
       next.push(p);
       continue;
     }
@@ -476,14 +485,14 @@ function leaveLibrary(e){
   var a=e.target.closest&&e.target.closest('a.reader-close');
   if(!a)return false;
   e.preventDefault();
-  var href=a.getAttribute('href')||'/';
-  var topWin=window.top||window;
   try{
-    var url=new URL(href,topWin.location.href);
-    topWin.history.pushState(null,'',url.pathname+url.search+url.hash);
-  }catch(err){
-    topWin.location.href=href;
-  }
+    if(window.parent&&window.parent!==window){
+      window.parent.postMessage({type:'spodazo-close-book'},'*');
+      return true;
+    }
+  }catch(err){}
+  var href=a.getAttribute('href')||'/';
+  try{window.location.assign(href);}catch(err){}
   return true;
 }
 function show(n,ms,after){
