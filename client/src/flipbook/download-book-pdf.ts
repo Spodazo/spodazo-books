@@ -16,7 +16,7 @@ import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
 import { bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
-import { filledBox, fittedBox } from "../lib/cover-bleed";
+import { fitHeightBox, fittedBox, sideBleedStrip } from "../lib/cover-bleed";
 
 export type BookPdfKind = "standard" | "a3-a4" | "a4-a5";
 
@@ -349,7 +349,7 @@ function canvasPng(canvas: HTMLCanvasElement) {
   });
 }
 
-/** Fill a PDF page with the rendered cover, cropping overflow so textures and backgrounds reach the edges. */
+/** Keep the full cover height and extend textured edges into the side gaps. */
 async function extendCover(shot: Rendered, pageW: number, pageH: number): Promise<Rendered> {
   const width = Math.max(1, Math.round(pageW * 2));
   const height = Math.max(1, Math.round(pageH * 2));
@@ -359,7 +359,12 @@ async function extendCover(shot: Rendered, pageW: number, pageH: number): Promis
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not extend a cover");
   const img = await loadImage(shot.png);
-  const box = filledBox(img, width, height);
+  const box = fitHeightBox(img, width, height);
+  const strip = sideBleedStrip(img.width);
+  if (box.leftGap > 0) {
+    ctx.drawImage(img, 0, 0, strip, img.height, 0, 0, box.leftGap, height);
+    ctx.drawImage(img, img.width - strip, 0, strip, img.height, box.x + box.width, 0, box.rightGap, height);
+  }
   ctx.drawImage(img, box.x, box.y, box.width, box.height);
   return { png: await canvasPng(canvas), width, height, color: shot.color };
 }
