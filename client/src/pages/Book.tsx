@@ -51,10 +51,13 @@ export default function BookPage() {
     const host = hostRef.current;
     if (!host || !book) return;
     const fromHome = openingSince() > 0;
-    host.style.opacity = fromHome ? "0" : "1";
+    const waitToTurn =
+      window.matchMedia("(max-width: 700px), (pointer: coarse) and (max-width: 1100px)").matches &&
+      window.matchMedia("(orientation: portrait)").matches;
+    host.style.opacity = fromHome && !waitToTurn ? "0" : "1";
     const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
       libraryUrl: "/",
-      fadeOpen: !fromHome,
+      fadeOpen: !fromHome && !waitToTurn,
       baseUrl: location.href,
       credits: setup.credits,
       copyright: setup.copyright,
@@ -67,9 +70,11 @@ export default function BookPage() {
       host.style.opacity = "1";
       window.setTimeout(clearBookOpen, fromHome ? left : 0);
     };
-    if (fromHome) {
+    if (fromHome && !waitToTurn) {
       if (handle.frame.contentDocument?.readyState === "complete") reveal();
       else handle.frame.addEventListener("load", reveal, { once: true });
+    } else {
+      clearBookOpen();
     }
     return () => {
       handle.frame.removeEventListener("load", reveal);

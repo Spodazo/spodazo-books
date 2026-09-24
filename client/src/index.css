@@ -242,19 +242,11 @@ html.book-opening .reader-host {
   inset: 0;
   width: 100%;
   height: 100dvh;
-  background: #efdda6;
+  background: #322616;
 }
-@media (min-width: 701px) {
-  .reader-host {
-    background: #322616;
-  }
-}
-@media (orientation: landscape) and (max-height: 700px) {
-  html:has(.reader-host),
-  html:has(.reader-host) body,
-  .reader-host {
-    background: #322616;
-  }
+html:has(.reader-host),
+html:has(.reader-host) body {
+  background: #322616;
 }
 .reader-missing { padding: 48px 24px; }
 .reader-preview { margin-top: 20px; }

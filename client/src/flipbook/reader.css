@@ -1300,10 +1300,32 @@ html.phone-spread .page.laid-out:not(.title-page):not(.end-page)>.el-text{
   z-index:60;
   margin:0;
   place-items:center;
+  padding:24px 28px;
   background:#322616;
   color:#f3e2b8;
-  font:600 22px Story,sans-serif;
+  font:600 22px Story,Georgia,serif;
   letter-spacing:.04em;
+  text-align:center;
+}
+#turn-phone p{
+  margin:0;
+  max-width:16em;
+}
+#turn-phone .reader-close{
+  position:absolute;
+  left:max(12px,env(safe-area-inset-left));
+  top:max(12px,env(safe-area-inset-top));
+  z-index:61;
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  color:#f3e2b8;
+  background:transparent;
+  border:0;
+  border-radius:50%;
+  font:600 34px/1 Arial,sans-serif;
+  text-decoration:none;
 }
 html.awaiting-turn,
 html.awaiting-turn body{
