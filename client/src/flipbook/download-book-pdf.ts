@@ -400,7 +400,7 @@ function paperRgb(color: string) {
   );
 }
 
-async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: string, paperPaint?: PaperPaint, hasBack = false) {
+async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: string, paperPaint?: PaperPaint) {
   const total = paddedPageCount(leaves.length);
   const blanks = Array.from({ length: total - leaves.length }, () => blankLeaf(paper, paperPaint));
   const pages = [...leaves, ...blanks];
@@ -412,14 +412,6 @@ async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: st
     page.drawRectangle({ x: 0, y: 0, width: sheetW, height: sheetH, color: paperRgb(paper) });
     for (const [index, place] of [[side.left, 0], [side.right, halfW]] as const) {
       const shot = pages[index];
-      const isCover = index === 0 || (hasBack && index === pages.length - 1);
-      if (isCover) {
-        const bled = await extendCover(shot, halfW, sheetH);
-        const embedded = await pdf.embedPng(bled.png);
-        page.drawRectangle({ x: place, y: 0, width: halfW, height: sheetH, color: paperRgb(shot.color) });
-        page.drawImage(embedded, { x: place, y: 0, width: halfW, height: sheetH });
-        continue;
-      }
       const embedded = await pdf.embedPng(shot.png);
       const box = fittedBox(shot, halfW - 24, sheetH - 24);
       page.drawImage(embedded, { x: place + 12 + box.x, y: 12 + box.y, width: box.width, height: box.height });
@@ -462,5 +454,5 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
   const sheet = kind === "a3-a4" ? A3_LANDSCAPE : A4_LANDSCAPE;
   const label = kind === "a3-a4" ? "A3-folded-to-A4" : "A4-folded-to-A5";
-  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint, Boolean(back)), `${name}-${label}.pdf`);
+  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-${label}.pdf`);
 }
