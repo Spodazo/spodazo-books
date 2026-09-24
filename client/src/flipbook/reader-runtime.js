@@ -507,22 +507,10 @@ function syncMode(){
   var phone=matchMedia('(max-width: 700px), (pointer: coarse) and (max-width: 1100px)').matches;
   var portrait=matchMedia('(orientation: portrait)').matches;
   var waitCover=always&&phone&&portrait&&hasFrontCover()&&!opened;
-  var awaitTurn=always&&opened&&phone&&portrait;
-  root.classList.toggle('awaiting-turn',awaitTurn);
+  root.classList.remove('awaiting-turn');
   mobile=phone&&portrait&&(!always||waitCover);
   root.classList.toggle('mobile',mobile);
-  root.classList.toggle('phone-spread',(always&&opened&&phone&&!portrait)||(!mobile&&matchMedia('(orientation: landscape) and (max-height: 700px)').matches));
-  ensureTurnHint();
-}
-function ensureTurnHint(){
-  var el=document.getElementById('turn-phone');
-  if(!el){
-    el=document.createElement('p');
-    el.id='turn-phone';
-    el.setAttribute('role','status');
-    el.textContent='Turn your phone';
-    document.body.appendChild(el);
-  }
+  root.classList.toggle('phone-spread',(always&&opened&&phone)||(!mobile&&matchMedia('(orientation: landscape) and (max-height: 700px)').matches));
 }
 function fadeRoot(then){
   var root=document.documentElement;
@@ -541,18 +529,62 @@ function waitingOnCover(){
   var p=pages[index];
   return document.documentElement.classList.contains('always-landscape')&&!document.documentElement.classList.contains('cover-opened')&&p&&p.classList.contains('front-cover');
 }
+function showOpenedBook(){
+  document.documentElement.classList.add('cover-opened');
+  var dest=0,i;
+  for(i=0;i<originals.length;i++){
+    if(originals[i].classList.contains('front-cover')){dest=i+1;break;}
+  }
+  if(dest>=originals.length)dest=0;
+  index=pages.length?Math.min(dest,pages.length-1):0;
+  if(pages[index])pages[index].setAttribute('data-source',String(dest));
+  rebuild(true);
+  bootPages();
+  status();
+}
 function openCoverToSpread(){
   if(busy)return;
   busy=true;
   hideCurl();
-  fadeRoot(function(){
-    document.documentElement.classList.add('cover-opened');
-    index=hasFrontCover()?1:0;
-    if(index>=pages.length)index=0;
-    rebuild(true);
-    bootPages();
-    status();
-  });
+  var frame=document.createElement('iframe');
+  frame.setAttribute('aria-hidden','true');
+  frame.setAttribute('tabindex','-1');
+  frame.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:0;z-index:80;pointer-events:none;opacity:0;background:'+getComputedStyle(document.body).backgroundColor;
+  var root=document.documentElement.cloneNode(true);
+  var scripts=root.querySelectorAll('script'),i;
+  for(i=scripts.length-1;i>=0;i--)scripts[i].remove();
+  var started=false;
+  function finish(veil){
+    if(veil&&veil.parentNode)veil.remove();
+    busy=false;
+    if(wantRestart){wantRestart=false;restart();}
+  }
+  function go(){
+    if(started)return;
+    started=true;
+    frame.style.opacity='1';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        showOpenedBook();
+        var ms=420;
+        requestAnimationFrame(function(){
+          frame.style.transition='opacity '+ms+'ms ease';
+          frame.style.opacity='0';
+        });
+        setTimeout(function(){finish(frame);},ms+90);
+      });
+    });
+  }
+  frame.onload=go;
+  frame.srcdoc='<!doctype html>'+root.outerHTML;
+  document.body.appendChild(frame);
+  setTimeout(function(){
+    if(started)return;
+    started=true;
+    if(frame.parentNode)frame.remove();
+    showOpenedBook();
+    finish(null);
+  },700);
 }
 function show(n,ms,after){
   if(n<0)return;
@@ -859,5 +891,5 @@ rebuild();
 bootPages();
 requestAnimationFrame(function(){requestAnimationFrame(function(){curlHold=false;if(!busy)updateCurl();});});
 var hint=document.getElementById('hint');setTimeout(function(){if(hint)hint.remove()},3000);
-var resizeTimer;window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(busy)return;var wasWaiting=document.documentElement.classList.contains('awaiting-turn');rebuild();bootPages();if(wasWaiting&&!document.documentElement.classList.contains('awaiting-turn')){var root=document.documentElement;root.style.opacity='0';requestAnimationFrame(function(){root.style.transition='opacity .75s ease';root.style.opacity='1';setTimeout(function(){root.style.transition='';},800);});}},200)});
+var resizeTimer;window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(busy)return;rebuild();bootPages();},200)});
 })();
