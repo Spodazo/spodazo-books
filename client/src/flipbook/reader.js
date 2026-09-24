@@ -167,7 +167,7 @@ function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
-export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright='',logoUrl='',fadeOpen=false}={}) {
+export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright='',logoUrl='',fadeOpen=false,alwaysLandscape=true}={}) {
   if(!book.pages?.length)throw new Error('This book has no pages.');
   const palette=paletteById(book.color);
   const preload=coverSrc(book,baseUrl);
@@ -194,9 +194,9 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background-color:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
+  const bootMobile=`(function(){try{var root=document.documentElement;var always=${alwaysLandscape?'true':'false'};if(always)root.classList.add('always-landscape');var phone=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches;var m=phone&&matchMedia('(orientation:portrait)').matches&&!always;root.classList.toggle('mobile',m);root.classList.toggle('phone-spread',(always&&phone)||(!m&&matchMedia('(orientation:landscape) and (max-height:700px)').matches));if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
-  const htmlClass=[fadeOpen?'opening':'',isWillow(book)?'willow':''].filter(Boolean).join(' ');
+  const htmlClass=[fadeOpen?'opening':'',isWillow(book)?'willow':'',alwaysLandscape?'always-landscape':''].filter(Boolean).join(' ');
   return `<!doctype html><html${htmlClass?` class="${htmlClass}"`:''}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {

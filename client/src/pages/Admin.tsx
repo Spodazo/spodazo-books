@@ -736,7 +736,7 @@ function BookEditor({
 
   useEffect(() => {
     if (!preview || !previewRef.current) return;
-    const handle = mountReader(previewRef.current, { ...book, title, tagline, author, date, coverUrl }, { libraryUrl: "/admin", baseUrl: location.href });
+    const handle = mountReader(previewRef.current, { ...book, title, tagline, author, date, coverUrl }, { libraryUrl: "/admin", baseUrl: location.href, alwaysLandscape: false });
     return () => handle.destroy();
   }, [preview, book, title, tagline, author, date, coverUrl]);
 

@@ -294,8 +294,12 @@ function shrinkStory(p){
 function rebuild(){
   if(busy)return;
   var source=pages[index]?pages[index].getAttribute('data-source'):null;
-  mobile=matchMedia('(max-width: 700px), (pointer: coarse) and (max-width: 1100px)').matches&&matchMedia('(orientation: portrait)').matches;
-  document.documentElement.classList.toggle('mobile',mobile);
+  var root=document.documentElement;
+  var always=root.classList.contains('always-landscape');
+  var phone=matchMedia('(max-width: 700px), (pointer: coarse) and (max-width: 1100px)').matches;
+  mobile=phone&&matchMedia('(orientation: portrait)').matches&&!always;
+  root.classList.toggle('mobile',mobile);
+  root.classList.toggle('phone-spread',(always&&phone)||(!mobile&&matchMedia('(orientation: landscape) and (max-height: 700px)').matches));
   var first=!pages.length;
   if(first){
     pages=Array.prototype.slice.call(book.querySelectorAll('.page'));
@@ -655,7 +659,7 @@ function applyLineHeight(nodes,lh){
   for(i=0;i<nodes.length;i++)nodes[i].style.lineHeight=String(lh);
 }
 function shortSpread(){
-  return !mobile&&matchMedia('(orientation: landscape) and (max-height: 700px)').matches;
+  return document.documentElement.classList.contains('phone-spread');
 }
 function storyPage(p){
   return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('front-cover')&&!p.classList.contains('cover-plate')&&!p.classList.contains('cover-page')&&!p.classList.contains('facsimile')&&!p.classList.contains('end-page'));

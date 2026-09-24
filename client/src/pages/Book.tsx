@@ -88,5 +88,5 @@ export default function BookPage() {
     );
   }
 
-  return <div id="reader" ref={hostRef} className="reader-host" style={{ opacity: 0 }} />;
+  return <div id="reader" ref={hostRef} className="reader-host always-landscape" style={{ opacity: 0 }} />;
 }
