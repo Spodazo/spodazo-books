@@ -1,12 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { claimAmbientAudioSession } from "./lib/ambientAudio";
 import { watchAppUpdates } from "./lib/appUpdate";
 import { prefetchHome, readCachedSetup } from "./lib/homeCache";
 import { restorePalette } from "./lib/palette";
 import { applySiteIcons } from "./lib/siteIcons";
 import "./index.css";
 
+claimAmbientAudioSession();
 restorePalette();
 const cachedSetup = readCachedSetup();
 if (cachedSetup) applySiteIcons(cachedSetup);
