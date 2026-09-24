@@ -1,16 +1,15 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
+import UprightPdfReader from "../components/UprightPdfReader";
 import { fetchBook } from "../lib/api";
 import { clearBookOpen, openingSince } from "../lib/bookOpen";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
-import { isUprightPhone, PHONE_QUERY, PORTRAIT_QUERY } from "../lib/phoneViewport";
+import { isUprightPhone, PORTRAIT_QUERY } from "../lib/phoneViewport";
 import type { PlayerSetup, PublicBook } from "@shared/types";
 import { mountReader } from "../flipbook/reader.js";
-
-const UprightPdfReader = lazy(() => import("../components/UprightPdfReader"));
 
 export default function BookPage() {
   const [, params] = useRoute("/:slug");
@@ -24,13 +23,11 @@ export default function BookPage() {
   const [setup, setSetup] = useState<PlayerSetup>(readCachedSetup() || DEFAULT_PLAYER_SETUP);
   const [upright, setUpright] = useState(() => isUprightPhone());
   const [pdfWanted, setPdfWanted] = useState(() => isUprightPhone());
-  const [pdfFailed, setPdfFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setError("");
     setBook(null);
-    setPdfFailed(false);
     setPdfWanted(isUprightPhone());
     sawPdfRef.current = false;
     fetchBook(slug)
@@ -50,17 +47,12 @@ export default function BookPage() {
 
   useEffect(() => {
     const sync = () => setUpright(isUprightPhone());
-    const phone = window.matchMedia(PHONE_QUERY);
     const portrait = window.matchMedia(PORTRAIT_QUERY);
-    phone.addEventListener("change", sync);
     portrait.addEventListener("change", sync);
     window.addEventListener("orientationchange", sync);
-    window.addEventListener("resize", sync);
     return () => {
-      phone.removeEventListener("change", sync);
       portrait.removeEventListener("change", sync);
       window.removeEventListener("orientationchange", sync);
-      window.removeEventListener("resize", sync);
     };
   }, []);
 
@@ -78,7 +70,7 @@ export default function BookPage() {
     if (upright) setPdfWanted(true);
   }, [upright]);
 
-  const showPdf = Boolean(book?.pdfUrl) && upright && pdfWanted && !pdfFailed;
+  const showPdf = Boolean(book?.pdfUrl) && upright && pdfWanted;
 
   useEffect(() => {
     if (showPdf) {
@@ -151,11 +143,9 @@ export default function BookPage() {
   return (
     <>
       <div id="reader" ref={hostRef} className="reader-host" hidden={showPdf} />
-      {book?.pdfUrl && pdfWanted && !pdfFailed ? (
+      {book?.pdfUrl && pdfWanted ? (
         <div hidden={!showPdf}>
-          <Suspense fallback={showPdf ? <div className="upright-pdf" aria-busy="true" /> : null}>
-            <UprightPdfReader url={book.pdfUrl} title={book.title} onFail={() => setPdfFailed(true)} />
-          </Suspense>
+          <UprightPdfReader url={book.pdfUrl} title={book.title} />
         </div>
       ) : null}
     </>

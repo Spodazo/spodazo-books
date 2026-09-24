@@ -46,6 +46,8 @@ export function watchAppUpdates() {
         current = build;
         return;
       }
+      const path = window.location.pathname;
+      if (path !== "/" && !path.startsWith("/admin")) return;
       if (shouldApplyUpdate(current, build)) await applyAppUpdate(build);
     } catch {
       /* offline */

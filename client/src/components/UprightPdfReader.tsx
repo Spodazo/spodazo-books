@@ -8,15 +8,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerURL;
 export default function UprightPdfReader({
   url,
   title,
-  onFail,
 }: {
   url: string;
   title: string;
-  onFail?: () => void;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const onFailRef = useRef(onFail);
-  onFailRef.current = onFail;
   const [status, setStatus] = useState("Opening the book…");
 
   useEffect(() => {
@@ -28,7 +24,6 @@ export default function UprightPdfReader({
 
     async function draw() {
       setStatus("Opening the book…");
-      box.replaceChildren();
       const res = await fetch(url);
       if (!res.ok) throw new Error("Could not open the PDF");
       const data = new Uint8Array(await res.arrayBuffer());
@@ -42,40 +37,50 @@ export default function UprightPdfReader({
         wasmUrl: new URL("wasm/", resourceBase).href,
       });
       const doc = await task.promise;
+      let drawn = 0;
       try {
         const width = box.clientWidth || window.innerWidth;
         const dpr = Math.min(2, window.devicePixelRatio || 1);
+        if (!cancelled) box.replaceChildren();
         for (let i = 1; i <= doc.numPages; i++) {
           if (cancelled) return;
-          const page = await doc.getPage(i);
-          const base = page.getViewport({ scale: 1 });
-          const viewport = page.getViewport({ scale: (width / base.width) * dpr });
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.ceil(viewport.width);
-          canvas.height = Math.ceil(viewport.height);
-          canvas.className = "upright-pdf-page";
-          canvas.setAttribute("aria-label", `${title} page ${i}`);
-          await page.render({ canvas, viewport, background: "rgb(255,255,255)" }).promise;
-          page.cleanup();
-          if (cancelled) return;
-          box.appendChild(canvas);
-          if (i === 1) setStatus("");
+          try {
+            const page = await doc.getPage(i);
+            const base = page.getViewport({ scale: 1 });
+            const viewport = page.getViewport({ scale: (width / Math.max(base.width, 1)) * dpr });
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            canvas.className = "upright-pdf-page";
+            canvas.setAttribute("aria-label", `${title} page ${i}`);
+            await page.render({ canvas, viewport, background: "rgb(255,255,255)" }).promise;
+            page.cleanup();
+            if (cancelled) return;
+            box.appendChild(canvas);
+            drawn += 1;
+            if (drawn === 1) setStatus("");
+          } catch {
+            if (drawn === 0) throw new Error("Could not draw the PDF");
+          }
         }
       } finally {
         await doc.cleanup();
         await task.destroy();
       }
+      if (!cancelled && drawn === 0) throw new Error("Could not open the PDF");
     }
 
     draw().catch((err: Error) => {
       if (cancelled) return;
+      if (box.childElementCount) {
+        setStatus("");
+        return;
+      }
       setStatus(err.message || "Could not open the PDF");
-      onFailRef.current?.();
     });
 
     return () => {
       cancelled = true;
-      box.replaceChildren();
     };
   }, [title, url]);
 
