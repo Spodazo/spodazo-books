@@ -1193,7 +1193,7 @@ html:not(.mobile) .page.leaf-copy.laid-out{
 
 @media(orientation:landscape) and (max-height:700px){
   html:not(.mobile){
-    --book-gap:max(10px,env(safe-area-inset-top),env(safe-area-inset-bottom));
+    --book-gap:2px;
     --book-h:min(calc(100dvh - 2 * var(--book-gap)),calc((100dvw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)) / 1.6));
     --book-w:calc(var(--book-h) * 1.6);
   }
