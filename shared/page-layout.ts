@@ -119,9 +119,11 @@ export function panImageFocus(
 ): { focusX: number; focusY: number } {
   const spanX = Math.max(1, origin.w);
   const spanY = Math.max(1, origin.h);
+  const focusX = clampPercent((origin.focusX ?? 50) - (dx / spanX) * 100, 50);
+  const focusY = clampPercent((origin.focusY ?? 50) - (dy / spanY) * 100, 50);
   return {
-    focusX: clampPercent((origin.focusX ?? 50) - (dx / spanX) * 100, 50),
-    focusY: clampPercent((origin.focusY ?? 50) - (dy / spanY) * 100, 50),
+    focusX: Math.round(focusX * 10) / 10,
+    focusY: Math.round(focusY * 10) / 10,
   };
 }
 
