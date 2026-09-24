@@ -70,7 +70,7 @@ export default function BookPage() {
     if (upright) setPdfWanted(true);
   }, [upright]);
 
-  const showPdf = Boolean(book?.pdfUrl) && upright && pdfWanted;
+  const showPdf = Boolean(book) && upright && pdfWanted;
 
   useEffect(() => {
     if (showPdf) {
@@ -143,9 +143,9 @@ export default function BookPage() {
   return (
     <>
       <div id="reader" ref={hostRef} className="reader-host" hidden={showPdf} />
-      {book?.pdfUrl && pdfWanted ? (
+      {book && pdfWanted ? (
         <div hidden={!showPdf}>
-          <UprightPdfReader url={book.pdfUrl} title={book.title} />
+          <UprightPdfReader book={book} />
         </div>
       ) : null}
     </>

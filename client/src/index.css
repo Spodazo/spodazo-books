@@ -265,10 +265,11 @@ html:has(.upright-pdf) body {
   -webkit-overflow-scrolling: touch;
   background: #322616;
 }
-.upright-pdf-page {
-  display: block;
+.upright-spread {
   width: 100%;
-  height: auto;
+}
+.upright-spread .cover-face {
+  aspect-ratio: 8 / 5;
 }
 .upright-pdf-status {
   position: absolute;
