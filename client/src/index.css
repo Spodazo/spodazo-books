@@ -254,25 +254,28 @@ html.book-opening .reader-host {
     background: #322616;
   }
 }
-@media (max-width: 700px) and (orientation: portrait),
-       (pointer: coarse) and (max-width: 1100px) and (orientation: portrait) {
-  html:has(.reader-host.always-landscape),
-  html:has(.reader-host.always-landscape) body {
-    overflow: hidden;
-    background: #322616;
-  }
-  .reader-host.always-landscape {
-    inset: auto;
-    top: 0;
-    left: 100%;
-    width: 100dvh;
-    height: 100dvw;
-    transform: rotate(90deg);
-    transform-origin: top left;
-    background: #322616;
-    padding-left: env(safe-area-inset-top);
-    padding-right: env(safe-area-inset-bottom);
-  }
+html:has(.reader-host.always-landscape),
+html:has(.reader-host.always-landscape) body {
+  overflow: hidden;
+}
+html:has(.reader-host.always-landscape.is-upright),
+html:has(.reader-host.always-landscape.is-upright) body {
+  background: #322616;
+}
+.reader-host.always-landscape {
+  background: #322616;
+  transition: none;
+}
+.reader-host.always-landscape.is-upright {
+  inset: auto;
+  top: 100%;
+  left: 0;
+  width: 100dvh;
+  height: 100dvw;
+  transform: rotate(-90deg);
+  transform-origin: top left;
+  padding-left: env(safe-area-inset-bottom);
+  padding-right: env(safe-area-inset-top);
 }
 .reader-missing { padding: 48px 24px; }
 .reader-preview { margin-top: 20px; }

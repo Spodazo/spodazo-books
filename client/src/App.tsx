@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { clearBookOpen, onBookOpenChange, openingSince } from "./lib/bookOpen";
+import { unlockReadingOrientation } from "./lib/readingOrientation";
 import AdminPage from "./pages/Admin";
 import BookPage from "./pages/Book";
 import HomePage from "./pages/Home";
@@ -16,7 +17,10 @@ export default function App() {
   const holdHome = !onHome && !onAdmin && openingSince() > 0;
 
   useEffect(() => {
-    if (onHome) clearBookOpen();
+    if (onHome) {
+      clearBookOpen();
+      unlockReadingOrientation();
+    }
   }, [onHome]);
 
   return (
