@@ -1405,4 +1405,34 @@ html:not(.mobile) .page.front-cover .reader-close{
 }
 .cover-bit-text p:last-child{margin-bottom:0}
 .cover-bit-shape{display:block}
+html[data-paper] .page:not(.front-cover),
+html[data-paper] .leaf-sheet,
+html[data-paper] .leaf-face,
+html[data-paper] .mobile-leaf-face,
+html[data-paper] .front-cover-leaf,
+html[data-paper] .flip-layer,
+html[data-paper] .fade-to,
+html[data-paper] .fade-from,
+html[data-paper] .fixed-half,
+html[data-paper] .mobile-under,
+html[data-paper] .page-curl-peek{
+  background-image:var(--paper-texture)!important;
+  background-repeat:no-repeat!important;
+  background-size:cover!important;
+  background-position:center!important;
+  background-blend-mode:multiply!important;
+}
+html[data-paper="deckle"] .page:not(.front-cover),
+html[data-paper="deckle"] .leaf-sheet,
+html[data-paper="deckle"] .leaf-face,
+html[data-paper="deckle"] .mobile-leaf-face,
+html[data-paper="deckle"] .front-cover-leaf,
+html[data-paper="deckle"] .flip-layer,
+html[data-paper="deckle"] .fade-to,
+html[data-paper="deckle"] .fade-from,
+html[data-paper="deckle"] .fixed-half,
+html[data-paper="deckle"] .mobile-under,
+html[data-paper="deckle"] .page-curl-peek{
+  background-position:left center!important;
+}
 

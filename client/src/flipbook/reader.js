@@ -2,6 +2,7 @@ import css from './reader.css?raw';
 import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
 import {elementTextHtml, publishedLabel} from '@shared/page-layout';
+import {normalizePaperTexture, paperTextureUrl} from '@shared/paper';
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
@@ -100,7 +101,7 @@ function elementHtml(el, baseUrl, book) {
 function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "") {
   const fill = pageFill(layout, book);
   const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book)).join("");
-  return `<article class="page laid-out${extraClass}" aria-label="${esc(label)}" style="background:${fill}">${items}${extra}</article>`;
+  return `<article class="page laid-out${extraClass}" aria-label="${esc(label)}" style="background-color:${fill}">${items}${extra}</article>`;
 }
 
 function storyBody(paragraphs) {
@@ -157,7 +158,7 @@ function frontCoverHtml(book, baseUrl, libraryUrl) {
   const layout = book.coverLayout;
   const fill = pageFill(layout, book);
   const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
-  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"})}<div class="front-cover-leaf" style="background:${fill}">${items}</div></article>`;
+  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
@@ -179,6 +180,10 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const storyPages=visibleStoryPages(book);
   const skipCover=storyPages.length !== (book.pages||[]).length;
   const paper=pageFill({background:book.pageBackground},book);
+  const texture=normalizePaperTexture(book.pageTexture);
+  const textureUrl=texture?esc(safeURL(paperTextureUrl(texture),baseUrl)):'';
+  const paperAttr=texture?` data-paper="${texture}"`:'';
+  const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}')`:'';
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
   const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
@@ -189,11 +194,11 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const focal=/^\d{1,3}% \d{1,3}%$/.test(p.focalPoint||'')?p.focalPoint:'50% 50%';
     const image=safeURL(coverOnly?(book.coverUrl||p.fullPageUrl||p.imageUrl):fallback?p.fullPageUrl||p.imageUrl:p.imageUrl,baseUrl);
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
-    return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
+    return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background-color:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
   const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
-  return `<!doctype html><html${fadeOpen?' class="opening"':''} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html${fadeOpen?' class="opening"':''}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';

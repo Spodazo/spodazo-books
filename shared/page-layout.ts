@@ -1,4 +1,5 @@
 import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, normalizeFont } from "./book-fonts";
+import { normalizePaperTexture } from "./paper";
 import { normalizeFrame } from "./text-frames";
 import type { Book, BookPage, PageElement, PageElementRole, PageLayout, TextAlign } from "./types";
 
@@ -347,6 +348,7 @@ export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?:
   return {
     ...book,
     pageBackground: normalizeColor(book.pageBackground, DEFAULT_PAGE_BACKGROUND),
+    pageTexture: normalizePaperTexture(book.pageTexture),
     textFont: normalizeFont(book.textFont, DEFAULT_TEXT_FONT),
     textColor: normalizeColor(book.textColor, DEFAULT_TEXT_COLOR),
     titleLayout: hasLayout(book.titleLayout)

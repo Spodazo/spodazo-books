@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { fontStack } from "@shared/book-fonts";
 import { alignJustify, normalizeColor, pageFill } from "@shared/page-layout";
+import { paperSurfaceStyle } from "@shared/paper";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageLayout } from "@shared/types";
 
@@ -58,17 +59,19 @@ function CoverText({
 export default function CoverFace({
   layout,
   background,
+  texture,
   font,
   ink,
 }: {
   layout: PageLayout;
   background: string;
+  texture?: string;
   font: string;
   ink: string;
 }) {
   const fill = pageFill(layout.background, background);
   return (
-    <div className="cover-face" style={{ background: fill }}>
+    <div className="cover-face" style={paperSurfaceStyle(fill, texture)}>
       {layout.elements.slice().sort((a, b) => a.z - b.z).map((element) => (
         <div
           key={element.id}

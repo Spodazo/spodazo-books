@@ -524,6 +524,23 @@ html.book-opening .reader-host {
 }
 .page-editor-size input[type="range"] { width: 110px; padding: 0; }
 .page-editor-size span { min-width: 2.2em; }
+.page-editor-paper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.page-editor-papers { display: flex; gap: 6px; }
+.page-editor-papers button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #fff6;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.page-editor-papers button.active { outline: 2px solid #d99028; outline-offset: 1px; }
+.page-editor-paper-name { min-width: 4.5em; color: #e8d4a0; }
 .page-editor-align { display: flex; gap: 4px; }
 .page-editor-align button { min-width: 58px; }
 .page-editor-align button.active { outline: 2px solid #d99028; }

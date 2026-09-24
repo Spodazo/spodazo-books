@@ -77,6 +77,7 @@ function LibrarySection({ books }: { books: BookListItem[] }) {
               <CoverFace
                 layout={coverLayoutFor(book)}
                 background={book.pageBackground || DEFAULT_PAGE_BACKGROUND}
+                texture={book.pageTexture}
                 font={book.textFont || DEFAULT_TEXT_FONT}
                 ink={book.textColor || DEFAULT_TEXT_COLOR}
               />

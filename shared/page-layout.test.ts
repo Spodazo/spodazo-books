@@ -118,6 +118,7 @@ test("ensureBookLayouts and sync keep title text and cover", () => {
     pageTemplate: "one-up",
     characterRender: "scene",
     pageBackground: "",
+    pageTexture: "",
     textFont: "",
     textColor: "",
     titleLayout: { elements: [] },
@@ -138,6 +139,7 @@ test("ensureBookLayouts and sync keep title text and cover", () => {
       background: "",
     }],
   } as Book, { coverUrl: "/media/images/cover.webp" });
+  assert.equal(book.pageTexture, "");
   assert.ok(book.titleLayout.elements.length >= 2);
   assert.ok(book.coverLayout.elements.some((item) => item.type === "image"));
   assert.ok(book.coverLayout.elements.some((item) => item.role === "title"));
@@ -204,6 +206,7 @@ test("ensureBookLayouts restores missing end art", () => {
     pageTemplate: "one-up",
     characterRender: "scene",
     pageBackground: "",
+    pageTexture: "",
     textFont: "",
     textColor: "",
     titleLayout: { elements: [{ id: "title-title", type: "text", x: 52, y: 16, w: 42, h: 22, z: 2, text: "Willow", role: "title" }] },

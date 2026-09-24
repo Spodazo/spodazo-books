@@ -23,6 +23,7 @@ import {
   publishedLabel,
   syncBookFromLayouts,
 } from "@shared/page-layout";
+import { PAPER_TEXTURES, paperSurfaceStyle } from "@shared/paper";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { DEFAULT_FRAME_COLOR, TEXT_FRAMES, frameClass, frameMarkup, normalizeFrame } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
@@ -354,6 +355,7 @@ export default function PageEditorPage() {
         })(),
         pages: synced.pages,
         pageBackground: synced.pageBackground,
+        pageTexture: synced.pageTexture,
         textFont: synced.textFont,
         textColor: synced.textColor,
         titleLayout: synced.titleLayout,
@@ -800,8 +802,35 @@ export default function PageEditorPage() {
             <button type="button" className="ghost" onClick={() => patchElement(selectedText.id, { color: "", fontFamily: "" })}>Use book type</button>
           </>
         ) : null}
+        <div className="page-editor-paper">
+          <span>Page background</span>
+          <div className="page-editor-papers" role="group" aria-label="Page background">
+            <button
+              type="button"
+              className={!book.pageTexture ? "active" : ""}
+              aria-pressed={!book.pageTexture}
+              aria-label="Plain"
+              title="Plain"
+              style={{ backgroundColor: fill }}
+              onClick={() => persist({ ...book, pageTexture: "" })}
+            />
+            {PAPER_TEXTURES.map((texture) => (
+              <button
+                key={texture.id}
+                type="button"
+                className={book.pageTexture === texture.id ? "active" : ""}
+                aria-pressed={book.pageTexture === texture.id}
+                aria-label={texture.label}
+                title={texture.label}
+                style={{ ...paperSurfaceStyle(fill, texture.id), backgroundSize: "100% 100%" }}
+                onClick={() => persist({ ...book, pageTexture: texture.id })}
+              />
+            ))}
+          </div>
+          <span className="page-editor-paper-name">{PAPER_TEXTURES.find((texture) => texture.id === book.pageTexture)?.label || "Plain"}</span>
+        </div>
         <label className="page-editor-color">
-          Book background
+          Book color
           <input type="color" value={book.pageBackground || DEFAULT_PAGE_BACKGROUND} onChange={(event) => persist({ ...book, pageBackground: event.target.value })} />
         </label>
         <label className="page-editor-color">
@@ -843,7 +872,7 @@ export default function PageEditorPage() {
           <div
             ref={pageRef}
             className={`page-editor-page${picking ? " picking" : ""}`}
-            style={{ background: fill }}
+            style={paperSurfaceStyle(fill, book.pageTexture)}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}

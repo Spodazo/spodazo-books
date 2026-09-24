@@ -66,6 +66,7 @@ export type Book = {
   pageTemplate: PageTemplate;
   characterRender: CharacterRender;
   pageBackground: string;
+  pageTexture: string;
   textFont: string;
   textColor: string;
   titleLayout: PageLayout;
@@ -100,6 +101,7 @@ export type BookListItem = {
   audience: BookAudience;
   pageCount: number;
   pageBackground: string;
+  pageTexture: string;
   textFont: string;
   textColor: string;
   coverLayout: PageLayout;

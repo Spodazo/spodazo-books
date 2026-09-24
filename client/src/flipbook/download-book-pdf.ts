@@ -8,6 +8,7 @@ import {
   pageFill,
   publishedLabel,
 } from "@shared/page-layout";
+import { normalizePaperTexture, paperTextureUrl } from "@shared/paper";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
@@ -20,6 +21,22 @@ const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 const A3_LANDSCAPE: [number, number] = [1190.55, 841.89];
 
 type Rendered = { png: Uint8Array; width: number; height: number };
+type PaperPaint = { id: string; image: HTMLImageElement | null };
+
+function paintPaper(ctx: CanvasRenderingContext2D, color: string, width: number, height: number, paper?: PaperPaint) {
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, width, height);
+  const image = paper?.image;
+  if (!image) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const dw = image.naturalWidth * scale;
+  const dh = image.naturalHeight * scale;
+  const dx = paper?.id === "deckle" ? 0 : (width - dw) / 2;
+  ctx.drawImage(image, dx, (height - dh) / 2, dw, dh);
+  ctx.restore();
+}
 
 function downloadBlob(bytes: Uint8Array, filename: string) {
   const blob = new Blob([bytes], { type: "application/pdf" });
@@ -205,7 +222,7 @@ async function snapshot(node: HTMLElement): Promise<Rendered> {
   return { png, width: canvas.width, height: canvas.height };
 }
 
-async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" | "spread", legal: false | "end" | "back" = false, extras?: { credits: string; copyright: string; logoUrl: string }) {
+async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" | "spread", legal: false | "end" | "back" = false, extras?: { credits: string; copyright: string; logoUrl: string }, paperPaint?: PaperPaint) {
   const width = kind === "cover" ? 800 : 1600;
   const height = 1000;
   const paper = pageFill(layout.background, book.pageBackground || DEFAULT_PAGE_BACKGROUND);
@@ -215,8 +232,7 @@ async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" 
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not draw a page");
   ctx.scale(2, 2);
-  ctx.fillStyle = paper;
-  ctx.fillRect(0, 0, width, height);
+  paintPaper(ctx, paper, width, height, paperPaint);
   const ink = book.textColor || DEFAULT_TEXT_COLOR;
   const font = book.textFont || DEFAULT_TEXT_FONT;
   const elements = layout.elements.slice().sort((a, b) => a.z - b.z);
@@ -261,14 +277,13 @@ async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" 
   return { png, width: canvas.width, height: canvas.height };
 }
 
-function blankLeaf(color: string): Rendered {
+function blankLeaf(color: string, paperPaint?: PaperPaint): Rendered {
   const canvas = document.createElement("canvas");
   canvas.width = 800;
   canvas.height = 1000;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not prepare a blank page");
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  paintPaper(ctx, color, canvas.width, canvas.height, paperPaint);
   const data = canvas.toDataURL("image/png");
   const binary = atob(data.split(",")[1] || "");
   const bytes = new Uint8Array(binary.length);
@@ -341,9 +356,9 @@ function paperRgb(color: string) {
   );
 }
 
-async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: string) {
+async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: string, paperPaint?: PaperPaint) {
   const total = paddedPageCount(leaves.length);
-  const blanks = Array.from({ length: total - leaves.length }, () => blankLeaf(paper));
+  const blanks = Array.from({ length: total - leaves.length }, () => blankLeaf(paper, paperPaint));
   const pages = [...leaves, ...blanks];
   const pdf = await PDFDocument.create();
   const [sheetW, sheetH] = sheet;
@@ -367,14 +382,19 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   const book = ensureBookLayouts(source, { coverUrl: source.coverUrl, characterUrl: characterUrlFor(source) });
   await ensureFonts(book);
   const legal = { credits: setup.credits || "", copyright: setup.copyright || "", logoUrl: setup.logoUrl || "" };
-  const cover = await renderLayout(book.coverLayout, book, "cover");
-  const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover", "back", legal) : null;
+  const textureId = normalizePaperTexture(book.pageTexture);
+  const paperPaint: PaperPaint = {
+    id: textureId,
+    image: textureId ? await loadHtmlImage(paperTextureUrl(textureId)).catch(() => null) : null,
+  };
+  const cover = await renderLayout(book.coverLayout, book, "cover", false, undefined, paperPaint);
+  const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover", "back", legal, paperPaint) : null;
   const spreads: Rendered[] = [];
-  spreads.push(await renderLayout(book.titleLayout, book, "spread"));
+  spreads.push(await renderLayout(book.titleLayout, book, "spread", false, undefined, paperPaint));
   for (const page of visibleStoryPages(book)) {
-    spreads.push(await renderLayout(page, book, "spread"));
+    spreads.push(await renderLayout(page, book, "spread", false, undefined, paperPaint));
   }
-  spreads.push(await renderLayout(book.endLayout, book, "spread", "end", legal));
+  spreads.push(await renderLayout(book.endLayout, book, "spread", "end", legal, paperPaint));
   const name = slugFile(book.title);
   if (kind === "standard") {
     downloadBlob(await standardPdf(cover, spreads, back), `${name}-standard.pdf`);
@@ -386,8 +406,8 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
     leaves.push(left, right);
   }
   const paper = book.pageBackground || DEFAULT_PAGE_BACKGROUND;
-  const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper)) : leaves;
+  const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
   const sheet = kind === "a3-a4" ? A3_LANDSCAPE : A4_LANDSCAPE;
   const label = kind === "a3-a4" ? "A3-folded-to-A4" : "A4-folded-to-A5";
-  downloadBlob(await bookletPdf(ordered, sheet, paper), `${name}-${label}.pdf`);
+  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-${label}.pdf`);
 }
