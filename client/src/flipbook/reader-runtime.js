@@ -29,6 +29,7 @@ function curlFrame(){
     leaf=page.querySelector('.front-cover-leaf');
     if(leaf)return leaf;
   }
+  if(mobile&&page&&page.classList.contains('phone-leaf'))return page;
   if(mobile&&page&&!page.classList.contains('title-page')&&!page.classList.contains('end-page')){
     img=page.querySelector('.el-image[data-size="main"]')||page.querySelector('img');
     if(!img)return null;
@@ -195,8 +196,47 @@ function takeComplete(article,units){
   }
   return [];
 }
+function pct(el,prop){
+  var m=String(el.style[prop]||'').match(/(-?[\d.]+)%/);
+  return m?parseFloat(m[1]):null;
+}
+function cropPhoneLeaf(source,side){
+  var page=source.cloneNode(true);
+  var els=Array.prototype.slice.call(page.querySelectorAll('.el'));
+  var kept=0,leafX=side==='left'?0:50,x,w,i,el;
+  page.classList.add('phone-leaf');
+  page.setAttribute('data-phone-leaf',side);
+  for(i=0;i<els.length;i++){
+    el=els[i];
+    x=pct(el,'left');
+    w=pct(el,'width');
+    if(x==null||w==null||x+w<=leafX||x>=leafX+50){el.remove();continue;}
+    el.style.left=((x-leafX)*2)+'%';
+    el.style.width=(w*2)+'%';
+    kept++;
+  }
+  return kept?page:null;
+}
+function splitLaidOutLeaves(){
+  if(!mobile)return;
+  var next=[],i,p,left,right;
+  for(i=0;i<pages.length;i++){
+    p=pages[i];
+    if(!p.classList.contains('laid-out')||p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('phone-leaf')){
+      next.push(p);
+      continue;
+    }
+    left=cropPhoneLeaf(p,'left');
+    right=cropPhoneLeaf(p,'right');
+    if(left){book.insertBefore(left,p);next.push(left);}
+    if(right){book.insertBefore(right,p);next.push(right);}
+    if(left||right)p.remove();
+    else next.push(p);
+  }
+  pages=next;
+}
 function splitStory(p,template,i){
-  if(!mobile||p.classList.contains('facsimile')||p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('end-page'))return;
+  if(!mobile||p.classList.contains('facsimile')||p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('end-page')||p.classList.contains('phone-leaf'))return;
   var keep=p.classList.contains('current');
   p.classList.add('current');
   p.style.visibility='hidden';
@@ -261,6 +301,7 @@ function rebuild(){
       pages.push(p);
     });
   }
+  splitLaidOutLeaves();
   pages.slice().forEach(function(p,i){
     var src=Number(p.getAttribute('data-source'));
     var template=originals[isNaN(src)?i:src]||originals[i];

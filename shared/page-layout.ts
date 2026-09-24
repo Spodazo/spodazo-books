@@ -72,6 +72,21 @@ export function pageFill(pageBackground: string | undefined, bookBackground: str
   return normalizeColor(pageBackground, "") || normalizeColor(bookBackground, DEFAULT_PAGE_BACKGROUND);
 }
 
+/** Map a spread box onto one 4:5 leaf. Boxes that miss that leaf return null. */
+export function remapSpreadBoxToLeaf(
+  box: { x: number; y: number; w: number; h: number },
+  side: "left" | "right",
+): { x: number; y: number; w: number; h: number } | null {
+  const leafX = side === "left" ? 0 : 50;
+  if (box.x + box.w <= leafX || box.x >= leafX + 50) return null;
+  return {
+    x: (box.x - leafX) * 2,
+    y: box.y,
+    w: box.w * 2,
+    h: box.h,
+  };
+}
+
 export function normalizeElement(raw: Partial<PageElement> | null | undefined, index: number): PageElement {
   const type = raw?.type === "image" ? "image" : raw?.type === "shape" ? "shape" : "text";
   const role = raw?.role && ROLES.has(raw.role) ? raw.role : undefined;
