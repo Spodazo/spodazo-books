@@ -513,7 +513,12 @@ export function registerRoutes(app: Express): void {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    res.setHeader("Content-Disposition", `attachment; filename="${path.basename(full)}"`);
-    res.sendFile(path.resolve(full));
+    res.sendFile(path.resolve(full), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="${path.basename(full)}"`,
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
   });
 }
