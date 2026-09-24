@@ -8,7 +8,7 @@
 .hint-mobile{display:none}.hint-desktop{display:inline}
 @media(max-width:700px) and (orientation:portrait),(pointer:coarse) and (max-width:1100px) and (orientation:portrait){.hint-mobile{display:inline}.hint-desktop{display:none}}
 @media(min-width:701px) and (pointer:fine){
-main{isolation:isolate;background:#bd9a61;box-shadow:inset 0 0 20px #4d351e66}
+main{isolation:isolate;background:var(--spread,#bd9a61);box-shadow:inset 0 0 20px #00000033}
 .page{border-radius:8px 8px 11px 11px;box-shadow:inset 0 -5px 0 #b49b70,inset 0 -8px 0 #ead9b6;overflow:hidden}
 main:after{content:'';position:absolute;z-index:25;pointer-events:none;left:calc(50% - 42px);top:0;bottom:0;width:84px;background:linear-gradient(90deg,transparent 0%,#3e2a1510 20%,#3e2a1538 40%,#24180f91 49%,#fff4d173 51%,#68482340 58%,#68482315 78%,transparent 100%)}
 main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;border-radius:8px;box-shadow:inset 0 3px 8px #fff5,inset 0 -3px 2px #77603c,inset 0 -6px 1px #ecddb8,inset 0 -8px 1px #92784f,inset 3px 0 8px #49301b22,inset -3px 0 8px #49301b22}
@@ -809,6 +809,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 .page.laid-out>.el-image,
 .leaf-copy.laid-out>.el-image{
   object-fit:var(--fit,cover);
+  object-position:var(--focus, center center);
   background:transparent;
 }
 .page.laid-out>.el-text{
@@ -1370,6 +1371,7 @@ html:not(.mobile) .page.front-cover .reader-close{
   width:100%;
   height:100%;
   object-fit:var(--fit, cover);
+  object-position:var(--focus, center center);
   background:transparent;
 }
 .cover-bit-text{

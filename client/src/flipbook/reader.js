@@ -1,7 +1,7 @@
 import css from './reader.css?raw';
 import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
-import {elementTextHtml, publishedLabel} from '@shared/page-layout';
+import {DEFAULT_SPREAD_BACKGROUND, elementTextHtml, imageObjectFit, imageObjectPosition, normalizeColor, publishedLabel} from '@shared/page-layout';
 import {normalizePaperTexture, paperTexture, paperTextureUrl} from '@shared/paper';
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
@@ -83,7 +83,7 @@ function elementHtml(el, baseUrl, book) {
   const font = fontStack(el.fontFamily || book?.textFont).replace(/"/g, "'");
   const stack = Number(el.z) || 1;
   const fade = el.type === "image" || el.type === "shape" ? `;opacity:${Math.min(100, Math.max(10, Number(el.opacity) || 100)) / 100}` : "";
-  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${stack}${fade};--fs:${Number(el.fontSize) || 4};--ff:${font};--ink:${elementInk(el, book)};--frame:${elementFrameInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageFit(el)}`;
+  const style = `left:${Number(el.x) || 0}%;top:${Number(el.y) || 0}%;width:${Number(el.w) || 10}%;height:${Number(el.h) || 10}%;z-index:${stack}${fade};--fs:${Number(el.fontSize) || 4};--ff:${font};--ink:${elementInk(el, book)};--frame:${elementFrameInk(el, book)};--ta:${align};--tj:${justify};--fit:${imageObjectFit(el)};--focus:${imageObjectPosition(el)}`;
   const meta = `data-leaf="${elementLeaf(el)}" data-size="${elementSize(el)}"${el.role ? ` data-role="${esc(el.role)}"` : ""}${el.id ? ` data-id="${esc(el.id)}"` : ""}`;
   if (el.type === "shape") {
     const radius = el.shape === "circle" ? "border-radius:50%" : "border-radius:2%";
@@ -112,11 +112,6 @@ function storyBody(paragraphs) {
 
 function isWillow(book) {
   return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
-}
-
-function imageFit(el) {
-  if (el.fit === "contain" || el.id === "title-cover" || el.id === "end-art") return "contain";
-  return "cover";
 }
 
 function legalHtml(credits, copyright, logoUrl, baseUrl, date) {
@@ -180,6 +175,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const storyPages=visibleStoryPages(book);
   const skipCover=storyPages.length !== (book.pages||[]).length;
   const paper=pageFill({background:book.pageBackground},book);
+  const spread=normalizeColor(book.spreadBackground, DEFAULT_SPREAD_BACKGROUND);
   const texture=normalizePaperTexture(book.pageTexture);
   const textureMeta=paperTexture(texture);
   const textureUrl=textureMeta?esc(safeURL(paperTextureUrl(textureMeta.id),baseUrl)):'';
@@ -200,7 +196,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
   const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
-  return `<!doctype html><html${fadeOpen?' class="opening"':''}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html${fadeOpen?' class="opening"':''}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';

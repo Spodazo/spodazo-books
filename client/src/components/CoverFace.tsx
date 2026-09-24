@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { fontStack } from "@shared/book-fonts";
-import { alignJustify, normalizeColor, pageFill } from "@shared/page-layout";
+import { alignJustify, imageObjectFit, imageObjectPosition, normalizeColor, pageFill } from "@shared/page-layout";
 import { paperSurfaceStyle } from "@shared/paper";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageLayout } from "@shared/types";
@@ -103,7 +103,7 @@ export default function CoverFace({
           ) : null}
           {element.type === "shape" ? null : element.type === "image" ? (
             element.imageUrl ? (
-              <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "cover-art" ? "contain" : "cover", opacity: (element.opacity ?? 100) / 100, background: "transparent" }} />
+              <img src={element.imageUrl} alt="" style={{ objectFit: imageObjectFit(element), objectPosition: imageObjectPosition(element), opacity: (element.opacity ?? 100) / 100, background: "transparent" }} />
             ) : null
           ) : (
             <CoverText

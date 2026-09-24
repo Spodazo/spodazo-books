@@ -12,14 +12,22 @@ import {
 } from "@shared/book-fonts";
 import {
   DEFAULT_PAGE_BACKGROUND,
+  DEFAULT_SPREAD_BACKGROUND,
   PAGE_COLOR_PALETTE,
   alignJustify,
+  decodeElementClipboard,
+  duplicateElement,
+  ELEMENT_CLIPBOARD_MIME,
   emptyStoryPage,
+  encodeElementClipboard,
   ensureBookLayouts,
+  imageObjectFit,
+  imageObjectPosition,
   LEAF_RATIO,
   newElementId,
   normalizeColor,
   pageFill,
+  panImageFocus,
   publishedLabel,
   syncBookFromLayouts,
 } from "@shared/page-layout";
@@ -234,11 +242,25 @@ type Screen =
 
 type DragState = {
   id: string;
-  mode: "move" | "resize";
+  mode: "move" | "resize" | "crop";
   startX: number;
   startY: number;
   orig: PageElement;
 };
+
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT";
+}
+
+function pastedRole(source: PageElement, screen: Screen): PageElement["role"] {
+  if (source.role === "body" || source.role === "end" || source.role === "back") return source.role;
+  if (screen.kind === "end") return "end";
+  if (screen.kind === "back") return "back";
+  return "body";
+}
 
 export default function PageEditorPage() {
   const [, params] = useRoute("/admin/edit/:slug");
@@ -263,6 +285,13 @@ export default function PageEditorPage() {
   const stageRef = useRef<HTMLDivElement>(null);
   const [bookBox, setBookBox] = useState({ width: 0, height: 0 });
   const [picking, setPicking] = useState<"" | "text" | "frame" | "shape" | "page" | "ink">("");
+  const [cropping, setCropping] = useState(false);
+  const clipboardRef = useRef<{ element: PageElement; plain: string } | null>(null);
+  const pasteNudge = useRef(0);
+  const screenRef = useRef<Screen | undefined>(undefined);
+  const selectedIdRef = useRef("");
+  const copyRef = useRef<(event?: ClipboardEvent) => void>(() => {});
+  const pasteRef = useRef<(event: ClipboardEvent) => void>(() => {});
 
   useEffect(() => {
     bookRef.current = book;
@@ -356,6 +385,7 @@ export default function PageEditorPage() {
         pages: synced.pages,
         pageBackground: synced.pageBackground,
         pageTexture: synced.pageTexture,
+        spreadBackground: synced.spreadBackground,
         textFont: synced.textFont,
         textColor: synced.textColor,
         titleLayout: synced.titleLayout,
@@ -533,7 +563,7 @@ export default function PageEditorPage() {
   async function onPickFile(file: File) {
     const uploaded = await uploadBookAsset(file, file.name);
     if (replaceId.current && screen) {
-      patchElement(replaceId.current, { imageAsset: uploaded.filename, imageUrl: uploaded.url });
+      patchElement(replaceId.current, { imageAsset: uploaded.filename, imageUrl: uploaded.url, focusX: 50, focusY: 50 });
       replaceId.current = "";
       return;
     }
@@ -550,6 +580,9 @@ export default function PageEditorPage() {
       z: 1 + layout.elements.filter((item) => item.type === "image").length,
       imageAsset: uploaded.filename,
       imageUrl: uploaded.url,
+      fit: "cover",
+      focusX: 50,
+      focusY: 50,
     };
     writeLayout(screen, { ...layout, elements: [...layout.elements, element] });
     setSelectedId(element.id);
@@ -580,16 +613,18 @@ export default function PageEditorPage() {
     if (editingId === element.id && mode === "move") return;
     event.preventDefault();
     event.stopPropagation();
+    const cropThis = cropping && element.type === "image" && element.id === selectedId && mode === "move";
+    if (!cropThis && element.id !== selectedId) setCropping(false);
     setSelectedId(element.id);
     setEditingId("");
     const page = pageRef.current;
     if (!page) return;
     drag.current = {
       id: element.id,
-      mode,
+      mode: cropThis ? "crop" : mode,
       startX: event.clientX,
       startY: event.clientY,
-      orig: { ...element },
+      orig: { ...element, fit: cropThis ? "cover" : element.fit },
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -601,6 +636,10 @@ export default function PageEditorPage() {
     const rect = page.getBoundingClientRect();
     const dx = ((event.clientX - state.startX) / rect.width) * 100;
     const dy = ((event.clientY - state.startY) / rect.height) * 100;
+    if (state.mode === "crop") {
+      patchElement(state.id, { fit: "cover", ...panImageFocus(state.orig, dx, dy) });
+      return;
+    }
     if (state.mode === "move") {
       patchElement(state.id, {
         x: Math.min(100 - state.orig.w, Math.max(0, state.orig.x + dx)),
@@ -608,15 +647,152 @@ export default function PageEditorPage() {
       });
       return;
     }
-    patchElement(state.id, {
-      w: Math.min(100 - state.orig.x, Math.max(8, state.orig.w + dx)),
-      h: Math.min(100 - state.orig.y, Math.max(8, state.orig.h + dy)),
-    });
+    const next = {
+      w: Math.min(100 - state.orig.x, Math.max(state.orig.type === "image" ? 1 : 8, state.orig.w + dx)),
+      h: Math.min(100 - state.orig.y, Math.max(state.orig.type === "image" ? 1 : 8, state.orig.h + dy)),
+    };
+    patchElement(state.id, state.orig.type === "image" ? { ...next, fit: "cover" } : next);
   }
 
   function onPointerUp() {
     drag.current = null;
   }
+
+  bookRef.current = book;
+  screenRef.current = screen;
+  selectedIdRef.current = selectedId;
+
+  function copySelection(event?: ClipboardEvent) {
+    const current = bookRef.current;
+    const target = screenRef.current;
+    const id = selectedIdRef.current;
+    if (!current || !target || !id) return;
+    const layout = target.kind === "cover" ? current.coverLayout
+      : target.kind === "back" ? current.backCoverLayout
+        : target.kind === "title" ? current.titleLayout
+          : target.kind === "end" ? current.endLayout
+            : current.pages.find((page) => page.id === target.pageId) || { elements: [], background: "" };
+    const element = layout.elements.find((item) => item.id === id);
+    if (!element) return;
+    const encoded = encodeElementClipboard(element);
+    const plain = element.type === "text" ? (element.text || "") : encoded;
+    clipboardRef.current = { element: { ...element }, plain };
+    pasteNudge.current = 0;
+    if (event) {
+      event.preventDefault();
+      event.clipboardData?.setData("text/plain", plain);
+      event.clipboardData?.setData(ELEMENT_CLIPBOARD_MIME, encoded);
+    } else {
+      void navigator.clipboard?.writeText(plain).catch(() => {});
+    }
+    setStatus("Copied");
+  }
+
+  function insertCopied(source: PageElement) {
+    if (!book || !screen) return;
+    const layout = layoutOf(screen);
+    pasteNudge.current += 1;
+    const element = duplicateElement(source, layout.elements.reduce((max, item) => Math.max(max, item.z), 0) + 1, 3 * pasteNudge.current);
+    element.role = source.type === "text" ? pastedRole(source, screen) : undefined;
+    writeLayout(screen, { ...layout, elements: [...layout.elements, element] });
+    setSelectedId(element.id);
+    setEditingId("");
+    setCropping(false);
+    setStatus("Pasted");
+  }
+
+  function insertText(text: string) {
+    if (!book || !screen) return;
+    const layout = layoutOf(screen);
+    const current = layout.elements.find((item) => item.id === selectedId);
+    if (current?.type === "text") {
+      patchElement(current.id, { text });
+      setStatus("Pasted");
+      return;
+    }
+    const element: PageElement = {
+      id: newElementId(),
+      type: "text",
+      x: 56,
+      y: 18,
+      w: 38,
+      h: 16,
+      z: layout.elements.reduce((max, item) => Math.max(max, item.z), 0) + 1,
+      text,
+      role: screen.kind === "end" ? "end" : screen.kind === "back" ? "back" : "body",
+      fontSize: 3.6,
+    };
+    writeLayout(screen, { ...layout, elements: [...layout.elements, element] });
+    setSelectedId(element.id);
+    setEditingId("");
+    setStatus("Pasted");
+  }
+
+  async function pasteFromButton() {
+    try {
+      const text = await navigator.clipboard.readText();
+      const decoded = decodeElementClipboard(text);
+      if (decoded) {
+        insertCopied(decoded);
+        return;
+      }
+      if (clipboardRef.current && text === clipboardRef.current.plain) {
+        insertCopied(clipboardRef.current.element);
+        return;
+      }
+      if (text.trim()) {
+        insertText(text.replace(/\r\n/g, "\n"));
+        return;
+      }
+    } catch {
+      if (clipboardRef.current) {
+        insertCopied(clipboardRef.current.element);
+        return;
+      }
+    }
+    setStatus("Copy an item first");
+  }
+
+  function pasteSelection(event: ClipboardEvent) {
+    if (isTypingTarget(event.target)) return;
+    const plain = event.clipboardData?.getData("text/plain") || "";
+    const custom = event.clipboardData?.getData(ELEMENT_CLIPBOARD_MIME) || "";
+    const decoded = decodeElementClipboard(custom) || decodeElementClipboard(plain);
+    const remembered = clipboardRef.current && plain === clipboardRef.current.plain ? clipboardRef.current.element : null;
+    const source = decoded || remembered;
+    if (source) {
+      event.preventDefault();
+      insertCopied(source);
+      return;
+    }
+    const text = plain.replace(/\r\n/g, "\n");
+    if (!text.trim()) return;
+    event.preventDefault();
+    insertText(text);
+  }
+
+  copyRef.current = copySelection;
+  pasteRef.current = pasteSelection;
+
+  useEffect(() => {
+    function onCopy(event: ClipboardEvent) {
+      if (isTypingTarget(event.target)) return;
+      copyRef.current(event);
+    }
+    function onPaste(event: ClipboardEvent) {
+      pasteRef.current(event);
+    }
+    window.addEventListener("copy", onCopy);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("copy", onCopy);
+      window.removeEventListener("paste", onPaste);
+    };
+  }, []);
+
+  useEffect(() => {
+    setCropping(false);
+  }, [selectedId, index]);
 
   if (!ready) return <main className="page-editor"><p className="page-editor-status">Loading…</p></main>;
   if (error && !book) {
@@ -655,6 +831,8 @@ export default function PageEditorPage() {
         <button type="button" onClick={addPage}>Add page</button>
         <button type="button" disabled={screen.kind !== "page" || storyPages.length < 2} onClick={removePage}>Delete page</button>
         <button type="button" disabled={!selectedId} onClick={removeElement}>Delete item</button>
+        <button type="button" disabled={!selectedId} onClick={() => copyRef.current()}>Copy</button>
+        <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>
         {selectedId ? (
           <div className="page-editor-align" role="group" aria-label="Arrange">
             <button type="button" onClick={() => arrange("front")}>In front</button>
@@ -682,6 +860,16 @@ export default function PageEditorPage() {
         ) : null}
         {selected?.type === "image" ? (
           <>
+            <button type="button" className={imageObjectFit(selected) === "cover" ? "active" : ""} onClick={() => patchElement(selected.id, { fit: "cover" })}>Fill frame</button>
+            <button type="button" className={selected.fit === "contain" ? "active" : ""} onClick={() => { setCropping(false); patchElement(selected.id, { fit: "contain" }); }}>Show whole</button>
+            <button
+              type="button"
+              className={cropping ? "active" : ""}
+              onClick={() => {
+                if (!cropping) patchElement(selected.id, { fit: "cover" });
+                setCropping(!cropping);
+              }}
+            >Crop</button>
             <button type="button" onClick={() => { replaceId.current = selectedId; fileRef.current?.click(); }}>Replace picture</button>
             <label className="page-editor-size">
               Fade
@@ -697,6 +885,7 @@ export default function PageEditorPage() {
             </label>
           </>
         ) : null}
+        {cropping ? <span className="hint">Drag the picture to choose the crop. It keeps its shape and fills the frame.</span> : null}
         {selected?.type === "shape" ? (
           <>
             <label className="page-editor-color">
@@ -834,6 +1023,10 @@ export default function PageEditorPage() {
           <input type="color" value={book.pageBackground || DEFAULT_PAGE_BACKGROUND} onChange={(event) => persist({ ...book, pageBackground: event.target.value })} />
         </label>
         <label className="page-editor-color">
+          Around the book
+          <input type="color" value={book.spreadBackground || DEFAULT_SPREAD_BACKGROUND} onChange={(event) => persist({ ...book, spreadBackground: event.target.value })} />
+        </label>
+        <label className="page-editor-color">
           This page
           <input
             type="color"
@@ -860,7 +1053,7 @@ export default function PageEditorPage() {
           />
         ))}
       </div>
-      <div className="page-editor-stage" ref={stageRef}>
+      <div className="page-editor-stage" ref={stageRef} style={{ background: book.spreadBackground || DEFAULT_SPREAD_BACKGROUND }}>
         <div
           className="page-editor-book"
           style={bookBox.width ? {
@@ -881,7 +1074,7 @@ export default function PageEditorPage() {
             {layout.elements.slice().sort((a, b) => a.z - b.z).map((element) => (
               <div
                 key={element.id}
-                className={`page-editor-el${selectedId === element.id ? " selected" : ""}${element.type === "text" ? ` ${frameClass(element.frame)}` : ""}`}
+                className={`page-editor-el${selectedId === element.id ? " selected" : ""}${element.type === "image" ? " image" : ""}${cropping && selectedId === element.id && element.type === "image" ? " cropping" : ""}${element.type === "text" ? ` ${frameClass(element.frame)}` : ""}`}
                 style={{
                   left: `${element.x}%`,
                   top: `${element.y}%`,
@@ -904,7 +1097,7 @@ export default function PageEditorPage() {
                 {element.type === "shape" ? (
                   <div style={{ width: "100%", height: "100%", background: normalizeColor(element.color, "") || "#ffffff", opacity: (element.opacity ?? 100) / 100, borderRadius: element.shape === "circle" ? "50%" : "2%" }} />
                 ) : element.type === "image" ? (
-                    element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: element.fit === "contain" || element.id === "title-cover" || element.id === "end-art" || element.id === "cover-art" || element.id === "back-art" ? "contain" : "cover", opacity: (element.opacity ?? 100) / 100, background: "transparent" }} /> : <span className="page-editor-empty">Picture</span>
+                    element.imageUrl ? <img src={element.imageUrl} alt="" style={{ objectFit: imageObjectFit(element), objectPosition: imageObjectPosition(element), opacity: (element.opacity ?? 100) / 100, background: "transparent" }} /> : <span className="page-editor-empty">Picture</span>
                 ) : editingId === element.id ? (
                   <textarea
                     autoFocus

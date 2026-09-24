@@ -23,6 +23,9 @@ export type PageElement = {
   frame?: string;
   frameColor?: string;
   fit?: "cover" | "contain";
+  /** Visible point inside a filled picture, 0–100. 50 is the center. */
+  focusX?: number;
+  focusY?: number;
   opacity?: number;
   role?: PageElementRole;
 };
@@ -67,6 +70,7 @@ export type Book = {
   characterRender: CharacterRender;
   pageBackground: string;
   pageTexture: string;
+  spreadBackground: string;
   textFont: string;
   textColor: string;
   titleLayout: PageLayout;
@@ -102,6 +106,7 @@ export type BookListItem = {
   pageCount: number;
   pageBackground: string;
   pageTexture: string;
+  spreadBackground: string;
   textFont: string;
   textColor: string;
   coverLayout: PageLayout;

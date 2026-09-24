@@ -5,6 +5,8 @@ import {
   DEFAULT_PAGE_BACKGROUND,
   ensureBookLayouts,
   hasLayout,
+  imageObjectFit,
+  imageObjectPosition,
   pageFill,
   publishedLabel,
 } from "@shared/page-layout";
@@ -91,7 +93,9 @@ function addElement(root: HTMLElement, element: PageElement, height: number, ink
     const img = document.createElement("img");
     img.src = element.imageUrl || "";
     img.alt = "";
-    img.dataset.fit = element.fit === "contain" || element.id === "cover-art" || element.id === "title-cover" || element.id === "end-art" || element.id === "back-art" ? "contain" : "cover";
+    img.dataset.fit = imageObjectFit(element);
+    img.style.objectFit = imageObjectFit(element);
+    img.style.objectPosition = imageObjectPosition(element);
     img.style.position = "absolute";
     img.style.maxWidth = "none";
     node.appendChild(img);
@@ -189,18 +193,21 @@ function drawFittedImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement, e
   const boxY = (element.y / 100) * pageH;
   const boxW = (element.w / 100) * pageW;
   const boxH = (element.h / 100) * pageH;
-  const contain = element.fit === "contain" || element.id === "cover-art" || element.id === "title-cover" || element.id === "end-art" || element.id === "back-art";
+  const contain = imageObjectFit(element) === "contain";
   const scale = contain
     ? Math.min(boxW / img.naturalWidth, boxH / img.naturalHeight)
     : Math.max(boxW / img.naturalWidth, boxH / img.naturalHeight);
   const width = img.naturalWidth * scale;
   const height = img.naturalHeight * scale;
+  const [focusX, focusY] = imageObjectPosition(element).split(" ").map((part) => parseFloat(part) / 100);
+  const dx = contain ? (boxW - width) / 2 : -(width - boxW) * focusX;
+  const dy = contain ? (boxH - height) / 2 : -(height - boxH) * focusY;
   ctx.save();
   ctx.globalAlpha = (element.opacity ?? 100) / 100;
   ctx.beginPath();
   ctx.rect(boxX, boxY, boxW, boxH);
   ctx.clip();
-  ctx.drawImage(img, boxX + (boxW - width) / 2, boxY + (boxH - height) / 2, width, height);
+  ctx.drawImage(img, boxX + dx, boxY + dy, width, height);
   ctx.restore();
 }
 

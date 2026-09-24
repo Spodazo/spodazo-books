@@ -17,6 +17,8 @@ export function alignJustify(align?: string | null): "flex-start" | "center" | "
 }
 
 export const DEFAULT_PAGE_BACKGROUND = "#efdda6";
+/** The board behind the pages. Existing books keep this tan until it is changed. */
+export const DEFAULT_SPREAD_BACKGROUND = "#bd9a61";
 
 /** One leaf of the open book. The spread is 8:5, so a single leaf is 4:5. */
 export const LEAF_RATIO = 0.8;
@@ -86,6 +88,8 @@ export function normalizeElement(raw: Partial<PageElement> | null | undefined, i
     imageAsset: type === "image" ? String(raw?.imageAsset || "") : undefined,
     imageUrl: type === "image" ? String(raw?.imageUrl || "") : undefined,
     fit: type === "image" && raw?.fit === "contain" ? "contain" : type === "image" ? "cover" : undefined,
+    focusX: type === "image" ? clampPercent(raw?.focusX, 50) : undefined,
+    focusY: type === "image" ? clampPercent(raw?.focusY, 50) : undefined,
     opacity: type === "image" || type === "shape" ? clampPercent(raw?.opacity, 100, 10, 100) : undefined,
     fontSize: type === "text" ? clampPercent(raw?.fontSize, 4, 2, 16) : undefined,
     fontFamily: type === "text" ? normalizeFont(raw?.fontFamily) : undefined,
@@ -94,6 +98,58 @@ export function normalizeElement(raw: Partial<PageElement> | null | undefined, i
     frame: type === "text" ? normalizeFrame(raw?.frame) : undefined,
     frameColor: type === "text" ? normalizeColor(raw?.frameColor, "") : undefined,
     role,
+  };
+}
+
+export const ELEMENT_CLIPBOARD_MIME = "application/x-spodazo-element";
+
+export function imageObjectFit(element: { fit?: string | null }): "cover" | "contain" {
+  return element.fit === "contain" ? "contain" : "cover";
+}
+
+export function imageObjectPosition(element: { focusX?: number | null; focusY?: number | null }): string {
+  return `${clampPercent(element.focusX, 50)}% ${clampPercent(element.focusY, 50)}%`;
+}
+
+/** Dragging the picture right or down reveals the opposite edge, same as object-position. */
+export function panImageFocus(
+  origin: { focusX?: number; focusY?: number; w: number; h: number },
+  dx: number,
+  dy: number,
+): { focusX: number; focusY: number } {
+  const spanX = Math.max(1, origin.w);
+  const spanY = Math.max(1, origin.h);
+  return {
+    focusX: clampPercent((origin.focusX ?? 50) - (dx / spanX) * 100, 50),
+    focusY: clampPercent((origin.focusY ?? 50) - (dy / spanY) * 100, 50),
+  };
+}
+
+export function encodeElementClipboard(element: PageElement): string {
+  return JSON.stringify({ spodazoElement: 1, element });
+}
+
+export function decodeElementClipboard(raw: string): PageElement | null {
+  const text = String(raw || "").trim();
+  if (!text.startsWith("{")) return null;
+  try {
+    const parsed = JSON.parse(text) as { spodazoElement?: number; element?: Partial<PageElement> };
+    if (parsed?.spodazoElement !== 1 || !parsed.element || typeof parsed.element !== "object") return null;
+    return normalizeElement(parsed.element, 0);
+  } catch {
+    return null;
+  }
+}
+
+export function duplicateElement(element: PageElement, z: number, offset = 3): PageElement {
+  const next = normalizeElement({ ...element, id: newElementId() }, 0);
+  const maxX = Math.max(0, 100 - next.w);
+  const maxY = Math.max(0, 100 - next.h);
+  return {
+    ...next,
+    x: clampPercent(next.x + offset, next.x, 0, maxX),
+    y: clampPercent(next.y + offset, next.y, 0, maxY),
+    z,
   };
 }
 
@@ -131,6 +187,8 @@ export function layoutToJson(layout: PageLayout): string {
       imageUrl: item.imageAsset ? undefined : item.imageUrl,
       fontSize: item.fontSize,
       fit: item.fit,
+      focusX: item.focusX,
+      focusY: item.focusY,
       opacity: item.opacity,
       fontFamily: item.fontFamily,
       color: item.color,
@@ -350,6 +408,7 @@ export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?:
     ...book,
     pageBackground: normalizeColor(book.pageBackground, DEFAULT_PAGE_BACKGROUND),
     pageTexture: normalizePaperTexture(book.pageTexture),
+    spreadBackground: normalizeColor(book.spreadBackground, DEFAULT_SPREAD_BACKGROUND),
     textFont: normalizeFont(book.textFont, DEFAULT_TEXT_FONT),
     textColor: normalizeColor(book.textColor, DEFAULT_TEXT_COLOR),
     titleLayout: hasLayout(book.titleLayout)

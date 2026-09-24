@@ -9,8 +9,14 @@ import {
   isLegacySingleLeafLayout,
   normalizeAlign,
   normalizeColor,
+  decodeElementClipboard,
+  duplicateElement,
+  encodeElementClipboard,
+  imageObjectFit,
+  imageObjectPosition,
   normalizeElement,
   pageFill,
+  panImageFocus,
   syncBookFromLayouts,
 } from "./page-layout";
 import type { Book, BookPage } from "./types";
@@ -166,6 +172,7 @@ test("ensureBookLayouts and sync keep title text and cover", () => {
     }],
   } as Book, { coverUrl: "/media/images/cover.webp" });
   assert.equal(book.pageTexture, "");
+  assert.equal(book.spreadBackground, "#bd9a61");
   assert.ok(book.titleLayout.elements.length >= 2);
   assert.ok(book.coverLayout.elements.some((item) => item.type === "image"));
   assert.ok(book.coverLayout.elements.some((item) => item.role === "title"));
@@ -283,4 +290,35 @@ test("normalizeElement keeps a circle or rectangle", () => {
 test("normalizeElement keeps a picture fade and defaults to solid", () => {
   assert.equal(normalizeElement({ type: "image", opacity: 40 }, 0).opacity, 40);
   assert.equal(normalizeElement({ type: "image" }, 0).opacity, 100);
+});
+
+test("normalizeElement keeps a picture crop and fills the frame by default", () => {
+  const cropped = normalizeElement({ type: "image", fit: "cover", focusX: 120, focusY: -4 }, 0);
+  assert.equal(cropped.fit, "cover");
+  assert.equal(cropped.focusX, 100);
+  assert.equal(cropped.focusY, 0);
+  assert.equal(imageObjectFit(cropped), "cover");
+  assert.equal(imageObjectPosition(cropped), "100% 0%");
+  assert.equal(imageObjectFit({ fit: "contain" }), "contain");
+  assert.equal(imageObjectPosition({}), "50% 50%");
+});
+
+test("panImageFocus slides the visible part of a filled picture", () => {
+  const next = panImageFocus({ focusX: 50, focusY: 50, w: 50, h: 40 }, 25, -10);
+  assert.equal(next.focusX, 0);
+  assert.equal(next.focusY, 75);
+});
+
+test("clipboard round-trip copies an element and paste nudges it", () => {
+  const source = normalizeElement({ id: "title", type: "text", text: "Rudolph", x: 10, y: 20, w: 30, h: 12, z: 2, role: "title" }, 0);
+  const decoded = decodeElementClipboard(encodeElementClipboard(source));
+  assert.equal(decoded?.text, "Rudolph");
+  assert.equal(decoded?.role, "title");
+  assert.equal(decodeElementClipboard("just words"), null);
+  const copy = duplicateElement(source, 8, 3);
+  assert.notEqual(copy.id, source.id);
+  assert.equal(copy.text, "Rudolph");
+  assert.equal(copy.x, 13);
+  assert.equal(copy.y, 23);
+  assert.equal(copy.z, 8);
 });

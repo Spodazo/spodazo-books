@@ -19,6 +19,7 @@ export const books = pgTable("books", {
   characterRender: text("character_render").notNull().default("scene"),
   pageBackground: text("page_background").notNull().default(""),
   pageTexture: text("page_texture").notNull().default(""),
+  spreadBackground: text("spread_background").notNull().default(""),
   textFont: text("text_font").notNull().default(""),
   textColor: text("text_color").notNull().default(""),
   titleLayoutJson: text("title_layout_json").notNull().default(""),

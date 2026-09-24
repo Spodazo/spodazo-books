@@ -5,6 +5,7 @@ import pg from "pg";
 import { books, curator, playerSetup } from "../shared/schema";
 import {
   DEFAULT_PAGE_BACKGROUND,
+  DEFAULT_SPREAD_BACKGROUND,
   layoutToJson,
   normalizeColor,
   normalizeLayout,
@@ -49,6 +50,7 @@ export type BookInput = {
   characterRender?: string;
   pageBackground?: string;
   pageTexture?: string;
+  spreadBackground?: string;
   textFont?: string;
   textColor?: string;
   titleLayout?: Book["titleLayout"];
@@ -132,6 +134,7 @@ function toListItem(book: Book): BookListItem {
     pageCount: publicBook.pageCount,
     pageBackground: publicBook.pageBackground,
     pageTexture: publicBook.pageTexture,
+    spreadBackground: publicBook.spreadBackground,
     textFont: publicBook.textFont,
     textColor: publicBook.textColor,
     coverLayout: publicBook.coverLayout,
@@ -185,6 +188,7 @@ function recordBook(row: {
   characterRender?: string | null;
   pageBackground?: string | null;
   pageTexture?: string | null;
+  spreadBackground?: string | null;
   textFont?: string | null;
   textColor?: string | null;
   titleLayoutJson?: string | null;
@@ -217,6 +221,7 @@ function recordBook(row: {
     characterRender: normalizeCharacterRender(row.characterRender),
     pageBackground: normalizeColor(row.pageBackground, DEFAULT_PAGE_BACKGROUND),
     pageTexture: normalizePaperTexture(row.pageTexture),
+    spreadBackground: normalizeColor(row.spreadBackground, DEFAULT_SPREAD_BACKGROUND),
     textFont: normalizeFont(row.textFont, DEFAULT_TEXT_FONT),
     textColor: normalizeColor(row.textColor, DEFAULT_TEXT_COLOR),
     titleLayout: row.titleLayout || parseLayoutJson(row.titleLayoutJson),
@@ -294,6 +299,7 @@ export class JsonBookStore implements BookStore {
       characterRender: normalizeCharacterRender(input.characterRender),
       pageBackground: normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND),
       pageTexture: normalizePaperTexture(input.pageTexture),
+      spreadBackground: normalizeColor(input.spreadBackground, DEFAULT_SPREAD_BACKGROUND),
       textFont: normalizeFont(input.textFont, DEFAULT_TEXT_FONT),
       textColor: normalizeColor(input.textColor, DEFAULT_TEXT_COLOR),
       titleLayout: normalizeLayout(input.titleLayout),
@@ -329,6 +335,7 @@ export class JsonBookStore implements BookStore {
     if (input.characterRender !== undefined) book.characterRender = normalizeCharacterRender(input.characterRender);
     if (input.pageBackground !== undefined) book.pageBackground = normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND);
     if (input.pageTexture !== undefined) book.pageTexture = normalizePaperTexture(input.pageTexture);
+    if (input.spreadBackground !== undefined) book.spreadBackground = normalizeColor(input.spreadBackground, DEFAULT_SPREAD_BACKGROUND);
     if (input.textFont !== undefined) book.textFont = normalizeFont(input.textFont, DEFAULT_TEXT_FONT);
     if (input.textColor !== undefined) book.textColor = normalizeColor(input.textColor, DEFAULT_TEXT_COLOR);
     if (input.titleLayout !== undefined) book.titleLayout = normalizeLayout(input.titleLayout);
@@ -452,6 +459,7 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS character_render TEXT NOT NULL DEFAULT 'scene'`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_background TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_texture TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS spread_background TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS text_font TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS text_color TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS title_layout_json TEXT NOT NULL DEFAULT ''`);
@@ -498,6 +506,7 @@ export class PostgresBookStore implements BookStore {
         characterRender: normalizeCharacterRender(input.characterRender),
         pageBackground: normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND),
         pageTexture: normalizePaperTexture(input.pageTexture),
+        spreadBackground: normalizeColor(input.spreadBackground, DEFAULT_SPREAD_BACKGROUND),
         textFont: normalizeFont(input.textFont, DEFAULT_TEXT_FONT),
         textColor: normalizeColor(input.textColor, DEFAULT_TEXT_COLOR),
         titleLayoutJson: layoutToJson(normalizeLayout(input.titleLayout)),
@@ -528,6 +537,7 @@ export class PostgresBookStore implements BookStore {
     if (input.characterRender !== undefined) patch.characterRender = normalizeCharacterRender(input.characterRender);
     if (input.pageBackground !== undefined) patch.pageBackground = normalizeColor(input.pageBackground, DEFAULT_PAGE_BACKGROUND);
     if (input.pageTexture !== undefined) patch.pageTexture = normalizePaperTexture(input.pageTexture);
+    if (input.spreadBackground !== undefined) patch.spreadBackground = normalizeColor(input.spreadBackground, DEFAULT_SPREAD_BACKGROUND);
     if (input.textFont !== undefined) patch.textFont = normalizeFont(input.textFont, DEFAULT_TEXT_FONT);
     if (input.textColor !== undefined) patch.textColor = normalizeColor(input.textColor, DEFAULT_TEXT_COLOR);
     if (input.titleLayout !== undefined) patch.titleLayoutJson = layoutToJson(normalizeLayout(input.titleLayout));
