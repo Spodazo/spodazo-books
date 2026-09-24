@@ -16,13 +16,14 @@ import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
 import { bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
+import { fittedBox } from "../lib/cover-bleed";
 
 export type BookPdfKind = "standard" | "a3-a4" | "a4-a5";
 
 const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 const A3_LANDSCAPE: [number, number] = [1190.55, 841.89];
 
-type Rendered = { png: Uint8Array; width: number; height: number };
+type Rendered = { png: Uint8Array; width: number; height: number; color: string };
 type PaperPaint = { id: string; image: HTMLImageElement | null; edge: HTMLImageElement | null };
 
 function paintPaper(ctx: CanvasRenderingContext2D, color: string, width: number, height: number, paper?: PaperPaint) {
@@ -211,7 +212,7 @@ function drawFittedImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement, e
   ctx.restore();
 }
 
-async function snapshot(node: HTMLElement): Promise<Rendered> {
+async function snapshot(node: HTMLElement): Promise<{ png: Uint8Array; width: number; height: number }> {
   node.querySelectorAll<HTMLElement>(":scope > div").forEach((el) => {
     if (el.querySelector("p")) fitTextBox(el);
   });
@@ -286,7 +287,7 @@ async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" 
       else resolve(new Uint8Array(await blob.arrayBuffer()));
     }, "image/png");
   });
-  return { png, width: canvas.width, height: canvas.height };
+  return { png, width: canvas.width, height: canvas.height, color: paper };
 }
 
 function blankLeaf(color: string, paperPaint?: PaperPaint): Rendered {
@@ -300,7 +301,7 @@ function blankLeaf(color: string, paperPaint?: PaperPaint): Rendered {
   const binary = atob(data.split(",")[1] || "");
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return { png: bytes, width: canvas.width, height: canvas.height };
+  return { png: bytes, width: canvas.width, height: canvas.height, color };
 }
 
 async function halves(spread: Rendered): Promise<[Rendered, Rendered]> {
@@ -318,7 +319,7 @@ async function halves(spread: Rendered): Promise<[Rendered, Rendered]> {
         else resolve(new Uint8Array(await blob.arrayBuffer()));
       }, "image/png");
     });
-    return { png, width: canvas.width, height: canvas.height };
+    return { png, width: canvas.width, height: canvas.height, color: spread.color };
   };
   return [await cut(0), await cut(Math.floor(img.width / 2))];
 }
@@ -339,20 +340,51 @@ function loadImage(png: Uint8Array) {
   });
 }
 
-function fitRect(image: { width: number; height: number }, boxW: number, boxH: number) {
-  const scale = Math.min(boxW / image.width, boxH / image.height);
-  const width = image.width * scale;
-  const height = image.height * scale;
-  return { width, height, x: (boxW - width) / 2, y: (boxH - height) / 2 };
+function canvasPng(canvas: HTMLCanvasElement) {
+  return new Promise<Uint8Array>((resolve, reject) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) reject(new Error("Could not draw a page"));
+      else resolve(new Uint8Array(await blob.arrayBuffer()));
+    }, "image/png");
+  });
+}
+
+/** Paint the cover's page color across the whole PDF page, then center the cover art on it. */
+async function extendCover(shot: Rendered, pageW: number, pageH: number): Promise<Rendered> {
+  const width = Math.max(1, Math.round(pageW * 2));
+  const height = Math.max(1, Math.round(pageH * 2));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not extend a cover");
+  ctx.fillStyle = shot.color;
+  ctx.fillRect(0, 0, width, height);
+  const img = await loadImage(shot.png);
+  const box = fittedBox(img, width, height);
+  ctx.drawImage(img, box.x, box.y, box.width, box.height);
+  return { png: await canvasPng(canvas), width, height, color: shot.color };
 }
 
 async function standardPdf(cover: Rendered, spreads: Rendered[], back: Rendered | null) {
   const pdf = await PDFDocument.create();
-  const pages = back ? [cover, ...spreads, back] : [cover, ...spreads];
-  for (const shot of pages) {
-    const embedded = await pdf.embedPng(shot.png);
-    const page = pdf.addPage([shot.width > shot.height ? 960 : 480, 600]);
-    const box = fitRect(shot, page.getWidth(), page.getHeight());
+  const jobs = [
+    { shot: cover, cover: true },
+    ...spreads.map((shot) => ({ shot, cover: false })),
+    ...(back ? [{ shot: back, cover: true }] : []),
+  ];
+  for (const job of jobs) {
+    if (job.cover) {
+      const bled = await extendCover(job.shot, 960, 600);
+      const embedded = await pdf.embedPng(bled.png);
+      const page = pdf.addPage([960, 600]);
+      page.drawRectangle({ x: 0, y: 0, width: 960, height: 600, color: paperRgb(job.shot.color) });
+      page.drawImage(embedded, { x: 0, y: 0, width: 960, height: 600 });
+      continue;
+    }
+    const embedded = await pdf.embedPng(job.shot.png);
+    const page = pdf.addPage([job.shot.width > job.shot.height ? 960 : 480, 600]);
+    const box = fittedBox(job.shot, page.getWidth(), page.getHeight());
     page.drawImage(embedded, box);
   }
   return pdf.save();
@@ -368,7 +400,7 @@ function paperRgb(color: string) {
   );
 }
 
-async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: string, paperPaint?: PaperPaint) {
+async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: string, paperPaint?: PaperPaint, hasBack = false) {
   const total = paddedPageCount(leaves.length);
   const blanks = Array.from({ length: total - leaves.length }, () => blankLeaf(paper, paperPaint));
   const pages = [...leaves, ...blanks];
@@ -380,8 +412,16 @@ async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: st
     page.drawRectangle({ x: 0, y: 0, width: sheetW, height: sheetH, color: paperRgb(paper) });
     for (const [index, place] of [[side.left, 0], [side.right, halfW]] as const) {
       const shot = pages[index];
+      const isCover = index === 0 || (hasBack && index === pages.length - 1);
+      if (isCover) {
+        const bled = await extendCover(shot, halfW, sheetH);
+        const embedded = await pdf.embedPng(bled.png);
+        page.drawRectangle({ x: place, y: 0, width: halfW, height: sheetH, color: paperRgb(shot.color) });
+        page.drawImage(embedded, { x: place, y: 0, width: halfW, height: sheetH });
+        continue;
+      }
       const embedded = await pdf.embedPng(shot.png);
-      const box = fitRect(shot, halfW - 24, sheetH - 24);
+      const box = fittedBox(shot, halfW - 24, sheetH - 24);
       page.drawImage(embedded, { x: place + 12 + box.x, y: 12 + box.y, width: box.width, height: box.height });
     }
   }
@@ -422,5 +462,5 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
   const sheet = kind === "a3-a4" ? A3_LANDSCAPE : A4_LANDSCAPE;
   const label = kind === "a3-a4" ? "A3-folded-to-A4" : "A4-folded-to-A5";
-  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-${label}.pdf`);
+  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint, Boolean(back)), `${name}-${label}.pdf`);
 }
