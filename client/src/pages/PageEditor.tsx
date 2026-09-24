@@ -23,7 +23,7 @@ import {
   publishedLabel,
   syncBookFromLayouts,
 } from "@shared/page-layout";
-import { PAPER_TEXTURES, paperSurfaceStyle } from "@shared/paper";
+import { PAPER_TEXTURES, paperSurfaceStyle, paperSwatchStyle } from "@shared/paper";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { DEFAULT_FRAME_COLOR, TEXT_FRAMES, frameClass, frameMarkup, normalizeFrame } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
@@ -822,7 +822,7 @@ export default function PageEditorPage() {
                 aria-pressed={book.pageTexture === texture.id}
                 aria-label={texture.label}
                 title={texture.label}
-                style={{ ...paperSurfaceStyle(fill, texture.id), backgroundSize: "100% 100%" }}
+                style={paperSwatchStyle(texture.id)}
                 onClick={() => persist({ ...book, pageTexture: texture.id })}
               />
             ))}

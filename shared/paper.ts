@@ -1,21 +1,23 @@
 export const PAPER_TEXTURES = [
-  { id: "speckle", label: "Speckled" },
-  { id: "laid", label: "Laid" },
-  { id: "coldpress", label: "Cold press" },
-  { id: "deckle", label: "Deckle" },
-  { id: "felt", label: "Felt" },
+  { id: "speckle", label: "Speckled", w: 168, h: 160 },
+  { id: "laid", label: "Laid", w: 162, h: 160 },
+  { id: "coldpress", label: "Cold press", w: 164, h: 160 },
+  { id: "deckle", label: "Deckle", w: 92, h: 160 },
+  { id: "felt", label: "Felt", w: 172, h: 160 },
 ] as const;
 
 export type PaperTextureId = (typeof PAPER_TEXTURES)[number]["id"];
 
 const IDS = new Set<string>(PAPER_TEXTURES.map((item) => item.id));
 
-/** Repeat size, in CSS pixels. Keeps the grain at the scale of the paper samples. */
-export const PAPER_TILE_PX = 160;
-
 export function normalizePaperTexture(raw?: string | null): PaperTextureId | "" {
   const value = String(raw || "").trim();
   return IDS.has(value) ? (value as PaperTextureId) : "";
+}
+
+export function paperTexture(id?: string | null) {
+  const texture = normalizePaperTexture(id);
+  return PAPER_TEXTURES.find((item) => item.id === texture) || null;
 }
 
 export function paperTextureUrl(id?: string | null): string {
@@ -23,28 +25,41 @@ export function paperTextureUrl(id?: string | null): string {
   return texture ? `/paper/${texture}.png` : "";
 }
 
-/** Solid color, with a grain map multiplied on top so the same paper can be recolored. */
+/** The photograph, repeated at its own pixel size, so a patch matches the sample. */
 export function paperSurfaceStyle(color: string, texture?: string | null): Record<string, string> {
+  const paper = paperTexture(texture);
   const url = paperTextureUrl(texture);
-  if (!url) return { backgroundColor: color };
-  const tile = `${PAPER_TILE_PX}px ${PAPER_TILE_PX}px`;
-  const grain = `url("${url}")`;
-  if (normalizePaperTexture(texture) !== "deckle") {
+  if (!paper || !url) return { backgroundColor: color };
+  const tile = `${paper.w}px ${paper.h}px`;
+  if (paper.id === "deckle") {
     return {
       backgroundColor: color,
-      backgroundImage: grain,
-      backgroundRepeat: "repeat",
-      backgroundSize: tile,
-      backgroundPosition: "0 0",
-      backgroundBlendMode: "multiply",
+      backgroundImage: `url("/paper/deckle-edge.png"), url("${url}")`,
+      backgroundRepeat: "repeat-y, repeat",
+      backgroundSize: `auto, ${tile}`,
+      backgroundPosition: "left top, 0 0",
+      backgroundBlendMode: "normal, normal",
     };
   }
   return {
     backgroundColor: color,
-    backgroundImage: `linear-gradient(90deg, #c4b496, #ffffff 24%), ${grain}`,
-    backgroundRepeat: "no-repeat, repeat",
-    backgroundSize: `100% 100%, ${tile}`,
-    backgroundPosition: "0 0, 0 0",
-    backgroundBlendMode: "multiply, multiply",
+    backgroundImage: `url("${url}")`,
+    backgroundRepeat: "repeat",
+    backgroundSize: tile,
+    backgroundPosition: "0 0",
+    backgroundBlendMode: "normal",
   };
+}
+
+/** Editor buttons show the whole sample, including the deckle edge. */
+export function paperSwatchStyle(texture?: string | null): Record<string, string> {
+  if (normalizePaperTexture(texture) === "deckle") {
+    return {
+      backgroundImage: 'url("/paper/deckle-full.png")',
+      backgroundRepeat: "no-repeat",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+  }
+  return { ...paperSurfaceStyle("#ffffff", texture), backgroundSize: "100% 100%" };
 }

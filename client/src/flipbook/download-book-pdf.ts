@@ -8,7 +8,7 @@ import {
   pageFill,
   publishedLabel,
 } from "@shared/page-layout";
-import { PAPER_TILE_PX, normalizePaperTexture, paperTextureUrl } from "@shared/paper";
+import { normalizePaperTexture, paperTextureUrl } from "@shared/paper";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
@@ -21,28 +21,22 @@ const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 const A3_LANDSCAPE: [number, number] = [1190.55, 841.89];
 
 type Rendered = { png: Uint8Array; width: number; height: number };
-type PaperPaint = { id: string; image: HTMLImageElement | null };
+type PaperPaint = { id: string; image: HTMLImageElement | null; edge: HTMLImageElement | null };
 
 function paintPaper(ctx: CanvasRenderingContext2D, color: string, width: number, height: number, paper?: PaperPaint) {
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, width, height);
   const image = paper?.image;
   if (!image) return;
-  ctx.save();
-  ctx.globalCompositeOperation = "multiply";
-  for (let y = 0; y < height; y += PAPER_TILE_PX) {
-    for (let x = 0; x < width; x += PAPER_TILE_PX) {
-      ctx.drawImage(image, x, y, PAPER_TILE_PX, PAPER_TILE_PX);
-    }
+  const tileW = image.naturalWidth || image.width;
+  const tileH = image.naturalHeight || image.height;
+  for (let y = 0; y < height; y += tileH) {
+    for (let x = 0; x < width; x += tileW) ctx.drawImage(image, x, y);
   }
-  if (paper?.id === "deckle") {
-    const shade = ctx.createLinearGradient(0, 0, width * 0.24, 0);
-    shade.addColorStop(0, "#c4b496");
-    shade.addColorStop(1, "#ffffff");
-    ctx.fillStyle = shade;
-    ctx.fillRect(0, 0, width * 0.24, height);
-  }
-  ctx.restore();
+  const edge = paper?.edge;
+  if (!edge) return;
+  const edgeH = edge.naturalHeight || edge.height;
+  for (let y = 0; y < height; y += edgeH) ctx.drawImage(edge, 0, y);
 }
 
 function downloadBlob(bytes: Uint8Array, filename: string) {
@@ -393,6 +387,7 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   const paperPaint: PaperPaint = {
     id: textureId,
     image: textureId ? await loadHtmlImage(paperTextureUrl(textureId)).catch(() => null) : null,
+    edge: textureId === "deckle" ? await loadHtmlImage("/paper/deckle-edge.png").catch(() => null) : null,
   };
   const cover = await renderLayout(book.coverLayout, book, "cover", false, undefined, paperPaint);
   const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover", "back", legal, paperPaint) : null;

@@ -1418,9 +1418,9 @@ html[data-paper] .mobile-under,
 html[data-paper] .page-curl-peek{
   background-image:var(--paper-texture)!important;
   background-repeat:repeat!important;
-  background-size:var(--paper-tile,160px) var(--paper-tile,160px)!important;
+  background-size:var(--paper-w,168px) var(--paper-h,160px)!important;
   background-position:0 0!important;
-  background-blend-mode:multiply!important;
+  background-blend-mode:normal!important;
 }
 html[data-paper="deckle"] .page:not(.front-cover),
 html[data-paper="deckle"] .leaf-sheet,
@@ -1433,9 +1433,10 @@ html[data-paper="deckle"] .fade-from,
 html[data-paper="deckle"] .fixed-half,
 html[data-paper="deckle"] .mobile-under,
 html[data-paper="deckle"] .page-curl-peek{
-  background-image:linear-gradient(90deg,#c4b496,#ffffff 24%),var(--paper-texture)!important;
-  background-repeat:no-repeat,repeat!important;
-  background-size:100% 100%,var(--paper-tile,160px) var(--paper-tile,160px)!important;
-  background-blend-mode:multiply,multiply!important;
+  background-image:var(--paper-edge),var(--paper-texture)!important;
+  background-repeat:repeat-y,repeat!important;
+  background-size:auto,var(--paper-w,92px) var(--paper-h,160px)!important;
+  background-position:left top,0 0!important;
+  background-blend-mode:normal,normal!important;
 }
 
