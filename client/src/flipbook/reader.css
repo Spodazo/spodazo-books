@@ -1293,6 +1293,26 @@ html.phone-spread .page.laid-out:not(.title-page):not(.end-page)>.el-text{
   padding-top:0.45em;
   padding-bottom:0.45em;
 }
+#turn-phone{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:60;
+  margin:0;
+  place-items:center;
+  background:#322616;
+  color:#f3e2b8;
+  font:600 22px Story,sans-serif;
+  letter-spacing:.04em;
+}
+html.awaiting-turn,
+html.awaiting-turn body{
+  background:#322616;
+}
+html.awaiting-turn #turn-phone{display:grid}
+html.awaiting-turn main,
+html.awaiting-turn .book-spine,
+html.awaiting-turn .page-curl{visibility:hidden}
 
 .page.front-cover{
   background:transparent!important;

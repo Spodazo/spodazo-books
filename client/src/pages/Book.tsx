@@ -8,7 +8,6 @@ import { clearBookOpen, openingSince } from "../lib/bookOpen";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
 import type { PlayerSetup, PublicBook } from "@shared/types";
 import { mountReader } from "../flipbook/reader.js";
-import { isUprightPhone, lockReadingOrientation, unlockReadingOrientation } from "../lib/readingOrientation";
 
 export default function BookPage() {
   const [, params] = useRoute("/:slug");
@@ -47,29 +46,6 @@ export default function BookPage() {
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, [setLocation]);
-
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-    const sync = () => host.classList.toggle("is-upright", isUprightPhone());
-    sync();
-    void lockReadingOrientation().then(sync);
-    const portrait = window.matchMedia("(orientation: portrait)");
-    const phone = window.matchMedia("(max-width: 700px), (pointer: coarse) and (max-width: 1100px)");
-    portrait.addEventListener("change", sync);
-    phone.addEventListener("change", sync);
-    window.addEventListener("orientationchange", sync);
-    window.addEventListener("resize", sync);
-    screen.orientation?.addEventListener("change", sync);
-    return () => {
-      portrait.removeEventListener("change", sync);
-      phone.removeEventListener("change", sync);
-      window.removeEventListener("orientationchange", sync);
-      window.removeEventListener("resize", sync);
-      screen.orientation?.removeEventListener("change", sync);
-      unlockReadingOrientation();
-    };
-  }, [slug]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -112,5 +88,5 @@ export default function BookPage() {
     );
   }
 
-  return <div id="reader" ref={hostRef} className={`reader-host always-landscape${isUprightPhone() ? " is-upright" : ""}`} style={{ opacity: 0 }} />;
+  return <div id="reader" ref={hostRef} className="reader-host" style={{ opacity: 0 }} />;
 }
