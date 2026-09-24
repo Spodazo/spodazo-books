@@ -21,3 +21,9 @@ test("Books client never joins the system audio stack", () => {
     assert.equal(forbidden.test(text), false, `${file} must stay silent`);
   }
 });
+
+test("Books HTML shell is ambient-only so iOS does not treat reload as playback", () => {
+  const html = readFileSync(join(import.meta.dirname, "..", "..", "index.html"), "utf8");
+  assert.match(html, /audioSession[\s\S]*ambient/);
+  assert.equal(html.includes('"playback"'), false);
+});
