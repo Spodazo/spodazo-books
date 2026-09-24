@@ -2,7 +2,7 @@ import css from './reader.css?raw';
 import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
 import {elementTextHtml, publishedLabel} from '@shared/page-layout';
-import {normalizePaperTexture, paperTextureUrl} from '@shared/paper';
+import {PAPER_TILE_PX, normalizePaperTexture, paperTextureUrl} from '@shared/paper';
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
@@ -183,7 +183,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const texture=normalizePaperTexture(book.pageTexture);
   const textureUrl=texture?esc(safeURL(paperTextureUrl(texture),baseUrl)):'';
   const paperAttr=texture?` data-paper="${texture}"`:'';
-  const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}')`:'';
+  const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}');--paper-tile:${PAPER_TILE_PX}px`:'';
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
   const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;

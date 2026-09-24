@@ -157,7 +157,7 @@ function placeStoryText(elements: PageElement[], fontSize: number, pageW: number
   if (!bodies.length || pageW < 40 || pageH < 40) {
     return elements.map((item) => (storyText(item) ? { ...item, fontSize, align: "center" as const } : item));
   }
-  const artOnLeft = elements.some((item) => item.type === "image" && item.x < 40 && item.w >= 30);
+  const artOnLeft = elements.some((item) => item.type === "image" && item.x < 40 && item.w >= 30 && item.x + item.w <= 55);
   const area = artOnLeft
     ? { left: 54, right: 94, top: 8, bottom: 92 }
     : { left: 8, right: 92, top: 8, bottom: 92 };

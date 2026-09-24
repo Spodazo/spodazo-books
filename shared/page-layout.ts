@@ -78,8 +78,8 @@ export function normalizeElement(raw: Partial<PageElement> | null | undefined, i
     type,
     x: clampPercent(raw?.x, 8),
     y: clampPercent(raw?.y, 8),
-    w: clampPercent(raw?.w, type === "image" ? 40 : 84, 4, 100),
-    h: clampPercent(raw?.h, type === "image" ? 40 : 18, 4, 100),
+    w: clampPercent(raw?.w, type === "image" ? 40 : 84, type === "image" ? 1 : 4, 100),
+    h: clampPercent(raw?.h, type === "image" ? 40 : 18, type === "image" ? 1 : 4, 100),
     z: Math.max(0, Math.round(Number(raw?.z) || index + 1)),
     shape: type === "shape" && raw?.shape === "circle" ? "circle" : type === "shape" ? "rectangle" : undefined,
     text: type === "text" ? String(raw?.text || "") : undefined,
@@ -270,6 +270,7 @@ export function isLegacySingleLeafLayout(elements: PageElement[]): boolean {
   const overlayText = texts.every((item) => item.w >= 70 && (item.y >= 55 || item.y <= 22));
   if (images.length === 1) {
     const image = images[0];
+    if (image.fit === "contain") return false;
     const fullPage = image.x <= 2 && image.y <= 2 && image.w >= 95 && image.h >= 95;
     return fullPage && overlayText;
   }

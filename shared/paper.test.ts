@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizePaperTexture, paperSurfaceStyle, paperTextureUrl } from "./paper";
+import { PAPER_TILE_PX, normalizePaperTexture, paperSurfaceStyle, paperTextureUrl } from "./paper";
 
 test("normalizePaperTexture keeps the five papers", () => {
   assert.equal(normalizePaperTexture("speckle"), "speckle");
@@ -18,6 +18,9 @@ test("paperSurfaceStyle is a flat color until a texture is chosen", () => {
   assert.equal(laid.backgroundColor, "#112233");
   assert.equal(laid.backgroundImage, `url("${paperTextureUrl("laid")}")`);
   assert.equal(laid.backgroundBlendMode, "multiply");
-  assert.equal(paperSurfaceStyle("#112233", "deckle").backgroundPosition, "left center");
-  assert.equal(laid.backgroundSize, "cover");
+  assert.equal(laid.backgroundRepeat, "repeat");
+  assert.equal(laid.backgroundSize, `${PAPER_TILE_PX}px ${PAPER_TILE_PX}px`);
+  const deckle = paperSurfaceStyle("#112233", "deckle");
+  assert.match(deckle.backgroundImage, /^linear-gradient/);
+  assert.equal(deckle.backgroundSize, `100% 100%, ${PAPER_TILE_PX}px ${PAPER_TILE_PX}px`);
 });

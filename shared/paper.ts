@@ -10,6 +10,9 @@ export type PaperTextureId = (typeof PAPER_TEXTURES)[number]["id"];
 
 const IDS = new Set<string>(PAPER_TEXTURES.map((item) => item.id));
 
+/** Repeat size, in CSS pixels. Keeps the grain at the scale of the paper samples. */
+export const PAPER_TILE_PX = 160;
+
 export function normalizePaperTexture(raw?: string | null): PaperTextureId | "" {
   const value = String(raw || "").trim();
   return IDS.has(value) ? (value as PaperTextureId) : "";
@@ -24,13 +27,24 @@ export function paperTextureUrl(id?: string | null): string {
 export function paperSurfaceStyle(color: string, texture?: string | null): Record<string, string> {
   const url = paperTextureUrl(texture);
   if (!url) return { backgroundColor: color };
-  const deckle = normalizePaperTexture(texture) === "deckle";
+  const tile = `${PAPER_TILE_PX}px ${PAPER_TILE_PX}px`;
+  const grain = `url("${url}")`;
+  if (normalizePaperTexture(texture) !== "deckle") {
+    return {
+      backgroundColor: color,
+      backgroundImage: grain,
+      backgroundRepeat: "repeat",
+      backgroundSize: tile,
+      backgroundPosition: "0 0",
+      backgroundBlendMode: "multiply",
+    };
+  }
   return {
     backgroundColor: color,
-    backgroundImage: `url("${url}")`,
-    backgroundRepeat: "no-repeat",
-    backgroundSize: "cover",
-    backgroundPosition: deckle ? "left center" : "center",
-    backgroundBlendMode: "multiply",
+    backgroundImage: `linear-gradient(90deg, #c4b496, #ffffff 24%), ${grain}`,
+    backgroundRepeat: "no-repeat, repeat",
+    backgroundSize: `100% 100%, ${tile}`,
+    backgroundPosition: "0 0, 0 0",
+    backgroundBlendMode: "multiply, multiply",
   };
 }

@@ -8,7 +8,7 @@ import {
   pageFill,
   publishedLabel,
 } from "@shared/page-layout";
-import { normalizePaperTexture, paperTextureUrl } from "@shared/paper";
+import { PAPER_TILE_PX, normalizePaperTexture, paperTextureUrl } from "@shared/paper";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
@@ -30,11 +30,18 @@ function paintPaper(ctx: CanvasRenderingContext2D, color: string, width: number,
   if (!image) return;
   ctx.save();
   ctx.globalCompositeOperation = "multiply";
-  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
-  const dw = image.naturalWidth * scale;
-  const dh = image.naturalHeight * scale;
-  const dx = paper?.id === "deckle" ? 0 : (width - dw) / 2;
-  ctx.drawImage(image, dx, (height - dh) / 2, dw, dh);
+  for (let y = 0; y < height; y += PAPER_TILE_PX) {
+    for (let x = 0; x < width; x += PAPER_TILE_PX) {
+      ctx.drawImage(image, x, y, PAPER_TILE_PX, PAPER_TILE_PX);
+    }
+  }
+  if (paper?.id === "deckle") {
+    const shade = ctx.createLinearGradient(0, 0, width * 0.24, 0);
+    shade.addColorStop(0, "#c4b496");
+    shade.addColorStop(1, "#ffffff");
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, width * 0.24, height);
+  }
   ctx.restore();
 }
 

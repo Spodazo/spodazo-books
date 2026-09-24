@@ -77,6 +77,32 @@ test("legacy full-page layouts become a two-leaf spread", () => {
   assert.equal(next.elements[1].text, "Edited wording");
 });
 
+test("a spread picture is kept across both leaves", () => {
+  const page = {
+    id: "page-1",
+    sourcePage: 1,
+    kind: "story",
+    title: "Hello",
+    paragraphs: ["The fox ran across the snow."],
+    imageAsset: "fox.webp",
+    fullPageAsset: "fox.webp",
+    imageUrl: "/media/images/fox.webp",
+    fullPageUrl: "/media/images/fox.webp",
+    position: "bottom",
+    focalPoint: "50% 50%",
+    elements: [
+      { id: "art", type: "image", x: 0, y: 0, w: 100, h: 100, z: 1, imageAsset: "fox.webp", fit: "contain" },
+      { id: "words", type: "text", x: 20, y: 70, w: 60, h: 20, z: 2, text: "The fox ran across the snow.", role: "body", fontSize: 3.4 },
+    ],
+    background: "",
+  } as BookPage;
+  assert.equal(isLegacySingleLeafLayout(page.elements), false);
+  const next = ensurePageElements(page);
+  assert.equal(next.elements[0].w, 100);
+  assert.equal(next.elements[0].fit, "contain");
+  assert.equal(next.elements[1].x, 20);
+});
+
 test("legacy text-only pages move wording onto the right leaf", () => {
   const page = {
     id: "page-2",
