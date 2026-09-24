@@ -228,7 +228,7 @@ function cropPhoneLeaf(source,side){
   return kept?page:null;
 }
 function splitLaidOutLeaves(){
-  if(!mobile)return;
+  if(!mobile||document.documentElement.classList.contains('willow'))return;
   var next=[],i,p,left,right;
   for(i=0;i<pages.length;i++){
     p=pages[i];
