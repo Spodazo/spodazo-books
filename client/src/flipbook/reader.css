@@ -1420,7 +1420,7 @@ html[data-paper] .page-curl-peek{
   background-repeat:repeat!important;
   background-size:var(--paper-w,168px) var(--paper-h,160px)!important;
   background-position:0 0!important;
-  background-blend-mode:normal!important;
+  background-blend-mode:luminosity!important;
 }
 html[data-paper="deckle"] .page:not(.front-cover),
 html[data-paper="deckle"] .leaf-sheet,
@@ -1437,6 +1437,6 @@ html[data-paper="deckle"] .page-curl-peek{
   background-repeat:repeat-y,repeat!important;
   background-size:auto,var(--paper-w,92px) var(--paper-h,160px)!important;
   background-position:left top,0 0!important;
-  background-blend-mode:normal,normal!important;
+  background-blend-mode:luminosity,luminosity!important;
 }
 

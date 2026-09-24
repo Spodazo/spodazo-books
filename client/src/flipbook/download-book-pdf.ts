@@ -28,15 +28,19 @@ function paintPaper(ctx: CanvasRenderingContext2D, color: string, width: number,
   ctx.fillRect(0, 0, width, height);
   const image = paper?.image;
   if (!image) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "luminosity";
   const tileW = image.naturalWidth || image.width;
   const tileH = image.naturalHeight || image.height;
   for (let y = 0; y < height; y += tileH) {
     for (let x = 0; x < width; x += tileW) ctx.drawImage(image, x, y);
   }
   const edge = paper?.edge;
-  if (!edge) return;
-  const edgeH = edge.naturalHeight || edge.height;
-  for (let y = 0; y < height; y += edgeH) ctx.drawImage(edge, 0, y);
+  if (edge) {
+    const edgeH = edge.naturalHeight || edge.height;
+    for (let y = 0; y < height; y += edgeH) ctx.drawImage(edge, 0, y);
+  }
+  ctx.restore();
 }
 
 function downloadBlob(bytes: Uint8Array, filename: string) {

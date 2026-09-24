@@ -822,7 +822,7 @@ export default function PageEditorPage() {
                 aria-pressed={book.pageTexture === texture.id}
                 aria-label={texture.label}
                 title={texture.label}
-                style={paperSwatchStyle(texture.id)}
+                style={paperSwatchStyle(fill, texture.id)}
                 onClick={() => persist({ ...book, pageTexture: texture.id })}
               />
             ))}

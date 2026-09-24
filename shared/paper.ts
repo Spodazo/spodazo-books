@@ -25,7 +25,10 @@ export function paperTextureUrl(id?: string | null): string {
   return texture ? `/paper/${texture}.png` : "";
 }
 
-/** The photograph, repeated at its own pixel size, so a patch matches the sample. */
+/**
+ * The photograph supplies the light and dark of the paper.
+ * The chosen color supplies the hue, so the same stock can be recolored.
+ */
 export function paperSurfaceStyle(color: string, texture?: string | null): Record<string, string> {
   const paper = paperTexture(texture);
   const url = paperTextureUrl(texture);
@@ -38,7 +41,7 @@ export function paperSurfaceStyle(color: string, texture?: string | null): Recor
       backgroundRepeat: "repeat-y, repeat",
       backgroundSize: `auto, ${tile}`,
       backgroundPosition: "left top, 0 0",
-      backgroundBlendMode: "normal, normal",
+      backgroundBlendMode: "luminosity, luminosity",
     };
   }
   return {
@@ -47,19 +50,21 @@ export function paperSurfaceStyle(color: string, texture?: string | null): Recor
     backgroundRepeat: "repeat",
     backgroundSize: tile,
     backgroundPosition: "0 0",
-    backgroundBlendMode: "normal",
+    backgroundBlendMode: "luminosity",
   };
 }
 
-/** Editor buttons show the whole sample, including the deckle edge. */
-export function paperSwatchStyle(texture?: string | null): Record<string, string> {
+/** Editor buttons show the whole sample in the current paper color. */
+export function paperSwatchStyle(color: string, texture?: string | null): Record<string, string> {
   if (normalizePaperTexture(texture) === "deckle") {
     return {
+      backgroundColor: color,
       backgroundImage: 'url("/paper/deckle-full.png")',
       backgroundRepeat: "no-repeat",
       backgroundSize: "cover",
       backgroundPosition: "center",
+      backgroundBlendMode: "luminosity",
     };
   }
-  return { ...paperSurfaceStyle("#ffffff", texture), backgroundSize: "100% 100%" };
+  return { ...paperSurfaceStyle(color, texture), backgroundSize: "100% 100%" };
 }

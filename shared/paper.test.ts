@@ -18,12 +18,15 @@ test("paperSurfaceStyle shows the sample photograph at its own size", () => {
   const tile = paperTexture("laid");
   assert.equal(laid.backgroundColor, "#112233");
   assert.equal(laid.backgroundImage, `url("${paperTextureUrl("laid")}")`);
-  assert.equal(laid.backgroundBlendMode, "normal");
+  assert.equal(laid.backgroundBlendMode, "luminosity");
   assert.equal(laid.backgroundRepeat, "repeat");
   assert.equal(laid.backgroundSize, `${tile?.w}px ${tile?.h}px`);
   const deckle = paperSurfaceStyle("#112233", "deckle");
   assert.match(String(deckle.backgroundImage), /deckle-edge\.png/);
   assert.equal(deckle.backgroundRepeat, "repeat-y, repeat");
-  assert.equal(deckle.backgroundBlendMode, "normal, normal");
-  assert.match(paperSwatchStyle("deckle").backgroundImage || "", /deckle-full\.png/);
+  assert.equal(deckle.backgroundBlendMode, "luminosity, luminosity");
+  const swatch = paperSwatchStyle("#efdda6", "deckle");
+  assert.equal(swatch.backgroundColor, "#efdda6");
+  assert.match(swatch.backgroundImage || "", /deckle-full\.png/);
+  assert.equal(swatch.backgroundBlendMode, "luminosity");
 });
