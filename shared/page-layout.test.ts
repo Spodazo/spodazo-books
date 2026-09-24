@@ -42,6 +42,12 @@ test("remapSpreadBoxToLeaf keeps a designed leaf and drops the other side", () =
   assert.deepEqual(bleed, { x: -100, y: 0, w: 200, h: 100 });
 });
 
+test("remapSpreadBoxToLeaf keeps spanning art whole on its home leaf", () => {
+  const wordmark = { x: 35, y: 4, w: 65, h: 41 };
+  assert.equal(remapSpreadBoxToLeaf(wordmark, "left"), null);
+  assert.deepEqual(remapSpreadBoxToLeaf(wordmark, "right"), { x: 6, y: 4, w: 88, h: 41 });
+});
+
 test("defaultStoryElements places art and wording", () => {
   const page = {
     id: "page-1",

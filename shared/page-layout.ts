@@ -79,6 +79,13 @@ export function remapSpreadBoxToLeaf(
 ): { x: number; y: number; w: number; h: number } | null {
   const leafX = side === "left" ? 0 : 50;
   if (box.x + box.w <= leafX || box.x >= leafX + 50) return null;
+  const crosses = box.x < 50 && box.x + box.w > 50;
+  const bleed = box.x <= 2 && box.w >= 95;
+  if (crosses && !bleed) {
+    const home = box.x + box.w / 2 < 50 ? "left" : "right";
+    if (home !== side) return null;
+    return { x: 6, y: box.y, w: 88, h: box.h };
+  }
   return {
     x: (box.x - leafX) * 2,
     y: box.y,

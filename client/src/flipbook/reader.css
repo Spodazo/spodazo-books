@@ -146,7 +146,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 .number,
 #count{display:none!important}
 @media(max-width:700px) and (orientation:portrait),(pointer:coarse) and (max-width:1100px) and (orientation:portrait){
-  .page.title-page,.mobile .page.title-page{
+  .page.title-page:not(.phone-leaf),.mobile .page.title-page:not(.phone-leaf){
     grid-template-columns:1fr!important;
     grid-template-rows:.55fr auto auto auto 1fr auto;
     justify-items:stretch;
@@ -625,7 +625,7 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
   text-align:center;
   pointer-events:none;
 }
-.page.laid-out.end-page .end-legal{
+.page.laid-out.end-page:not(.phone-leaf) .end-legal{
   left:50%;
   right:0;
   width:50%;
@@ -688,10 +688,10 @@ main:before{content:'';position:absolute;inset:0;z-index:24;pointer-events:none;
 }
 
 @media(max-width:700px) and (orientation:portrait),(pointer:coarse) and (max-width:1100px) and (orientation:portrait){
-  .page.end-page.current,
-  .mobile .page.end-page.current,
-  .leaf-copy.end-page,
-  .mobile .leaf-copy.end-page{
+  .page.end-page.current:not(.phone-leaf),
+  .mobile .page.end-page.current:not(.phone-leaf),
+  .leaf-copy.end-page:not(.phone-leaf),
+  .mobile .leaf-copy.end-page:not(.phone-leaf){
     display:flex!important;
     flex-direction:column;
     justify-content:flex-start;
@@ -1040,17 +1040,17 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
     width:86%!important;
     order:2;
   }
-  .page.laid-out.end-page>.el-text p{
+  .page.laid-out.end-page:not(.phone-leaf)>.el-text p{
     font-size:clamp(32px,8vw,56px)!important;
     font-weight:700;
     text-align:center;
   }
-  .page.laid-out.end-page>.read-again,
-  .mobile .page.laid-out.end-page>.read-again{
+  .page.laid-out.end-page:not(.phone-leaf)>.read-again,
+  .mobile .page.laid-out.end-page:not(.phone-leaf)>.read-again{
     display:none;
   }
-  .page.laid-out.end-page .el-text[data-role="end"] .read-again,
-  .mobile .page.laid-out.end-page .el-text[data-role="end"] .read-again{
+  .page.laid-out.end-page:not(.phone-leaf) .el-text[data-role="end"] .read-again,
+  .mobile .page.laid-out.end-page:not(.phone-leaf) .el-text[data-role="end"] .read-again{
     position:relative;
     left:auto;
     width:auto;
@@ -1058,8 +1058,8 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
     margin:12px auto 0;
     pointer-events:auto;
   }
-  .page.laid-out.end-page .end-legal,
-  .mobile .page.laid-out.end-page .end-legal{
+  .page.laid-out.end-page:not(.phone-leaf) .end-legal,
+  .mobile .page.laid-out.end-page:not(.phone-leaf) .end-legal{
     left:6%;
     right:6%;
     width:auto;
@@ -1449,8 +1449,11 @@ html[data-paper="deckle"] .page-curl-peek{
 .mobile-flip .leaf-copy.laid-out.phone-leaf{
   display:block!important;
   position:absolute!important;
+  inset:auto!important;
   left:50%!important;
   top:50%!important;
+  right:auto!important;
+  bottom:auto!important;
   width:min(calc(100vw - 20px),calc((100dvh - 24px) * .8))!important;
   height:min(calc(100dvh - 24px),calc((100vw - 20px) / .8))!important;
   max-width:none!important;
@@ -1460,7 +1463,6 @@ html[data-paper="deckle"] .page-curl-peek{
   padding:0!important;
   box-sizing:border-box;
   flex-direction:unset!important;
-  inset:auto!important;
 }
 .mobile .page.laid-out.phone-leaf>.el,
 .mobile .leaf-copy.laid-out.phone-leaf>.el,
@@ -1471,8 +1473,13 @@ html[data-paper="deckle"] .page-curl-peek{
 .mobile .page.laid-out.phone-leaf>.el-image,
 .mobile .leaf-copy.laid-out.phone-leaf>.el-image,
 .mobile .page.phone-leaf>img{
-  inset:auto!important;
   object-fit:var(--fit,cover)!important;
   object-position:var(--focus,center center)!important;
+}
+.mobile .page.laid-out.phone-leaf.end-page .end-legal{
+  left:6%;
+  right:6%;
+  width:auto;
+  padding:0;
 }
 

@@ -203,7 +203,7 @@ function pct(el,prop){
 function cropPhoneLeaf(source,side){
   var page=source.cloneNode(true);
   var els=Array.prototype.slice.call(page.querySelectorAll('.el'));
-  var kept=0,leafX=side==='left'?0:50,x,w,i,el,crosses,home;
+  var kept=0,leafX=side==='left'?0:50,x,w,i,el,crosses,home,bleed;
   page.classList.add('phone-leaf');
   page.setAttribute('data-phone-leaf',side);
   for(i=0;i<els.length;i++){
@@ -212,7 +212,8 @@ function cropPhoneLeaf(source,side){
     w=pct(el,'width');
     if(x==null||w==null||x+w<=leafX||x>=leafX+50){el.remove();continue;}
     crosses=x<50&&x+w>50;
-    if(crosses&&el.classList.contains('el-text')){
+    bleed=x<=2&&w>=95;
+    if(crosses&&!bleed){
       home=x+w/2<50?'left':'right';
       if(home!==side){el.remove();continue;}
       el.style.left='6%';
