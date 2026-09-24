@@ -16,7 +16,7 @@ import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
 import { bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
-import { fittedBox } from "../lib/cover-bleed";
+import { filledBox, fittedBox } from "../lib/cover-bleed";
 
 export type BookPdfKind = "standard" | "a3-a4" | "a4-a5";
 
@@ -349,7 +349,7 @@ function canvasPng(canvas: HTMLCanvasElement) {
   });
 }
 
-/** Paint the cover's page color across the whole PDF page, then center the cover art on it. */
+/** Fill a PDF page with the rendered cover, cropping overflow so textures and backgrounds reach the edges. */
 async function extendCover(shot: Rendered, pageW: number, pageH: number): Promise<Rendered> {
   const width = Math.max(1, Math.round(pageW * 2));
   const height = Math.max(1, Math.round(pageH * 2));
@@ -358,10 +358,8 @@ async function extendCover(shot: Rendered, pageW: number, pageH: number): Promis
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not extend a cover");
-  ctx.fillStyle = shot.color;
-  ctx.fillRect(0, 0, width, height);
   const img = await loadImage(shot.png);
-  const box = fittedBox(img, width, height);
+  const box = filledBox(img, width, height);
   ctx.drawImage(img, box.x, box.y, box.width, box.height);
   return { png: await canvasPng(canvas), width, height, color: shot.color };
 }
@@ -378,7 +376,6 @@ async function standardPdf(cover: Rendered, spreads: Rendered[], back: Rendered 
       const bled = await extendCover(job.shot, 960, 600);
       const embedded = await pdf.embedPng(bled.png);
       const page = pdf.addPage([960, 600]);
-      page.drawRectangle({ x: 0, y: 0, width: 960, height: 600, color: paperRgb(job.shot.color) });
       page.drawImage(embedded, { x: 0, y: 0, width: 960, height: 600 });
       continue;
     }
