@@ -7,6 +7,7 @@ import {
   adminLogout,
   adminMe,
   createBook,
+  importPdfOnServer,
   deleteBook,
   generateAiImage,
   generateAiOutline,
@@ -25,12 +26,22 @@ import { ensureBookLayouts } from "@shared/page-layout";
 import { writeCachedSetup } from "../lib/homeCache";
 import { applyPalette } from "../lib/palette";
 import { applySiteIcons } from "../lib/siteIcons";
-import { importPDF } from "../flipbook/pdf-import.js";
-import { persistImportedBook } from "../flipbook/persistence.js";
 import { downloadBookPdf, type BookPdfKind } from "../flipbook/download-book-pdf";
 import { mountReader } from "../flipbook/reader.js";
 
-type Imported = Awaited<ReturnType<typeof importPDF>>;
+type Imported = {
+  book: {
+    schemaVersion: 1;
+    title: string;
+    tagline?: string;
+    author?: string;
+    date?: string;
+    pdfUrl: string;
+    pages: BookPage[];
+  };
+  serverPrepared: true;
+  dispose: () => void;
+};
 
 export default function AdminPage() {
   const [ready, setReady] = useState(false);
@@ -280,14 +291,21 @@ function ImportBookForm({
     setBusy(true);
     setStatus("Importing…");
     try {
-      const result = await importPDF(file, {
-        mode: "auto",
-        signal: controller.signal,
-        resourceBase: `${location.origin}/pdfjs/`,
-        onProgress: ({ page, total }: { page: number; total: number }) => setStatus(`Importing page ${page} of ${total}…`),
-      });
+      if (controller.signal.aborted) throw new DOMException("Import cancelled", "AbortError");
+      setStatus("Uploading PDF to the server…");
+      const result = await importPdfOnServer(file);
+      if (controller.signal.aborted) throw new DOMException("Import cancelled", "AbortError");
       imported?.dispose();
-      setImported(result);
+      setImported({
+        book: {
+          ...result.book,
+          tagline: "",
+          author: "",
+          date: "",
+        },
+        serverPrepared: true,
+        dispose: () => {},
+      });
       setPageIndex(0);
       setStatus(`${result.book.pages.length} pages ready. Review the wording, then save.`);
     } catch (err) {
@@ -306,7 +324,7 @@ function ImportBookForm({
         const file = event.currentTarget.files?.[0];
         if (file) void load(file);
       }} />
-      <p className="hint">{status || "Each PDF page becomes one leaf of the flip book."}</p>
+      <p className="hint">{status || "Each PDF page becomes one leaf of the flip book. Import runs on the server so Safari and dock icons work reliably."}</p>
       {imported && page ? (
         <>
           <label>Book title</label>
@@ -355,32 +373,23 @@ function ImportBookForm({
             setBusy(true);
             setError("");
             try {
-              const saved = await persistImportedBook(
-                imported,
-                async (blob: Blob, filename: string) => {
-                  const uploaded = await uploadBookAsset(blob, filename);
-                  return new URL(uploaded.url, location.origin).href;
-                },
-                async (manifest: { title: string; pdfUrl: string; pages: BookPage[] }) => {
-                  return createBook({
-                    title: manifest.title,
-                    tagline: imported.book.tagline,
-                    author: imported.book.author,
-                    date: imported.book.date,
-                    slug: /willow/i.test(manifest.title)
-                      ? "Willows-Big-Forest-Adventure"
-                      : /rudolph/i.test(manifest.title)
-                        ? "Rudolph-The-Red-Nosed-Reindeer"
-                        : undefined,
-                    pdfUrl: manifest.pdfUrl,
-                    coverUrl: manifest.pages[0]?.imageUrl,
-                    pageTemplate: "one-up",
-                    pages: manifest.pages,
-                    published: true,
-                    hidden: false,
-                  });
-                },
-              ) as PublicBook;
+              const saved = await createBook({
+                title: imported.book.title,
+                tagline: imported.book.tagline,
+                author: imported.book.author,
+                date: imported.book.date,
+                slug: /willow/i.test(imported.book.title)
+                  ? "Willows-Big-Forest-Adventure"
+                  : /rudolph/i.test(imported.book.title)
+                    ? "Rudolph-The-Red-Nosed-Reindeer"
+                    : undefined,
+                pdfUrl: imported.book.pdfUrl,
+                coverUrl: imported.book.pages[0]?.imageUrl,
+                pageTemplate: "one-up",
+                pages: imported.book.pages,
+                published: true,
+                hidden: false,
+              });
               imported.dispose();
               await onSaved(saved);
             } catch (err) {

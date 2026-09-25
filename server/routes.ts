@@ -32,6 +32,7 @@ import {
   parseImageRequest,
   parseOutlineRequest,
 } from "./ai-book";
+import { importPdfOnServer } from "./pdf-import";
 
 function isPdfUpload(file: { fieldname: string; mimetype: string; originalname: string }): boolean {
   return file.fieldname === "pdf" || file.mimetype === "application/pdf" || /\.pdf$/i.test(file.originalname);
@@ -391,6 +392,20 @@ export function registerRoutes(app: Express): void {
     const isPdf = file.fieldname === "pdf" || file.mimetype === "application/pdf" || /\.pdf$/i.test(file.originalname);
     const url = isPdf ? pdfUrl(file.filename) : imageUrl(file.filename);
     res.json({ url, filename: file.filename });
+  });
+
+  app.post("/api/admin/import-pdf", requireAdmin, upload.single("file"), async (req, res) => {
+    const file = req.file;
+    if (!file || !isPdfUpload(file)) {
+      res.status(400).json({ error: "Choose a PDF file." });
+      return;
+    }
+    try {
+      const imported = await importPdfOnServer(file.path, file.originalname);
+      res.json(imported);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Import failed" });
+    }
   });
 
   app.post("/api/admin/books", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 }, { name: "pdf", maxCount: 1 }]), async (req, res) => {

@@ -1,4 +1,4 @@
-import type { BookListItem, Curator, PlayerSetup, PublicBook } from "@shared/types";
+import type { BookListItem, BookPage, Curator, PlayerSetup, PublicBook } from "@shared/types";
 
 async function parse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -109,6 +109,24 @@ export function recoverCuratorPassword(fields: {
   })
     .then((res) => parse<{ ok: boolean }>(res))
     .then(() => undefined);
+}
+
+export type ServerPdfImport = {
+  book: {
+    schemaVersion: 1;
+    title: string;
+    pdfUrl: string;
+    pages: BookPage[];
+  };
+  pdfAsset: string;
+};
+
+export function importPdfOnServer(file: File): Promise<ServerPdfImport> {
+  const data = new FormData();
+  data.append("file", file, file.name);
+  return fetch("/api/admin/import-pdf", { method: "POST", body: data, credentials: "same-origin" }).then((res) =>
+    parse<ServerPdfImport>(res),
+  );
 }
 
 export function uploadBookAsset(blob: Blob, filename: string): Promise<{ url: string; filename: string }> {
