@@ -1106,7 +1106,10 @@ html.mobile .leaf-copy.laid-out>.el{
   margin-left:0!important;
   margin-right:0!important;
 }
-html.mobile .page.laid-out:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile),
+html.mobile main>.page:not(.current){
+  display:none!important;
+}
+html.mobile .page.laid-out.current:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile),
 html.mobile .leaf-copy.laid-out:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile){
   display:flex!important;
   flex-direction:column;
@@ -1118,7 +1121,7 @@ html.mobile .leaf-copy.laid-out:not(.title-page):not(.end-page):not(.cover-plate
   max-width:100%;
   box-sizing:border-box;
 }
-html.mobile .page.laid-out:not(.title-page):not(.end-page)>.el-image,
+html.mobile .page.laid-out.current:not(.title-page):not(.end-page)>.el-image,
 html.mobile .leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-image{
   width:100%!important;
   max-width:100%!important;
@@ -1133,7 +1136,7 @@ html.mobile .leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-image{
   order:1;
   box-sizing:border-box;
 }
-html.mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text,
+html.mobile .page.laid-out.current:not(.title-page):not(.end-page)>.el-text,
 html.mobile .leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-text{
   width:100%!important;
   max-width:100%!important;
