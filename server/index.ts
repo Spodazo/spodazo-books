@@ -7,6 +7,7 @@ import { htmlWithSiteIcons } from "./htmlIcons";
 import { prepareFaviconSet, warmHomeCardImages } from "./media";
 import { ensureDataDirs, syncBundledMedia } from "./paths";
 import { ensureSessionTable, sessionMiddleware } from "./session";
+import { ensureRudolphOneUpDisplay } from "./rudolph-one-up-migration";
 import { getStore } from "./storage";
 
 process.on("unhandledRejection", (reason) => {
@@ -29,7 +30,12 @@ registerRoutes(app);
 
 async function start() {
   await ensureSessionTable();
-  await getStore();
+  const store = await getStore();
+  try {
+    await ensureRudolphOneUpDisplay(store);
+  } catch (err) {
+    console.error("[catalog] Rudolph one-up migration failed:", err);
+  }
   try {
     const setup = await (await getStore()).getPlayerSetup();
     if (setup.favicon) await prepareFaviconSet(setup.favicon);
