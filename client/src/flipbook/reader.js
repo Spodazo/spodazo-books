@@ -141,8 +141,8 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
-function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hintDesktop="Tap the right page to turn", hintMobile="Swipe left to turn the page"}={}) {
-  const hintHtml = hint ? `<div id="hint" class="hint" role="status"><span class="hint-desktop">${esc(hintDesktop)}</span><span class="hint-mobile">${esc(hintMobile)}</span></div>` : "";
+function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=false}={}) {
+  const hintHtml = hint ? `<div id="hint" class="hint" role="status"></div>` : "";
   const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>`;
   const zones = `${back?`<button class="zone" data-dir="-1" aria-label="Previous page"></button>`:""}${next?`<button class="zone" data-dir="1" aria-label="Next page"></button>`:""}`;
   return `${close}${hintHtml}${zones}`;
@@ -153,11 +153,11 @@ function frontCoverHtml(book, baseUrl, libraryUrl) {
   const layout = book.coverLayout;
   const fill = pageFill(layout, book);
   const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
-  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
+  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
-  const chrome = readerChrome(libraryUrl, baseUrl, {hint: isCurrent});
+  const chrome = readerChrome(libraryUrl, baseUrl);
   const current = isCurrent ? " current" : "";
   if (hasLayout(book.titleLayout)) {
     return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, ` title-page${current}`).replace("<article", '<article data-source="title"');

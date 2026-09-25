@@ -795,38 +795,184 @@ html:has(.upright-pdf) body {
 }
 .portrait-slot.active figcaption { color: #fff6d8; }
 .portrait-phone-frame {
-  display: flex;
-  flex-direction: column;
+  position: relative;
   flex: none;
   border-radius: 12px;
   overflow: hidden;
-  background: #322616;
   box-shadow: 0 10px 28px #0006;
+  background: var(--page-paper, #efdda6);
 }
-.portrait-phone-frame.cover .portrait-sheet {
-  border-radius: 12px 12px 0 0;
+.portrait-cover-edit-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
 }
-.portrait-phone-hint {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.portrait-cover-edit-layer .page-editor-el {
+  pointer-events: auto;
+  background: transparent;
+  border: 1px dashed transparent;
+  box-sizing: border-box;
+}
+.portrait-cover-edit-layer .page-editor-el.selected {
+  border-color: #d99028;
+}
+.portrait-mobile-mirror.front-cover-leaf {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  container-type: size;
+}
+.portrait-mobile-mirror.front-cover-leaf .cover-bit {
+  position: absolute;
   margin: 0;
-  padding: 8px 12px 12px;
-  color: #f3e2b8;
-  font: 600 15px/1.35 Story, Georgia, serif;
-  letter-spacing: 0.03em;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+.portrait-mobile-mirror.front-cover-leaf .cover-bit-image {
+  object-fit: var(--fit, cover);
+  object-position: var(--focus, center center);
+}
+.portrait-mobile-mirror.front-cover-leaf .cover-bit-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  font-size: calc(var(--fs, 4) * 1cqh);
+  font-family: var(--ff, Story, serif);
+  color: var(--ink, #203b2a);
+}
+.portrait-mobile-mirror.laid-out {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  container-type: size;
+  box-sizing: border-box;
+}
+.portrait-mobile-mirror.laid-out > .el {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
+  max-width: 100%;
+}
+.portrait-mobile-mirror.laid-out > .el-image {
+  height: auto !important;
+}
+.portrait-mobile-mirror.laid-out > .el-image[data-size="small"] {
+  display: none;
+}
+.portrait-mobile-mirror.laid-out > .el-text p {
+  font-size: clamp(16px, 3.2cqh, 26px);
+  overflow-wrap: break-word;
+}
+.portrait-mobile-mirror.laid-out.title-page {
+  display: grid !important;
+  grid-template-rows: 1fr auto auto auto 1fr auto auto;
+  justify-items: center;
+  align-items: center;
+  padding: 48px 18px 16px;
+}
+.portrait-mobile-mirror.laid-out.title-page > .el-text[data-role="title"] {
+  grid-row: 2;
+  width: 92% !important;
+  margin: 0 0 18px;
+}
+.portrait-mobile-mirror.laid-out.title-page > .el-text[data-role="title"] p {
+  font-size: clamp(34px, 8.6vw, 56px) !important;
+  font-weight: 800;
+  line-height: 1.05;
   text-align: center;
 }
-.portrait-sheet.page-editor-page {
-  position: relative;
-  inset: auto;
-  flex: none;
-  border-radius: 12px;
-  box-shadow: none;
-  touch-action: none;
+.portrait-mobile-mirror.laid-out.title-page > .el-image[data-size="main"] {
+  grid-row: 3;
+  width: auto !important;
+  max-width: 72%;
+  max-height: 36%;
+  object-fit: contain;
+  margin: 8px 0 22px;
 }
-.portrait-phone-frame:not(.cover) .portrait-sheet {
-  height: 100%;
+.portrait-mobile-mirror.laid-out.title-page > .el-text[data-role="tagline"] {
+  grid-row: 4;
+  width: 90% !important;
+}
+.portrait-mobile-mirror.laid-out.title-page > .el-text[data-role="tagline"] p {
+  font-size: clamp(16px, 2.5cqh, 26px) !important;
+  font-weight: 700;
+  text-align: center;
+}
+.portrait-mobile-mirror.laid-out.title-page > .el-text[data-role="author"] {
+  grid-row: 6;
+  width: 90% !important;
+}
+.portrait-mobile-mirror.laid-out.title-page > .el-text[data-role="date"] {
+  grid-row: 7;
+  width: 90% !important;
+}
+.portrait-mobile-mirror.laid-out.title-page > .el-text[data-role="author"] p,
+.portrait-mobile-mirror.laid-out.title-page > .el-text[data-role="date"] p {
+  font-size: clamp(14px, 2cqh, 18px) !important;
+  text-align: center;
+}
+.portrait-mobile-mirror.laid-out:not(.title-page):not(.end-page) {
+  display: flex !important;
+  flex-direction: column;
+  padding: 8px 18px 12px 26px !important;
+  overflow: hidden;
+}
+.portrait-mobile-mirror.laid-out:not(.title-page):not(.end-page) > .el-image[data-size="main"] {
+  width: 100% !important;
+  flex: 0 0 auto;
+  object-fit: contain !important;
+  border: 1px solid var(--title-outline, #285e45);
   border-radius: 12px;
+  margin: 0 0 22px;
+  order: 1;
+}
+.portrait-mobile-mirror.laid-out:not(.title-page):not(.end-page) > .el-text {
+  width: 100% !important;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  justify-content: flex-start;
+  padding: 12px 10px 16px 12px;
+  order: 2;
+}
+.portrait-mobile-mirror.laid-out:not(.title-page):not(.end-page) > .el-text p {
+  font-size: clamp(15.6px, 2.16cqh, 19.2px) !important;
+  text-align: left;
+  line-height: 1.25;
+}
+.portrait-mobile-mirror.laid-out.end-page {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  padding: 10% 16px 80px;
+}
+.portrait-mobile-mirror.laid-out.end-page > .el-image[data-size="main"] {
+  width: auto !important;
+  max-width: 58%;
+  max-height: 34%;
+  object-fit: contain;
+  margin: 0 0 28px;
+  order: 1;
+}
+.portrait-mobile-mirror.laid-out.end-page > .el-text {
+  order: 2;
+  width: 90% !important;
+  text-align: center;
+}
+.portrait-mobile-mirror.laid-out > .el-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: calc(var(--fs, 4) * 1cqh);
+  font-family: var(--ff, Nunito, sans-serif);
+  color: var(--ink, #203b2a);
+}
+.portrait-mirror-legal {
+  display: none;
 }

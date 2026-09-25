@@ -734,6 +734,5 @@ function bootPages(){
 rebuild();
 bootPages();
 requestAnimationFrame(function(){requestAnimationFrame(function(){curlHold=false;if(!busy)updateCurl();});});
-var hint=document.getElementById('hint');setTimeout(function(){if(hint)hint.remove()},3000);
 var resizeTimer;window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(busy)return;rebuild();bootPages();},200)});
 })();

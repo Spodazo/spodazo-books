@@ -41,7 +41,6 @@ export default function UprightPdfReader({ book }: { book: PublicBook }) {
           </div>
         ))}
       </div>
-      <p className="upright-pdf-bar">Please turn your phone for our flipbook version.</p>
     </div>
   );
 }

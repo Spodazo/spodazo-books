@@ -5,17 +5,10 @@ import type { Book, PageElement, PageLayout } from "./types";
 /** Width / height of a full-screen upright phone page in the flipbook (390×844 reference). */
 export const PORTRAIT_PAGE_RATIO = 390 / 844;
 
-/** Space under the cover leaf for the flipbook note (matches reader.css). */
-export const PORTRAIT_COVER_HINT_REM = 4.75;
-
-export const PORTRAIT_COVER_HINT_TEXT = "Please turn your phone for our flipbook version";
+export type PortraitFlipRole = "cover" | "title" | "spread" | "end";
 
 export function isWillowBook(book: Pick<Book, "slug" | "title">): boolean {
   return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
-}
-
-export function portraitCoverHintPx(rootFontSizePx = 16): number {
-  return PORTRAIT_COVER_HINT_REM * rootFontSizePx;
 }
 
 /** Full phone viewport height for a given content width. */
@@ -23,15 +16,23 @@ export function portraitPhoneViewportHeight(width: number): number {
   return width / PORTRAIT_PAGE_RATIO;
 }
 
-/** Cover leaf height inside the phone viewport (flipbook cover page). */
-export function portraitCoverLeafHeight(width: number, rootFontSizePx = 16): number {
-  return Math.max(120, portraitPhoneViewportHeight(width) - portraitCoverHintPx(rootFontSizePx));
+export function portraitFlipRole(layout: PageLayout, index: number): PortraitFlipRole {
+  const role = layout.portraitRole;
+  if (role === "cover" || role === "title" || role === "spread" || role === "end") return role;
+  if (role === "leaf") return "spread";
+  if (index === 0) return "cover";
+  return "spread";
 }
 
+/** @deprecated use portraitFlipRole */
 export function portraitPageKind(layout: PageLayout, index: number): "cover" | "leaf" {
-  if (layout.portraitRole === "cover") return "cover";
-  if (layout.portraitRole === "leaf") return "leaf";
-  return index === 0 ? "cover" : "leaf";
+  const role = portraitFlipRole(layout, index);
+  return role === "cover" ? "cover" : "leaf";
+}
+
+export function mirrorElementSize(element: PageElement): "main" | "small" {
+  if (element.id === "title-cover" || element.id === "end-art") return "main";
+  return (Number(element.w) || 10) * (Number(element.h) || 10) >= 400 ? "main" : "small";
 }
 
 function containBox(box: { x: number; y: number; w: number; h: number }) {
@@ -70,33 +71,8 @@ export function portraitLeafBox(
   return containBox(mapped);
 }
 
-function leafElements(layout: PageLayout, side: "left" | "right", key: string): PageElement[] {
-  return layout.elements.flatMap((element, index) => {
-    const box = portraitLeafBox(element, side);
-    if (!box) return [];
-    return [normalizeElement({ ...element, ...box, id: `${key}-${element.id}-${side[0]}` }, index)];
-  });
-}
-
-function splitSpread(layout: PageLayout, key: string): PageLayout[] {
-  const pages: PageLayout[] = [];
-  (["left", "right"] as const).forEach((side) => {
-    const elements = leafElements(layout, side, key);
-    if (elements.length) pages.push({ elements, background: layout.background || "", portraitRole: "leaf" });
-  });
-  return pages;
-}
-
-function spreadToPortraitPages(layout: PageLayout, key: string, willow: boolean): PageLayout[] {
-  if (willow) {
-    return [{ elements: layout.elements.map((el, index) => normalizeElement(el, index)), background: layout.background || "", portraitRole: "leaf" }];
-  }
-  return splitSpread(layout, key);
-}
-
-/** Starting upright pages in the same order as the portrait flipbook (cover, then leaves). */
+/** Portrait flipbook pages in reader order — one screen per flip, no leaf split. */
 export function derivePortraitPages(book: Book): PageLayout[] {
-  const willow = isWillowBook(book);
   const pages: PageLayout[] = [];
   if (hasLayout(book.coverLayout)) {
     pages.push({
@@ -105,33 +81,40 @@ export function derivePortraitPages(book: Book): PageLayout[] {
       portraitRole: "cover",
     });
   }
-  const sources: Array<{ key: string; layout: PageLayout }> = [];
-  if (hasLayout(book.titleLayout)) sources.push({ key: "title", layout: book.titleLayout });
+  if (hasLayout(book.titleLayout)) {
+    pages.push({
+      elements: book.titleLayout.elements.map((el, index) => normalizeElement(el, index)),
+      background: book.titleLayout.background || "",
+      portraitRole: "title",
+    });
+  }
   visibleStoryPages(book).forEach((page, index) => {
-    if (hasLayout(page)) {
-      sources.push({
-        key: page.id || `page-${index + 1}`,
-        layout: { elements: page.elements, background: page.background },
-      });
-    }
+    if (!hasLayout(page)) return;
+    pages.push({
+      elements: page.elements.map((el, elIndex) => normalizeElement(el, elIndex)),
+      background: page.background || "",
+      portraitRole: "spread",
+    });
   });
-  if (hasLayout(book.endLayout)) sources.push({ key: "end", layout: book.endLayout });
-  sources.forEach((source) => {
-    pages.push(...spreadToPortraitPages(source.layout, source.key, willow));
-  });
-  return pages.length ? pages : [{ elements: [], background: "", portraitRole: "leaf" }];
+  if (hasLayout(book.endLayout)) {
+    pages.push({
+      elements: book.endLayout.elements.map((el, index) => normalizeElement(el, index)),
+      background: book.endLayout.background || "",
+      portraitRole: "end",
+    });
+  }
+  return pages.length ? pages : [{ elements: [], background: "", portraitRole: "spread" }];
 }
 
-/** Inner portrait pages saved for mobile (everything after the cover). */
+/** Saved portrait pages for optional upright PDF tooling (not used by the flipbook reader). */
 export function savedPortraitInnerPages(book: Book): PageLayout[] | null {
   if (!Array.isArray(book.portraitPages) || !book.portraitPages.length) return null;
   const normalized = book.portraitPages.map((layout) => normalizeLayout(layout));
-  const coverAt = normalized.findIndex((layout, index) => portraitPageKind(layout, index) === "cover");
+  const coverAt = normalized.findIndex((layout, index) => portraitFlipRole(layout, index) === "cover");
   if (coverAt >= 0) return normalized.slice(coverAt + 1);
   return normalized;
 }
 
-/** Saved portrait pages win. Until then, derive from the flipbook. */
 export function portraitPagesFor(book: Book): PageLayout[] {
   if (Array.isArray(book.portraitPages)) return book.portraitPages.map((layout) => normalizeLayout(layout));
   return derivePortraitPages(book);

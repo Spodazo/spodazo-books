@@ -4,7 +4,7 @@ import { ensureBookLayouts } from "./page-layout";
 import { derivePortraitPages, portraitLeafBox, portraitPagesFor } from "./portrait-pages";
 import type { Book, BookPage } from "./types";
 
-function story(partial: Partial<BookPage> = {}): BookPage {
+function storyPage(partial: Partial<BookPage> = {}): BookPage {
   return {
     id: "page-1",
     sourcePage: 1,
@@ -31,7 +31,7 @@ test("portraitLeafBox turns each half of a spread into its own page", () => {
   assert.deepEqual(portraitLeafBox({ x: 0, y: 0, w: 100, h: 100 }, "left"), { x: 0, y: 0, w: 100, h: 100 });
 });
 
-test("derivePortraitPages starts with the cover then splits story spreads into leaves", () => {
+test("derivePortraitPages lists cover then one portrait screen per flipbook spread", () => {
   const book = ensureBookLayouts({
     id: "book-1",
     slug: "lantern",
@@ -58,15 +58,14 @@ test("derivePortraitPages starts with the cover then splits story spreads into l
     backCoverLayout: { elements: [] },
     endLayout: { elements: [] },
     portraitPages: null,
-    pages: [story()],
+    pages: [storyPage()],
   } as Book);
   const pages = derivePortraitPages(book);
   assert.equal(pages[0]?.portraitRole, "cover");
-  const picture = pages.find((page) => page.portraitRole === "leaf" && page.elements.some((item) => item.type === "image" && item.w >= 90));
-  const wording = pages.find((page) => page.elements.some((item) => item.type === "text" && item.text === "The fox ran."));
-  assert.ok(picture);
-  assert.ok(wording);
-  assert.notEqual(picture, wording);
+  const spreadPage = pages.find((page) => page.portraitRole === "spread");
+  assert.ok(spreadPage);
+  assert.ok((spreadPage?.elements.length || 0) > 0);
+  assert.ok(spreadPage?.elements.some((item) => item.type === "text" && item.text === "The fox ran."));
 });
 
 test("portraitPagesFor keeps a saved portrait and ignores the flipbook split", () => {
@@ -99,7 +98,7 @@ test("portraitPagesFor keeps a saved portrait and ignores the flipbook split", (
       elements: [{ id: "only", type: "text", x: 8, y: 10, w: 84, h: 20, z: 1, text: "Saved phone page" }],
       background: "",
     }],
-    pages: [story()],
+    pages: [storyPage()],
   } as Book);
   const pages = portraitPagesFor(book);
   assert.equal(pages.length, 1);
