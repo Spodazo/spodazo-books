@@ -1095,6 +1095,23 @@ html.mobile .leaf-copy.laid-out.end-page>.el-text p{
   font-weight:700;
   text-align:center;
 }
+html.mobile .page.laid-out.end-page>.read-again{
+  display:none;
+}
+html.mobile .page.laid-out.end-page .el-text[data-role="end"] .read-again{
+  position:relative;
+  left:auto;
+  width:auto;
+  bottom:auto;
+  margin:12px auto 0;
+  pointer-events:auto;
+}
+html.mobile .page.laid-out.end-page .end-legal{
+  left:6%;
+  right:6%;
+  width:auto;
+  padding:0;
+}
 
 html,body{
   overflow:hidden;
@@ -1357,46 +1374,6 @@ html:not(.mobile) .page.front-cover .reader-close{
 }
 .mobile .front-cover-leaf{
   inset:0;
-}
-@media(max-width:700px) and (orientation:portrait),(pointer:coarse) and (max-width:1100px) and (orientation:portrait){
-  .mobile .page.front-cover .front-cover-leaf{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding:max(48px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-left),env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom));
-    box-sizing:border-box;
-    overflow:hidden;
-  }
-  .mobile .page.front-cover .cover-bit-shape{
-    position:absolute!important;
-    inset:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))!important;
-    width:auto!important;
-    height:auto!important;
-    max-width:none;
-    border-radius:12px;
-    z-index:0;
-  }
-  .mobile .page.front-cover .cover-bit:not(.cover-bit-shape){
-    position:relative!important;
-    inset:auto!important;
-    left:auto!important;
-    top:auto!important;
-    width:92%!important;
-    height:auto!important;
-    max-width:92%;
-    z-index:1;
-  }
-  .mobile .page.front-cover .cover-bit-image{
-    width:100%!important;
-    height:auto!important;
-    max-height:42vh;
-    object-fit:contain!important;
-    object-position:center center!important;
-  }
-  .mobile .page.front-cover .cover-bit-text{
-    overflow:visible;
-  }
 }
 .page.front-cover .zone[data-dir="1"]{
   left:25%;

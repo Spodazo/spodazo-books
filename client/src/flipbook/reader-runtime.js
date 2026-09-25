@@ -269,6 +269,7 @@ function rebuild(){
   if(busy)return;
   var source=pages[index]?pages[index].getAttribute('data-source'):null;
   mobile=matchMedia('(max-width: 700px), (pointer: coarse) and (max-width: 1100px)').matches&&matchMedia('(orientation: portrait)').matches;
+  /* Portrait upright layout CSS lives only under html.mobile in reader.css — keep in sync with bootMobile in reader.js. */
   document.documentElement.classList.toggle('mobile',mobile);
   var first=!pages.length;
   if(first){
