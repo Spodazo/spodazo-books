@@ -59,7 +59,6 @@ export default function BookPage() {
       credits: setup.credits,
       copyright: setup.copyright,
       logoUrl: setup.logoUrl,
-      alwaysLandscape: false,
     });
     const reveal = () => {
       const started = openingSince();

@@ -6,7 +6,6 @@ import {normalizePaperTexture, paperTexture, paperTextureUrl} from '@shared/pape
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
-import {savedPortraitInnerPages} from '@shared/portrait-pages';
 import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
 
 function coverSrc(book, baseUrl) {
@@ -38,10 +37,6 @@ function subtitleHtml(tagline) {
 
 function pageCurlHtml(baseUrl) {
   return `<div class="page-curl" hidden aria-hidden="true"><div class="page-curl-peek"></div><img class="page-curl-flap" src="${esc(safeURL("/media/images/page-curl.png", baseUrl))}" alt=""></div>`;
-}
-
-function turnPhoneHtml(libraryUrl, baseUrl) {
-  return `<div id="turn-phone" role="status"><a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" aria-label="Close">×</a><p>Please turn your phone to view the book</p></div>`;
 }
 
 function pageFill(page, book) {
@@ -148,7 +143,7 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
 
 function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hintDesktop="Tap the right page to turn", hintMobile="Swipe left to turn the page"}={}) {
   const hintHtml = hint ? `<div id="hint" class="hint" role="status"><span class="hint-desktop">${esc(hintDesktop)}</span><span class="hint-mobile">${esc(hintMobile)}</span></div>` : "";
-  const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" aria-label="Close">×</a>`;
+  const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>`;
   const zones = `${back?`<button class="zone" data-dir="-1" aria-label="Previous page"></button>`:""}${next?`<button class="zone" data-dir="1" aria-label="Next page"></button>`:""}`;
   return `${close}${hintHtml}${zones}`;
 }
@@ -158,7 +153,7 @@ function frontCoverHtml(book, baseUrl, libraryUrl) {
   const layout = book.coverLayout;
   const fill = pageFill(layout, book);
   const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
-  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Please turn your phone for our flipbook version"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
+  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
@@ -172,7 +167,7 @@ function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
-export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright='',logoUrl='',fadeOpen=false,alwaysLandscape=false}={}) {
+export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright='',logoUrl='',fadeOpen=false}={}) {
   if(!book.pages?.length)throw new Error('This book has no pages.');
   const palette=paletteById(book.color);
   const preload=coverSrc(book,baseUrl);
@@ -188,12 +183,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const paperAttr=texture?` data-paper="${texture}"`:'';
   const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}');--paper-w:${textureMeta.w}px;--paper-h:${textureMeta.h}px${edgeUrl?`;--paper-edge:url('${edgeUrl}')`:''}`:'';
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
-  const portraitInner=savedPortraitInnerPages(book);
-  const portraitSaved=portraitInner&&portraitInner.length?portraitInner.map((layout,i)=>{
-    const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
-    return laidOutPage(`Page ${i+1}`,layout,book,baseUrl,zones,' phone-leaf portrait-saved').replace('<article','<article data-source="portrait"');
-  }).join(''):'';
-  const flipbookInner=titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
+  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
     if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;
@@ -204,11 +194,9 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background-color:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  const articles=cover+(portraitSaved||flipbookInner);
-  const bootMobile=`(function(){try{var root=document.documentElement;var always=${alwaysLandscape?'true':'false'};var phone=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches;var portrait=matchMedia('(orientation:portrait)').matches;if(always)root.classList.add('always-landscape');if(always&&phone){root.classList.add('cover-opened');if(portrait)root.classList.add('awaiting-turn');}else if(always&&${cover?'false':'true'})root.classList.add('cover-opened');var m=phone&&portrait&&!always;root.classList.toggle('mobile',m);root.classList.toggle('phone-spread',always&&phone&&!portrait||(!m&&matchMedia('(orientation:landscape) and (max-height:700px)').matches));if(!phone&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
+  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
-  const htmlClass=[fadeOpen?'opening':'',isWillow(book)?'willow':'',alwaysLandscape?'always-landscape':''].filter(Boolean).join(' ');
-  return `<!doctype html><html${htmlClass?` class="${htmlClass}"`:''}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}${turnPhoneHtml(libraryUrl,baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html${fadeOpen?' class="opening"':''}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';
