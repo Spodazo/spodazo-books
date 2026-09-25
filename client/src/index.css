@@ -559,6 +559,20 @@ html:has(.upright-pdf) body {
   background: #24180f;
 }
 .page-editor-bar strong { margin-right: 8px; }
+.page-editor-screen {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.page-editor-screen select {
+  max-width: 160px;
+  background: #fff8e4;
+  color: #271911;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
 .page-editor-status { color: #e8d4a0; font-size: 13px; }
 .page-editor-tools button { padding: 8px 12px; }
 .page-editor-tools button.active { outline: 2px solid #d99028; }

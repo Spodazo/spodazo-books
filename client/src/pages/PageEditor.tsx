@@ -81,6 +81,22 @@ function canDeleteStoryPage(book: PublicBook, pageId: string): boolean {
   return visibleStoryPages({ ...book, pages: remaining }).length >= 1;
 }
 
+/** Cover, back cover, and title screens before the first story page. */
+const STORY_SCREEN_START = 3;
+
+function screenLabel(screen: Screen, storyPages: { id: string }[]): string {
+  if (screen.kind === "cover") return "Cover";
+  if (screen.kind === "back") return "Back cover";
+  if (screen.kind === "title") return "Title";
+  if (screen.kind === "end") return "The end";
+  const ord = storyPages.findIndex((page) => page.id === screen.pageId);
+  return ord >= 0 ? `Page ${ord + 1}` : "Story page";
+}
+
+function storyScreenIndex(storyOrdinal: number): number {
+  return STORY_SCREEN_START + storyOrdinal;
+}
+
 function measureStoryHeight(text: string, widthPx: number, fontPx: number, family: string, framed: boolean) {
   const host = document.createElement("div");
   host.style.cssText = `position:absolute;left:-9999px;top:0;width:${Math.max(40, widthPx)}px;visibility:hidden;`;
@@ -565,37 +581,36 @@ export default function PageEditorPage() {
     const page = emptyStoryPage(current.pages.length);
     const pages = [...current.pages, page];
     persist({ ...current, pages });
-    setIndex(visibleStoryPages({ ...current, pages }).length + 2);
+    const nextStory = visibleStoryPages({ ...current, pages });
+    setIndex(storyScreenIndex(Math.max(0, nextStory.length - 1)));
     setSelectedId(page.elements[0]?.id || "");
   }
 
   function removePage() {
     const current = bookRef.current;
     const target = screenRef.current;
-    if (!current || target?.kind !== "page") return;
+    if (!current || target?.kind !== "page") {
+      setStatus("Choose a story page (Page 1, 2, …) in the screen menu, then delete.");
+      return;
+    }
     const pageId = target.pageId;
+    if (!canDeleteStoryPage(current, pageId)) {
+      setError("Keep at least one story page.");
+      return;
+    }
     const pages = current.pages.filter((page) => page.id !== pageId);
     if (pages.length === current.pages.length) {
       setError("That page could not be found.");
       return;
     }
-    const nextBook = syncBookFromLayouts({ ...current, pages });
-    const nextStoryPages = visibleStoryPages(nextBook);
-    if (nextStoryPages.length < 1) {
-      setError("Keep at least one story page.");
-      return;
-    }
     const deletedOrd = visibleStoryPages(current).findIndex((page) => page.id === pageId);
-    pushUndoSnapshot();
-    bookRef.current = nextBook;
-    setBook(nextBook);
+    const nextStoryPages = visibleStoryPages(syncBookFromLayouts({ ...current, pages }));
+    const nextOrd = deletedOrd >= 0 ? Math.min(deletedOrd, nextStoryPages.length - 1) : 0;
+    persist({ ...current, pages }, { saveNow: true });
     setSelectedId("");
     setEditingId("");
-    const storyScreenStart = 3;
-    const nextOrd = deletedOrd >= 0 ? Math.min(deletedOrd, nextStoryPages.length - 1) : 0;
-    setIndex(storyScreenStart + nextOrd);
+    setIndex(storyScreenIndex(nextOrd));
     setStatus("Page deleted");
-    void saveBookNow(nextBook);
   }
 
   function removeElement() {
@@ -872,7 +887,7 @@ export default function PageEditorPage() {
   const selectedText = selected?.type === "text" ? selected : undefined;
   const bookFont = book.textFont || DEFAULT_TEXT_FONT;
   const bookInk = book.textColor || DEFAULT_TEXT_COLOR;
-  const label = screen.kind === "cover" ? "Cover" : screen.kind === "back" ? "Back cover" : screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${storyPages.findIndex((page) => page.id === screen.pageId) + 1}`;
+  const label = screenLabel(screen, storyPages);
 
   return (
     <main className="page-editor">
@@ -881,6 +896,23 @@ export default function PageEditorPage() {
         <button type="button" className="ghost" disabled={index === 0} onClick={() => { setIndex(index - 1); setSelectedId(""); setEditingId(""); }}>Previous</button>
         <strong>{book.title}</strong>
         <span>Flipbook display</span>
+        <label className="page-editor-screen">
+          Screen
+          <select
+            value={index}
+            onChange={(event) => {
+              setIndex(Number(event.target.value));
+              setSelectedId("");
+              setEditingId("");
+            }}
+          >
+            {screens.map((item, screenIndex) => (
+              <option key={`${item.kind}-${item.kind === "page" ? item.pageId : screenIndex}`} value={screenIndex}>
+                {screenLabel(item, storyPages)}
+              </option>
+            ))}
+          </select>
+        </label>
         <span>{label} of {screens.length}</span>
         <button type="button" className="ghost" disabled={index === screens.length - 1} onClick={() => { setIndex(index + 1); setSelectedId(""); setEditingId(""); }}>Next</button>
         <span className="page-editor-status">{status}</span>
