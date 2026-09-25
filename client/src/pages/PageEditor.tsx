@@ -336,44 +336,59 @@ export default function PageEditorPage() {
     setCanUndo(stack.length >= 2);
   }
 
-  function persist(next: PublicBook, options?: { recordUndo?: boolean }) {
+  function bookSavePayload(synced: PublicBook): Record<string, unknown> {
+    const cover = synced.coverLayout.elements.find((item) => item.type === "image" && (item.imageAsset || item.imageUrl));
+    const coverUrl = cover?.imageAsset
+      ? `/media/images/${encodeURIComponent(cover.imageAsset)}`
+      : cover?.imageUrl || synced.coverUrl;
+    return {
+      title: synced.title,
+      tagline: synced.tagline,
+      author: synced.author,
+      date: synced.date,
+      coverUrl,
+      pages: synced.pages,
+      pageBackground: synced.pageBackground,
+      pageTexture: synced.pageTexture,
+      spreadBackground: synced.spreadBackground,
+      textFont: synced.textFont,
+      textColor: synced.textColor,
+      titleLayout: synced.titleLayout,
+      coverLayout: synced.coverLayout,
+      backCoverLayout: synced.backCoverLayout,
+      endLayout: synced.endLayout,
+    };
+  }
+
+  function saveBookNow(synced: PublicBook) {
+    window.clearTimeout(saveTimer.current);
+    setStatus("Saving…");
+    return updateBook(synced.id, bookSavePayload(synced))
+      .then((saved) => {
+        const latest = bookRef.current;
+        if (!latest || latest.id !== saved.id) return;
+        setStatus("Saved");
+      })
+      .catch((err: Error) => {
+        setStatus("");
+        setError(err.message);
+      });
+  }
+
+  function persist(next: PublicBook, options?: { recordUndo?: boolean; saveNow?: boolean }) {
     const record = options?.recordUndo !== false && !restoringRef.current && !drag.current;
     if (record) pushUndoSnapshot();
     const synced = syncBookFromLayouts(next);
+    bookRef.current = synced;
     setBook(synced);
-    setStatus("Saving…");
     window.clearTimeout(saveTimer.current);
+    if (options?.saveNow) {
+      void saveBookNow(synced);
+      return;
+    }
+    setStatus("Saving…");
     saveTimer.current = window.setTimeout(() => {
-      void updateBook(synced.id, {
-        title: synced.title,
-        tagline: synced.tagline,
-        author: synced.author,
-        date: synced.date,
-        coverUrl: (() => {
-          const cover = synced.coverLayout.elements.find((item) => item.type === "image" && (item.imageAsset || item.imageUrl));
-          if (cover?.imageAsset) return `/media/images/${encodeURIComponent(cover.imageAsset)}`;
-          return cover?.imageUrl || synced.coverUrl;
-        })(),
-        pages: synced.pages,
-        pageBackground: synced.pageBackground,
-        pageTexture: synced.pageTexture,
-        spreadBackground: synced.spreadBackground,
-        textFont: synced.textFont,
-        textColor: synced.textColor,
-        titleLayout: synced.titleLayout,
-        coverLayout: synced.coverLayout,
-        backCoverLayout: synced.backCoverLayout,
-        endLayout: synced.endLayout,
-      })
-        .then((saved) => {
-          const latest = bookRef.current;
-          if (!latest || latest.id !== saved.id) return;
-          setStatus("Saved");
-        })
-        .catch((err: Error) => {
-          setStatus("");
-          setError(err.message);
-        });
+      void saveBookNow(synced);
     }, 700);
   }
 
@@ -384,7 +399,13 @@ export default function PageEditorPage() {
     return [{ kind: "cover" }, { kind: "back" }, { kind: "title" }, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
   }, [book, storyPages]);
 
-  const screen = screens[index];
+  const screen = screens[index] ?? screens[Math.max(0, screens.length - 1)];
+
+  useEffect(() => {
+    if (index >= screens.length && screens.length) {
+      setIndex(screens.length - 1);
+    }
+  }, [index, screens.length]);
 
   function layoutOf(target: Screen | undefined): PageLayout {
     if (!book || !target) return { elements: [], background: "" };
@@ -558,11 +579,27 @@ export default function PageEditorPage() {
   }
 
   function removePage() {
-    if (!book || !screen || screen.kind !== "page" || storyPages.length < 2) return;
-    const pages = book.pages.filter((page) => page.id !== screen.pageId);
-    persist({ ...book, pages });
-    setIndex(Math.max(0, index - 1));
+    const current = bookRef.current;
+    if (!current || screen?.kind !== "page") return;
+    const pageId = screen.pageId;
+    const pages = current.pages.filter((page) => page.id !== pageId);
+    if (pages.length === current.pages.length) {
+      setError("That page could not be found.");
+      return;
+    }
+    const nextBook = syncBookFromLayouts({ ...current, pages });
+    if (visibleStoryPages(nextBook).length < 1) {
+      setError("Keep at least one story page.");
+      return;
+    }
+    pushUndoSnapshot();
+    bookRef.current = nextBook;
+    setBook(nextBook);
     setSelectedId("");
+    setEditingId("");
+    const lastStoryIndex = 2 + visibleStoryPages(nextBook).length;
+    setIndex((prev) => Math.max(0, Math.min(prev - 1, lastStoryIndex)));
+    void saveBookNow(nextBook);
   }
 
   function removeElement() {
@@ -855,7 +892,13 @@ export default function PageEditorPage() {
         <button type="button" onClick={() => addShape("circle")}>Circle</button>
         <button type="button" onClick={() => { replaceId.current = ""; fileRef.current?.click(); }}>Add picture</button>
         <button type="button" onClick={addPage}>Add page</button>
-        <button type="button" disabled={screen.kind !== "page" || storyPages.length < 2} onClick={removePage}>Delete page</button>
+        <button
+          type="button"
+          disabled={screen.kind !== "page" || storyPages.length < 2 || book.pages.length < 2}
+          onClick={removePage}
+        >
+          Delete page
+        </button>
         <button type="button" disabled={!selectedId} onClick={removeElement}>Delete item</button>
         <button type="button" disabled={!selectedId} onClick={() => copyRef.current()}>Copy</button>
         <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>

@@ -90,6 +90,14 @@ function pagesFromBody(raw: unknown): BookPage[] | undefined {
   return parsed;
 }
 
+function bookUploadFields(req: Request, res: Response, next: NextFunction) {
+  const type = String(req.headers["content-type"] || "");
+  if (type.includes("multipart/form-data")) {
+    return upload.fields([{ name: "cover", maxCount: 1 }, { name: "pdf", maxCount: 1 }])(req, res, next);
+  }
+  return next();
+}
+
 export function registerRoutes(app: Express): void {
   app.get("/api/version", (_req, res) => {
     res.set({
@@ -431,7 +439,7 @@ export function registerRoutes(app: Express): void {
     }
   });
 
-  app.patch("/api/admin/books/:id", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 }, { name: "pdf", maxCount: 1 }]), async (req, res) => {
+  app.patch("/api/admin/books/:id", requireAdmin, bookUploadFields, async (req, res) => {
     try {
       const store = await getStore();
       const files = req.files as Record<string, Express.Multer.File[]> | undefined;
