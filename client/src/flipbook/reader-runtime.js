@@ -16,8 +16,12 @@ function fitBoxFont(el){
   }
 }
 function fitPageText(root){
-  var nodes=(root||book).querySelectorAll('.el-text, .cover-bit-text'),i;
-  for(i=0;i<nodes.length;i++)fitBoxFont(nodes[i]);
+  var nodes=(root||book).querySelectorAll('.el-text, .cover-bit-text'),i,page;
+  for(i=0;i<nodes.length;i++){
+    page=nodes[i].closest('.page');
+    if(page&&(page.classList.contains('front-cover')||page.classList.contains('title-page')||page.classList.contains('end-page')))continue;
+    fitBoxFont(nodes[i]);
+  }
 }
 function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});document.documentElement.classList.toggle('closed-book',!mobile&&!!(pages[index]&&pages[index].classList.contains('front-cover')));count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
 function isPicturePage(p){
