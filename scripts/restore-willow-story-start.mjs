@@ -52,8 +52,9 @@ if (!login.ok) {
 }
 
 const fetched = JSON.parse(curl([`${base}/api/books/${encodeURIComponent(slug)}`]));
-const template = fetched.pages.find((p) => p.id === "page-5") || fetched.pages.find((p) => p.elements?.length);
-if (!template) {
+const templateTop = fetched.pages.find((p) => p.id === "page-1") || fetched.pages.find((p) => p.elements?.length);
+const templateStory = fetched.pages.find((p) => p.id === "page-6") || fetched.pages.find((p) => p.id === "page-5");
+if (!templateTop || !templateStory) {
   console.error("No story page template found");
   process.exit(1);
 }
@@ -63,22 +64,22 @@ const restored = [
     "page-2",
     2,
     "art-002.webp",
-    "Willow spotted a butterfly dancing between the trees.\n\n“Wait for me!” she giggled, pattering after it.",
-    template,
+    "One Little Butterfly\n\nWillow spotted a butterfly dancing between the trees.\n\n“Wait for me!” she giggled, pattering after it.",
+    templateTop,
   ),
   storyPage(
     "page-3",
     3,
     "art-003.webp",
-    "But the butterfly fluttered away.\n\nWillow stopped. The forest was very quiet.\n\n“Mommy? Mamma?” she called.",
-    template,
+    "Where Was Everyone?\n\nBut the butterfly fluttered away.\n\nWillow stopped. The forest was very quiet.\n\n“Mommy? Mamma?” she called.",
+    templateTop,
   ),
   storyPage(
     "page-4",
     4,
     "art-004.webp",
-    "Rustle, rustle. Crack!\n\nA big brown bear stepped out from behind a tree.\n\nWillow’s little knees began to wobble.",
-    template,
+    "A Bear in the Trees\n\nRustle, rustle. Crack!\n\nA big brown bear stepped out from behind a tree.\n\nWillow’s little knees began to wobble.",
+    templateStory,
   ),
 ];
 

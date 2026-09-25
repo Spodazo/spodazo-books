@@ -98,6 +98,16 @@ function bookUploadFields(req: Request, res: Response, next: NextFunction) {
   return next();
 }
 
+function sendNoStoreJson(res: import("express").Response, body: unknown): void {
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "CDN-Cache-Control": "no-store",
+    "Cloudflare-CDN-Cache-Control": "no-store",
+    Pragma: "no-cache",
+  });
+  res.json(body);
+}
+
 export function registerRoutes(app: Express): void {
   app.get("/api/version", (_req, res) => {
     res.set({
@@ -236,7 +246,7 @@ export function registerRoutes(app: Express): void {
   app.get("/api/books", async (req, res) => {
     const store = await getStore();
     const list = await store.listBooks();
-    res.json(req.session?.admin ? list : list.filter((book) => !book.hidden && book.published));
+    sendNoStoreJson(res, req.session?.admin ? list : list.filter((book) => !book.hidden && book.published));
     void warmHomeCardImages(list);
   });
 
@@ -247,7 +257,7 @@ export function registerRoutes(app: Express): void {
       res.status(404).json({ error: "Book not found" });
       return;
     }
-    res.json(book);
+    sendNoStoreJson(res, book);
   });
 
   app.get("/api/admin/me", (req, res) => {

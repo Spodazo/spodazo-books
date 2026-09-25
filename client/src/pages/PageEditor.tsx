@@ -37,7 +37,7 @@ import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { DEFAULT_FRAME_COLOR, TEXT_FRAMES, frameClass, frameMarkup, normalizeFrame } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
 import EditorText from "../components/EditorText";
-import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } from "../lib/api";
+import { adminMe, fetchBook, fetchPlayerSetup, invalidateBookCache, updateBook, uploadBookAsset } from "../lib/api";
 
 function samplePicture(page: HTMLElement, clientX: number, clientY: number) {
   const images = Array.prototype.slice.call(page.querySelectorAll("img")) as HTMLImageElement[];
@@ -350,11 +350,18 @@ export default function PageEditorPage() {
           setLocation("/admin");
           return;
         }
+        invalidateBookCache(slug);
         const [next, setup] = await Promise.all([fetchBook(slug), fetchPlayerSetup()]);
         if (cancelled) return;
         const loaded = ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) });
         setBook(loaded);
-        setIndex(titlePageEnabled(loaded) ? 2 : (visibleStoryPages(loaded).length ? storyScreenStart(loaded) : 0));
+        setIndex(
+          visibleStoryPages(loaded).length
+            ? storyScreenStart(loaded)
+            : titlePageEnabled(loaded)
+              ? 2
+              : 0,
+        );
         setCredits(setup.credits);
         setCopyright(setup.copyright);
         setLogoUrl(setup.logoUrl);

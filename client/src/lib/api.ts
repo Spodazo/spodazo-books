@@ -35,7 +35,10 @@ export function fetchBook(slug: string): Promise<PublicBook> {
   const key = bookCacheKey(slug);
   const pending = bookLoads.get(key);
   if (pending) return pending;
-  const load = fetch(`/api/books/${encodeURIComponent(slug)}`)
+  const load = fetch(`/api/books/${encodeURIComponent(slug)}`, {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+  })
     .then((res) => parse<PublicBook>(res))
     .finally(() => {
       bookLoads.delete(key);
