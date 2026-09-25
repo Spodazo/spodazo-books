@@ -97,6 +97,23 @@ function storyScreenIndex(storyOrdinal: number): number {
   return STORY_SCREEN_START + storyOrdinal;
 }
 
+function screensForBook(book: PublicBook): Screen[] {
+  const storyPages = visibleStoryPages(book);
+  return [
+    { kind: "cover" },
+    { kind: "back" },
+    { kind: "title" },
+    ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })),
+    { kind: "end" },
+  ];
+}
+
+function screenAtIndex(book: PublicBook, screenIndex: number): Screen | undefined {
+  const list = screensForBook(book);
+  if (!list.length) return undefined;
+  return list[screenIndex] ?? list[list.length - 1];
+}
+
 function measureStoryHeight(text: string, widthPx: number, fontPx: number, family: string, framed: boolean) {
   const host = document.createElement("div");
   host.style.cssText = `position:absolute;left:-9999px;top:0;width:${Math.max(40, widthPx)}px;visibility:hidden;`;
@@ -259,6 +276,7 @@ export default function PageEditorPage() {
   const clipboardRef = useRef<{ element: PageElement; plain: string } | null>(null);
   const pasteNudge = useRef(0);
   const screenRef = useRef<Screen | undefined>(undefined);
+  const indexRef = useRef(0);
   const selectedIdRef = useRef("");
   const copyRef = useRef<(event?: ClipboardEvent) => void>(() => {});
   const pasteRef = useRef<(event: ClipboardEvent) => void>(() => {});
@@ -330,7 +348,9 @@ export default function PageEditorPage() {
         }
         const [next, setup] = await Promise.all([fetchBook(slug), fetchPlayerSetup()]);
         if (cancelled) return;
-        setBook(ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) }));
+        const loaded = ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) });
+        setBook(loaded);
+        setIndex(visibleStoryPages(loaded).length ? STORY_SCREEN_START : 0);
         setCredits(setup.credits);
         setCopyright(setup.copyright);
         setLogoUrl(setup.logoUrl);
@@ -389,6 +409,11 @@ export default function PageEditorPage() {
       .then((saved) => {
         const latest = bookRef.current;
         if (!latest || latest.id !== saved.id) return;
+        if (saved.pages.length !== latest.pages.length) {
+          setError(`Save did not stick: server still has ${saved.pages.length} pages (editor has ${latest.pages.length}). Try again or refresh.`);
+          setStatus("");
+          return;
+        }
         setStatus("Saved");
       })
       .catch((err: Error) => {
@@ -418,10 +443,7 @@ export default function PageEditorPage() {
 
   const storyPages = useMemo(() => (book ? visibleStoryPages(book) : []), [book]);
 
-  const screens: Screen[] = useMemo(() => {
-    if (!book) return [];
-    return [{ kind: "cover" }, { kind: "back" }, { kind: "title" }, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
-  }, [book, storyPages]);
+  const screens: Screen[] = useMemo(() => (book ? screensForBook(book) : []), [book, storyPages]);
 
   const screen = screens[index] ?? screens[Math.max(0, screens.length - 1)];
 
@@ -588,29 +610,37 @@ export default function PageEditorPage() {
 
   function removePage() {
     const current = bookRef.current;
-    const target = screenRef.current;
-    if (!current || target?.kind !== "page") {
-      setStatus("Choose a story page (Page 1, 2, …) in the screen menu, then delete.");
+    if (!current) return;
+    const target = screenAtIndex(current, indexRef.current);
+    const storyNow = visibleStoryPages(current);
+    if (target?.kind !== "page") {
+      setError("");
+      setStatus(storyNow.length
+        ? "Use the Screen menu above and pick Page 1, Page 2, … then Delete page."
+        : "This book has no story pages to delete.");
       return;
     }
     const pageId = target.pageId;
     if (!canDeleteStoryPage(current, pageId)) {
-      setError("Keep at least one story page.");
+      setError("Keep at least one story page in the book.");
       return;
     }
     const pages = current.pages.filter((page) => page.id !== pageId);
     if (pages.length === current.pages.length) {
-      setError("That page could not be found.");
+      setError("That page could not be found in the book data.");
       return;
     }
-    const deletedOrd = visibleStoryPages(current).findIndex((page) => page.id === pageId);
+    const deleteLabel = screenLabel(target, storyNow);
+    if (!window.confirm(`Remove “${deleteLabel}” from this book?`)) return;
+    setError("");
+    const deletedOrd = storyNow.findIndex((page) => page.id === pageId);
     const nextStoryPages = visibleStoryPages(syncBookFromLayouts({ ...current, pages }));
     const nextOrd = deletedOrd >= 0 ? Math.min(deletedOrd, nextStoryPages.length - 1) : 0;
     persist({ ...current, pages }, { saveNow: true });
     setSelectedId("");
     setEditingId("");
     setIndex(storyScreenIndex(nextOrd));
-    setStatus("Page deleted");
+    setStatus(`Removed ${deleteLabel}`);
   }
 
   function removeElement() {
@@ -725,6 +755,7 @@ export default function PageEditorPage() {
 
   bookRef.current = book;
   screenRef.current = screen;
+  indexRef.current = index;
   selectedIdRef.current = selectedId;
 
   function copySelection(event?: ClipboardEvent) {
@@ -925,11 +956,11 @@ export default function PageEditorPage() {
         <button type="button" onClick={addPage}>Add page</button>
         <button
           type="button"
-          disabled={screen.kind !== "page" || !canDeleteStoryPage(book, screen.pageId)}
+          className={screen.kind !== "page" || !canDeleteStoryPage(book, screen.pageId) ? "muted-tool" : undefined}
           onClick={removePage}
           title={
             screen.kind !== "page"
-              ? "Use Next until the toolbar shows Page 1, Page 2, … (not Cover, Title, or The end)."
+              ? "Pick Page 1, 2, … in the Screen menu first (not Cover, Title, or The end)."
               : !canDeleteStoryPage(book, screen.pageId)
                 ? "Keep at least one story page in the book."
                 : "Remove this story page from the book"
