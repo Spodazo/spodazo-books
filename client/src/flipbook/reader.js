@@ -7,6 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
+import {storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
   const cover = book.coverUrl || book.pages?.[0]?.imageUrl || book.pages?.[0]?.fullPageUrl || '';
@@ -184,19 +185,8 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}');--paper-w:${textureMeta.w}px;--paper-h:${textureMeta.h}px${edgeUrl?`;--paper-edge:url('${edgeUrl}')`:''}`:'';
   const oneLeaf=book.pageTemplate==='one-up';
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
-  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
-    const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
-    const coverOnly=!skipCover&&i===0;
-    const pdfLeaf=isOneLeafPdfPage(p);
-    if(hasLayout(p)&&!pdfLeaf) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
-    const fallback=pdfLeaf||coverOnly;
-    const leafSide=oneLeaf&&fallback&&!coverOnly?(i%2===0?' leaf-right':' leaf-left'):'';
-    const classes=`page${fallback?' facsimile':''}${oneLeaf&&fallback?` one-leaf${leafSide}`:''}${coverOnly?' cover-plate':''}`;
-    const focal=/^\d{1,3}% \d{1,3}%$/.test(p.focalPoint||'')?p.focalPoint:'50% 50%';
-    const image=safeURL(coverOnly?(book.coverUrl||p.fullPageUrl||p.imageUrl):fallback?p.fullPageUrl||p.imageUrl:p.imageUrl,baseUrl);
-    const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
-    return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background-color:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
-  }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
+  const storyDeps={esc,safeURL,baseUrl,book,skipCover,oneLeaf,hasLayout,laidOutPage:(label,layout,zones)=>laidOutPage(label,layout,book,baseUrl,zones),pageFill,storyBody};
+  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+buildStoryPagesHtml(storyPages,storyDeps)+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
   const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
   const templateAttr=oneLeaf?' data-page-template="one-up"':'';
