@@ -79,3 +79,12 @@ export function prefetchHome() {
   void loadHomeSetup();
   void loadHomeBooks();
 }
+
+export function clearHomeClientCache() {
+  try {
+    storage()?.removeItem(HOME_BOOKS_KEY);
+    storage()?.removeItem(HOME_SETUP_KEY);
+  } catch {
+    /* private mode */
+  }
+}

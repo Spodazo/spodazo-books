@@ -18,6 +18,7 @@ process.on("uncaughtException", (err) => {
 
 const app = express();
 app.set("trust proxy", 1);
+app.set("etag", false);
 app.use(express.json({ limit: "8mb" }));
 app.use(express.urlencoded({ extended: true, limit: "8mb" }));
 app.use(sessionMiddleware());

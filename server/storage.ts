@@ -72,6 +72,8 @@ export interface BookStore {
   getCurator(): Promise<Curator>;
   getCuratorRecord(): Promise<CuratorRecord>;
   updateCurator(input: Partial<CuratorRecord>): Promise<Curator>;
+  /** Latest book `updatedAt` — used to bust client caches when library content changes. */
+  libraryUpdatedAt(): Promise<string>;
 }
 
 function nowIso(): string {
@@ -264,6 +266,15 @@ export class JsonBookStore implements BookStore {
       .books.slice()
       .sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title))
       .map(toListItem);
+  }
+
+  async libraryUpdatedAt(): Promise<string> {
+    let max = 0;
+    for (const book of this.read().books) {
+      const t = Date.parse(String(book.updatedAt || ""));
+      if (Number.isFinite(t) && t > max) max = t;
+    }
+    return max ? new Date(max).toISOString() : "";
   }
 
   async getBookBySlug(slug: string): Promise<PublicBook | null> {
@@ -471,6 +482,12 @@ export class PostgresBookStore implements BookStore {
   async listBooks(): Promise<BookListItem[]> {
     const rows = await this.db.select().from(books).orderBy(asc(books.sortOrder), asc(books.title));
     return rows.map((row) => toListItem(recordBook(row)));
+  }
+
+  async libraryUpdatedAt(): Promise<string> {
+    const [row] = await this.db.select({ value: sql<Date | null>`max(${books.updatedAt})` }).from(books);
+    const raw = row?.value;
+    return raw ? new Date(raw).toISOString() : "";
   }
 
   async getBookBySlug(slug: string): Promise<PublicBook | null> {

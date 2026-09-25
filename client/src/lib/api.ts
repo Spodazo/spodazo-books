@@ -8,8 +8,13 @@ async function parse<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+const noStoreFetch: RequestInit = {
+  cache: "no-store",
+  headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+};
+
 export function fetchPlayerSetup(): Promise<PlayerSetup> {
-  return fetch("/api/player-setup").then((res) => parse<PlayerSetup>(res));
+  return fetch("/api/player-setup", noStoreFetch).then((res) => parse<PlayerSetup>(res));
 }
 
 export function updatePlayerSetup(form: FormData): Promise<PlayerSetup> {
@@ -17,18 +22,30 @@ export function updatePlayerSetup(form: FormData): Promise<PlayerSetup> {
 }
 
 export function fetchBooks(): Promise<BookListItem[]> {
-  return fetch("/api/books").then((res) => parse<BookListItem[]>(res));
+  return fetch("/api/books", noStoreFetch).then((res) => parse<BookListItem[]>(res));
 }
 
 const bookLoads = new Map<string, Promise<PublicBook>>();
 
+function bookCacheKey(slug: string): string {
+  return String(slug || "").toLowerCase();
+}
+
+export function invalidateBookCache(slug?: string): void {
+  if (slug) bookLoads.delete(bookCacheKey(slug));
+  else bookLoads.clear();
+}
+
 export function fetchBook(slug: string): Promise<PublicBook> {
-  const key = String(slug || "");
+  const key = bookCacheKey(slug);
   const pending = bookLoads.get(key);
   if (pending) return pending;
-  const load = fetch(`/api/books/${encodeURIComponent(key)}`).then((res) => parse<PublicBook>(res));
+  const load = fetch(`/api/books/${encodeURIComponent(slug)}`, noStoreFetch)
+    .then((res) => parse<PublicBook>(res))
+    .finally(() => {
+      bookLoads.delete(key);
+    });
   bookLoads.set(key, load);
-  load.catch(() => bookLoads.delete(key));
   return load;
 }
 

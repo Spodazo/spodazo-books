@@ -3,7 +3,7 @@ import { Link, useRoute } from "wouter";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
-import { fetchBook } from "../lib/api";
+import { fetchBook, invalidateBookCache } from "../lib/api";
 import { clearBookOpen, openingSince } from "../lib/bookOpen";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
 import type { PlayerSetup, PublicBook } from "@shared/types";
@@ -21,6 +21,7 @@ export default function BookPage() {
     let cancelled = false;
     setError("");
     setBook(null);
+    invalidateBookCache(slug);
     fetchBook(slug)
       .then((next) => {
         if (!cancelled) setBook(next);
