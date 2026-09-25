@@ -78,7 +78,7 @@ test("a facsimile PDF page fills one leaf without covering the spread", () => {
   assert.equal(isOneLeafPdfPage(page), true);
   const elements = defaultStoryElements(page);
   assert.equal(elements[0].type, "image");
-  assert.equal(elements[0].w, 100);
+  assert.equal(elements[0].w, 50);
   assert.equal(elements[0].h, 100);
   assert.equal(elements[0].fit, "contain");
   assert.equal(elements.length, 1);

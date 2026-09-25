@@ -341,7 +341,7 @@ export function isOneLeafPdfPage(page: Pick<BookPage, "kind" | "imageAsset" | "f
   if (page.kind === "facsimile") return true;
   const image = String(page.imageAsset || page.fullPageAsset || "");
   const full = String(page.fullPageAsset || page.imageAsset || "");
-  return Boolean(image) && image === full && /^page-\d+\./i.test(image);
+  return Boolean(image) && image === full && /^page-\d+/i.test(image);
 }
 
 export function defaultStoryElements(page: BookPage): PageElement[] {
@@ -356,7 +356,7 @@ export function defaultStoryElements(page: BookPage): PageElement[] {
       id: `${page.id}-art`,
       x: 0,
       y: 0,
-      w: oneLeaf ? 100 : 50,
+      w: oneLeaf ? 50 : 50,
       h: 100,
       z: 1,
       imageAsset: image,
