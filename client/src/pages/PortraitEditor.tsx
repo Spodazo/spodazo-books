@@ -52,6 +52,25 @@ function cloneBook(book: PublicBook): PublicBook {
   return JSON.parse(JSON.stringify(book)) as PublicBook;
 }
 
+function elementBoxInPage(page: HTMLDivElement | null, element: PageElement) {
+  if (!page) return { x: element.x, y: element.y, w: element.w, h: element.h };
+  const bounds = page.getBoundingClientRect();
+  if (bounds.width < 2 || bounds.height < 2) {
+    return { x: element.x, y: element.y, w: element.w, h: element.h };
+  }
+  const node = page.querySelector(`.portrait-mirror-visual [data-id="${CSS.escape(element.id)}"]`);
+  if (node instanceof HTMLElement) {
+    const rect = node.getBoundingClientRect();
+    return {
+      x: ((rect.left - bounds.left) / bounds.width) * 100,
+      y: ((rect.top - bounds.top) / bounds.height) * 100,
+      w: (rect.width / bounds.width) * 100,
+      h: (rect.height / bounds.height) * 100,
+    };
+  }
+  return { x: element.x, y: element.y, w: element.w, h: element.h };
+}
+
 function pastedRole(source: PageElement, pageIndex: number, pages: PageLayout[]): PageElement["role"] | undefined {
   if (source.type !== "text") return undefined;
   if (source.role === "body" || source.role === "end" || source.role === "back") return source.role;
@@ -203,11 +222,6 @@ function PortraitPhoneFrame({
     `${item.id}:${item.x},${item.y},${item.w},${item.h},${item.text?.length ?? 0}`
   )).join("|")}`;
   const hitStyles = usePortraitHitStyles(frameRef, layout, layoutKey);
-  const mirrorClick = flipRole !== "cover";
-  const selectedElement = layout.elements.find((item) => item.id === selectedId);
-  const overlayElements = mirrorClick
-    ? (selectedElement ? [selectedElement] : [])
-    : layout.elements;
 
   function hitBox(element: PageElement) {
     const measured = hitStyles[element.id];
@@ -221,37 +235,23 @@ function PortraitPhoneFrame({
     };
   }
 
-  function onCapturePointerDown(event: React.PointerEvent) {
-    if (!mirrorClick) return;
-    if ((event.target as HTMLElement).closest(".portrait-edit-hit")) return;
-    const marked = (event.target as HTMLElement).closest(".portrait-mirror-visual [data-id]");
-    if (!marked) return;
-    const id = marked.getAttribute("data-id");
-    const element = layout.elements.find((item) => item.id === id);
-    if (!element) return;
-    onPointerDown(event, pageIndex, element, "move", flipRole);
-  }
-
   return (
     <div
       ref={(node) => {
         frameRef.current = node;
         registerRef(node);
       }}
-      className={`portrait-editor-preview mobile portrait-phone-frame${mirrorClick ? " interactive-mirror" : ""}`}
+      className="portrait-editor-preview mobile portrait-phone-frame"
       style={{ ...previewStyle, width, height: phoneHeight }}
-      onMouseDown={onBackgroundMouseDown}
-      onPointerDownCapture={onCapturePointerDown}
-      onDoubleClickCapture={(event) => {
-        if (!mirrorClick) return;
-        const id = (event.target as HTMLElement).closest(".portrait-mirror-visual [data-id]")?.getAttribute("data-id");
-        const element = id ? layout.elements.find((item) => item.id === id) : undefined;
-        if (element?.type === "text") onStartTextEdit(element.id);
+      onMouseDown={(event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest(".portrait-edit-hit, .portrait-mirror-visual [data-id]")) return;
+        onBackgroundMouseDown();
       }}
     >
       <PortraitMobileMirror layout={layout} role={flipRole} book={book} width={width} height={phoneHeight} />
       <div className="portrait-edit-layer">
-        {overlayElements.map((element) => (
+        {layout.elements.map((element) => (
           <div
             key={element.id}
             className={`page-editor-el portrait-edit-hit${selectedId === element.id ? " selected" : ""}`}
@@ -763,10 +763,10 @@ export default function PortraitEditorPage() {
     setSelectedId(element.id);
     setFocus(pageIndex);
     setEditingId("");
-    if (flipRole !== "cover" && mode === "move") return;
     const page = pageRefs.current[pageIndex];
     if (!page) return;
     const rect = page.getBoundingClientRect();
+    const box = elementBoxInPage(page, element);
     dragMoved.current = false;
     drag.current = {
       id: element.id,
@@ -774,8 +774,8 @@ export default function PortraitEditorPage() {
       mode,
       startX: event.clientX,
       startY: event.clientY,
-      offsetX: ((event.clientX - rect.left) / rect.width) * 100 - element.x,
-      offsetY: ((event.clientY - rect.top) / rect.height) * 100 - element.y,
+      offsetX: ((event.clientX - rect.left) / rect.width) * 100 - box.x,
+      offsetY: ((event.clientY - rect.top) / rect.height) * 100 - box.y,
       orig: { ...element },
     };
     const move = (ev: PointerEvent) => onDrag(ev);
@@ -959,7 +959,7 @@ export default function PortraitEditorPage() {
         <button type="button" disabled={!selected} onClick={() => copySelection()}>Copy</button>
         <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>
         <button type="button" disabled={!canUndo} onClick={() => undo()}>Undo</button>
-        <span className="hint">Preview matches the phone. Click wording or art to select; double-click text to edit. Drag on the cover; resize on any page. Saves here update the phone reader. ⌘C / ⌘V / ⌘Z</span>
+        <span className="hint">Click a box on the preview to select, drag to move, double-click wording to edit. ⌘C / ⌘V / ⌘Z</span>
         {selected?.element.type === "image" ? (
           <>
             <button type="button" className={imageObjectFit(selected.element) === "cover" ? "active" : ""} onClick={() => patchSelected({ fit: "cover" })}>Fill frame</button>

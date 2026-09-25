@@ -826,13 +826,15 @@ html:has(.upright-pdf) body {
 }
 .portrait-edit-layer .portrait-edit-hit {
   pointer-events: auto;
-  background: transparent;
-  border: 2px dashed transparent;
+  background: rgba(217, 144, 40, 0.04);
+  border: 1px dashed rgba(217, 144, 40, 0.45);
   box-sizing: border-box;
+  min-width: 8px;
+  min-height: 8px;
 }
 .portrait-edit-layer .portrait-edit-hit.selected {
-  background: rgba(217, 144, 40, 0.1);
-  border-color: #d99028;
+  background: rgba(217, 144, 40, 0.12);
+  border: 2px solid #d99028;
 }
 /* Portrait editor: same DOM/classes as the flipbook reader in .mobile portrait mode */
 .portrait-editor-preview.mobile .page {

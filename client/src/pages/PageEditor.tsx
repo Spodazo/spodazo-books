@@ -262,6 +262,12 @@ function pastedRole(source: PageElement, screen: Screen): PageElement["role"] {
   return "body";
 }
 
+const UNDO_LIMIT = 50;
+
+function cloneBook(book: PublicBook): PublicBook {
+  return JSON.parse(JSON.stringify(book)) as PublicBook;
+}
+
 export default function PageEditorPage() {
   const [, params] = useRoute("/admin/edit/:slug");
   const [, setLocation] = useLocation();
@@ -273,6 +279,7 @@ export default function PageEditorPage() {
   const [selectedId, setSelectedId] = useState("");
   const [editingId, setEditingId] = useState("");
   const [status, setStatus] = useState("Saved");
+  const [canUndo, setCanUndo] = useState(false);
   const [credits, setCredits] = useState("");
   const [copyright, setCopyright] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -292,10 +299,20 @@ export default function PageEditorPage() {
   const selectedIdRef = useRef("");
   const copyRef = useRef<(event?: ClipboardEvent) => void>(() => {});
   const pasteRef = useRef<(event: ClipboardEvent) => void>(() => {});
+  const undoRef = useRef<() => void>(() => {});
+  const undoStack = useRef<PublicBook[]>([]);
+  const restoringRef = useRef(false);
+  const deferUndoRef = useRef(false);
 
   useEffect(() => {
     bookRef.current = book;
   }, [book]);
+
+  useEffect(() => {
+    if (!book || !ready) return;
+    undoStack.current = [cloneBook(book)];
+    setCanUndo(false);
+  }, [book?.id, ready]);
 
   useEffect(() => {
     const href = googleFontsHref(BOOK_FONTS.map((font) => font.id));
@@ -366,7 +383,21 @@ export default function PageEditorPage() {
     };
   }, [slug, setLocation]);
 
-  function persist(next: PublicBook) {
+  function pushUndoSnapshot() {
+    const current = bookRef.current;
+    if (!current || restoringRef.current) return;
+    const stack = undoStack.current;
+    const snap = cloneBook(current);
+    const top = stack[stack.length - 1];
+    if (top && JSON.stringify(top) === JSON.stringify(snap)) return;
+    stack.push(snap);
+    if (stack.length > UNDO_LIMIT) stack.shift();
+    setCanUndo(stack.length >= 2);
+  }
+
+  function persist(next: PublicBook, options?: { recordUndo?: boolean }) {
+    const record = options?.recordUndo !== false && !restoringRef.current && !drag.current;
+    if (record) pushUndoSnapshot();
     const synced = syncBookFromLayouts(next);
     setBook(synced);
     setStatus("Saving…");
@@ -423,27 +454,68 @@ export default function PageEditorPage() {
     return book.pages.find((page) => page.id === target.pageId) || { elements: [], background: "" };
   }
 
-  function writeLayout(target: Screen, layout: PageLayout) {
+  function writeLayout(target: Screen, layout: PageLayout, options?: { recordUndo?: boolean }) {
     if (!book) return;
-    if (target.kind === "cover") persist({ ...book, coverLayout: layout });
-    else if (target.kind === "back") persist({ ...book, backCoverLayout: layout });
-    else if (target.kind === "title") persist({ ...book, titleLayout: layout });
-    else if (target.kind === "end") persist({ ...book, endLayout: layout });
+    if (target.kind === "cover") persist({ ...book, coverLayout: layout }, options);
+    else if (target.kind === "back") persist({ ...book, backCoverLayout: layout }, options);
+    else if (target.kind === "title") persist({ ...book, titleLayout: layout }, options);
+    else if (target.kind === "end") persist({ ...book, endLayout: layout }, options);
     else {
       persist({
         ...book,
         pages: book.pages.map((page) => (page.id === target.pageId ? { ...page, ...layout, elements: layout.elements } : page)),
-      });
+      }, options);
     }
   }
 
-  function patchElement(id: string, patch: Partial<PageElement>) {
+  function patchElement(id: string, patch: Partial<PageElement>, options?: { recordUndo?: boolean }) {
     if (!screen) return;
     const layout = layoutOf(screen);
     writeLayout(screen, {
       ...layout,
       elements: layout.elements.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    });
+    }, options);
+  }
+
+  function undo() {
+    const stack = undoStack.current;
+    if (stack.length < 2) return;
+    stack.pop();
+    const prev = stack[stack.length - 1];
+    if (!prev) return;
+    restoringRef.current = true;
+    const synced = syncBookFromLayouts(prev);
+    bookRef.current = synced;
+    setBook(synced);
+    setCanUndo(stack.length >= 2);
+    setSelectedId("");
+    setEditingId("");
+    setStatus("Undone");
+    restoringRef.current = false;
+    setStatus("Saving…");
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      void updateBook(synced.id, {
+        title: synced.title,
+        tagline: synced.tagline,
+        author: synced.author,
+        date: synced.date,
+        coverUrl: synced.coverUrl,
+        pages: synced.pages,
+        pageBackground: synced.pageBackground,
+        pageTexture: synced.pageTexture,
+        spreadBackground: synced.spreadBackground,
+        textFont: synced.textFont,
+        textColor: synced.textColor,
+        titleLayout: synced.titleLayout,
+        coverLayout: synced.coverLayout,
+        backCoverLayout: synced.backCoverLayout,
+        endLayout: synced.endLayout,
+      }).then(() => setStatus("Saved")).catch((err: Error) => {
+        setStatus("");
+        setError(err.message);
+      });
+    }, 700);
   }
 
   function applyStorySize(fontSize: number) {
@@ -619,6 +691,7 @@ export default function PageEditorPage() {
     setEditingId("");
     const page = pageRef.current;
     if (!page) return;
+    pushUndoSnapshot();
     drag.current = {
       id: element.id,
       mode: cropThis ? "crop" : mode,
@@ -637,21 +710,21 @@ export default function PageEditorPage() {
     const dx = ((event.clientX - state.startX) / rect.width) * 100;
     const dy = ((event.clientY - state.startY) / rect.height) * 100;
     if (state.mode === "crop") {
-      patchElement(state.id, { fit: "cover", ...panImageFocus(state.orig, dx, dy) });
+      patchElement(state.id, { fit: "cover", ...panImageFocus(state.orig, dx, dy) }, { recordUndo: false });
       return;
     }
     if (state.mode === "move") {
       patchElement(state.id, {
         x: Math.min(100 - state.orig.w, Math.max(0, state.orig.x + dx)),
         y: Math.min(100 - state.orig.h, Math.max(0, state.orig.y + dy)),
-      });
+      }, { recordUndo: false });
       return;
     }
     const next = {
       w: Math.min(100 - state.orig.x, Math.max(state.orig.type === "image" ? 1 : 8, state.orig.w + dx)),
       h: Math.min(100 - state.orig.y, Math.max(state.orig.type === "image" ? 1 : 8, state.orig.h + dy)),
     };
-    patchElement(state.id, state.orig.type === "image" ? { ...next, fit: "cover" } : next);
+    patchElement(state.id, state.orig.type === "image" ? { ...next, fit: "cover" } : next, { recordUndo: false });
   }
 
   function onPointerUp() {
@@ -773,6 +846,7 @@ export default function PageEditorPage() {
 
   copyRef.current = copySelection;
   pasteRef.current = pasteSelection;
+  undoRef.current = undo;
 
   useEffect(() => {
     function onCopy(event: ClipboardEvent) {
@@ -782,11 +856,21 @@ export default function PageEditorPage() {
     function onPaste(event: ClipboardEvent) {
       pasteRef.current(event);
     }
+    function onKeyDown(event: KeyboardEvent) {
+      if (isTypingTarget(event.target)) return;
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (event.key === "z" || event.key === "Z") {
+        event.preventDefault();
+        undoRef.current();
+      }
+    }
     window.addEventListener("copy", onCopy);
     window.addEventListener("paste", onPaste);
+    window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("copy", onCopy);
       window.removeEventListener("paste", onPaste);
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, []);
 
@@ -835,6 +919,7 @@ export default function PageEditorPage() {
         <button type="button" disabled={!selectedId} onClick={removeElement}>Delete item</button>
         <button type="button" disabled={!selectedId} onClick={() => copyRef.current()}>Copy</button>
         <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>
+        <button type="button" disabled={!canUndo} onClick={() => undo()}>Undo</button>
         {selectedId ? (
           <div className="page-editor-align" role="group" aria-label="Arrange">
             <button type="button" onClick={() => arrange("front")}>In front</button>
