@@ -793,7 +793,6 @@ function BookEditor({
           Save
         </button>
         <a className="ghost" href={`/admin/edit/${book.slug}`}>Edit Flipbook Display</a>
-        <a className="ghost" href={`/admin/portrait/${book.slug}`}>Portrait Mobile Display</a>
         <button type="button" className="ghost" onClick={() => setPreview(true)}>Preview</button>
         {(["standard", "a3-a4", "a4-a5"] as BookPdfKind[]).map((kind) => (
           <button

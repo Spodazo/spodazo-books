@@ -90,14 +90,6 @@ function pagesFromBody(raw: unknown): BookPage[] | undefined {
   return parsed;
 }
 
-function portraitPagesFromBody(raw: unknown): PageLayout[] | null | undefined {
-  if (raw === undefined) return undefined;
-  if (raw === null) return null;
-  const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-  if (!Array.isArray(parsed)) return [];
-  return parsed.map((item) => normalizeLayout(item as PageLayout));
-}
-
 export function registerRoutes(app: Express): void {
   app.get("/api/version", (_req, res) => {
     res.set({
@@ -432,7 +424,6 @@ export function registerRoutes(app: Express): void {
         coverLayout: body.coverLayout,
         backCoverLayout: body.backCoverLayout,
         endLayout: body.endLayout,
-        portraitPages: portraitPagesFromBody(body.portraitPages),
       });
       res.json(book);
     } catch (err) {
@@ -478,7 +469,6 @@ export function registerRoutes(app: Express): void {
         coverLayout: body.coverLayout !== undefined ? body.coverLayout : undefined,
         backCoverLayout: body.backCoverLayout !== undefined ? body.backCoverLayout : undefined,
         endLayout: body.endLayout !== undefined ? body.endLayout : undefined,
-        portraitPages: portraitPagesFromBody(body.portraitPages),
       });
       res.json(updated);
     } catch (err) {

@@ -492,6 +492,8 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS back_cover_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS end_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS portrait_pages_json TEXT NOT NULL DEFAULT ''`);
+    // Portrait mobile editor removed — phone reader uses flipbook layouts + upright restack.
+    await this.db.execute(sql`UPDATE books SET portrait_pages_json = '' WHERE trim(portrait_pages_json) <> ''`);
   }
 
   async listBooks(): Promise<BookListItem[]> {

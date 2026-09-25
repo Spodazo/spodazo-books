@@ -115,39 +115,9 @@ export function savedPortraitInnerPages(book: Book): PageLayout[] | null {
   return normalized;
 }
 
+/** Upright PDF preview pages — always derived from flipbook layouts (phone uses reader restack). */
 export function portraitPagesFor(book: Book): PageLayout[] {
-  if (Array.isArray(book.portraitPages)) return book.portraitPages.map((layout) => normalizeLayout(layout));
   return derivePortraitPages(book);
-}
-
-/** True when the book has saved portrait pages with at least one laid-out screen. */
-export function savedPortraitPagesReady(book: Book): boolean {
-  if (!Array.isArray(book.portraitPages) || !book.portraitPages.length) return false;
-  return book.portraitPages.some((page) => hasLayout(page));
-}
-
-/** Portrait editor: same page list as the phone flipbook; drop stale leaf-split saves. */
-export function portraitPagesForEditor(book: Book): PageLayout[] {
-  const derived = derivePortraitPages(book);
-  const saved = book.portraitPages;
-  if (!Array.isArray(saved) || !saved.length) return derived;
-
-  const normalized = saved.map((layout) => normalizeLayout(layout));
-  if (normalized.length !== derived.length) {
-    const savedHasContent = normalized.some((page) => page.elements.length > 0);
-    if (!savedHasContent) return derived;
-  }
-
-  return derived.map((slot, index) => {
-    const prior = normalized[index];
-    if (prior?.elements.length) {
-      return {
-        ...prior,
-        portraitRole: slot.portraitRole ?? prior.portraitRole,
-      };
-    }
-    return slot;
-  });
 }
 
 export function parsePortraitPages(raw?: string | null): PageLayout[] | null {
