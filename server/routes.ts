@@ -3,7 +3,8 @@ import fs from "fs";
 import path from "path";
 import multer from "multer";
 import { slugify, uniqueSlug } from "../shared/seed-data";
-import type { BookPage, PlayerSetup } from "../shared/types";
+import { normalizeLayout } from "../shared/page-layout";
+import type { BookPage, PageLayout, PlayerSetup } from "../shared/types";
 import { loginAdmin, logoutAdmin, requireAdmin } from "./auth";
 import { curatorPasswordMatches, curatorRecoveryError, hashPassword, MIN_PASSWORD_LENGTH } from "./password";
 import { currentIconStamp } from "./htmlIcons";
@@ -87,6 +88,14 @@ function pagesFromBody(raw: unknown): BookPage[] | undefined {
   const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
   if (!Array.isArray(parsed)) return [];
   return parsed;
+}
+
+function portraitPagesFromBody(raw: unknown): PageLayout[] | null | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (!Array.isArray(parsed)) return [];
+  return parsed.map((item) => normalizeLayout(item as PageLayout));
 }
 
 export function registerRoutes(app: Express): void {
@@ -423,6 +432,7 @@ export function registerRoutes(app: Express): void {
         coverLayout: body.coverLayout,
         backCoverLayout: body.backCoverLayout,
         endLayout: body.endLayout,
+        portraitPages: portraitPagesFromBody(body.portraitPages),
       });
       res.json(book);
     } catch (err) {
@@ -468,6 +478,7 @@ export function registerRoutes(app: Express): void {
         coverLayout: body.coverLayout !== undefined ? body.coverLayout : undefined,
         backCoverLayout: body.backCoverLayout !== undefined ? body.backCoverLayout : undefined,
         endLayout: body.endLayout !== undefined ? body.endLayout : undefined,
+        portraitPages: portraitPagesFromBody(body.portraitPages),
       });
       res.json(updated);
     } catch (err) {

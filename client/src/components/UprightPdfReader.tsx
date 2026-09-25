@@ -1,23 +1,15 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
 import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, googleFontsHref } from "@shared/book-fonts";
-import { DEFAULT_PAGE_BACKGROUND, ensureBookLayouts, hasLayout } from "@shared/page-layout";
-import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
-import type { PageLayout, PublicBook } from "@shared/types";
+import { DEFAULT_PAGE_BACKGROUND, ensureBookLayouts } from "@shared/page-layout";
+import { portraitPagesFor } from "@shared/portrait-pages";
+import { characterUrlFor } from "@shared/reader-pages";
+import type { PublicBook } from "@shared/types";
 import CoverFace from "./CoverFace";
-
-function asLayout(page: { elements?: PageLayout["elements"]; background?: string }): PageLayout {
-  return { elements: page.elements || [], background: page.background };
-}
 
 export default function UprightPdfReader({ book }: { book: PublicBook }) {
   const designed = ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) });
-  const pages: Array<{ key: string; layout: PageLayout }> = [];
-  if (hasLayout(designed.titleLayout)) pages.push({ key: "title", layout: designed.titleLayout });
-  visibleStoryPages(designed).forEach((page, index) => {
-    if (hasLayout(page)) pages.push({ key: page.id || `page-${index}`, layout: asLayout(page) });
-  });
-  if (hasLayout(designed.endLayout)) pages.push({ key: "end", layout: designed.endLayout });
+  const pages = portraitPagesFor(designed).map((layout, index) => ({ key: `portrait-${index}`, layout }));
 
   useEffect(() => {
     const href = googleFontsHref([designed.textFont || DEFAULT_TEXT_FONT]);
@@ -49,7 +41,7 @@ export default function UprightPdfReader({ book }: { book: PublicBook }) {
           </div>
         ))}
       </div>
-      <p className="upright-pdf-bar">Turn your phone for our flipbook version.</p>
+      <p className="upright-pdf-bar">Please turn your phone for our flipbook version.</p>
     </div>
   );
 }

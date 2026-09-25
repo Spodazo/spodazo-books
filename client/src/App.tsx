@@ -5,6 +5,7 @@ import AdminPage from "./pages/Admin";
 import BookPage from "./pages/Book";
 import HomePage from "./pages/Home";
 import PageEditorPage from "./pages/PageEditor";
+import PortraitEditorPage from "./pages/PortraitEditor";
 
 export default function App() {
   const [path] = useLocation();
@@ -25,6 +26,7 @@ export default function App() {
       {onAdmin ? (
         <Switch>
           <Route path="/admin/edit/:slug" component={PageEditorPage} />
+          <Route path="/admin/portrait/:slug" component={PortraitEditorPage} />
           <Route path="/admin" component={AdminPage} />
         </Switch>
       ) : onHome ? null : (

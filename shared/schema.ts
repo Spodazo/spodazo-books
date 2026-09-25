@@ -26,6 +26,7 @@ export const books = pgTable("books", {
   coverLayoutJson: text("cover_layout_json").notNull().default(""),
   backCoverLayoutJson: text("back_cover_layout_json").notNull().default(""),
   endLayoutJson: text("end_layout_json").notNull().default(""),
+  portraitPagesJson: text("portrait_pages_json").notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

@@ -11,6 +11,7 @@ import {
   normalizeLayout,
   parseLayoutJson,
 } from "../shared/page-layout";
+import { parsePortraitPages } from "../shared/portrait-pages";
 import { normalizePaperTexture } from "../shared/paper";
 import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, normalizeFont } from "../shared/book-fonts";
 import {
@@ -27,7 +28,7 @@ import {
   publicCurator,
 } from "../shared/seed-data";
 import { normalizePaletteId } from "../shared/palettes";
-import type { Book, BookListItem, BookPage, Curator, CuratorRecord, PlayerSetup, PublicBook } from "../shared/types";
+import type { Book, BookListItem, BookPage, Curator, CuratorRecord, PageLayout, PlayerSetup, PublicBook } from "../shared/types";
 import { COLLECTION_COVER_WIDTH, HOME_CARD_WIDTH, imageUrl, pdfUrl } from "./media";
 import { catalogPath, ensureDataDirs } from "./paths";
 
@@ -57,6 +58,7 @@ export type BookInput = {
   coverLayout?: Book["coverLayout"];
   backCoverLayout?: Book["backCoverLayout"];
   endLayout?: Book["endLayout"];
+  portraitPages?: PageLayout[] | null;
 };
 
 export interface BookStore {
@@ -72,6 +74,19 @@ export interface BookStore {
   getCurator(): Promise<Curator>;
   getCuratorRecord(): Promise<CuratorRecord>;
   updateCurator(input: Partial<CuratorRecord>): Promise<Curator>;
+}
+
+function portraitPagesToJson(pages: PageLayout[] | null | undefined): string {
+  if (!pages) return "";
+  return JSON.stringify(pages.map((layout) => JSON.parse(layoutToJson(normalizeLayout(layout))) as PageLayout));
+}
+
+function storedPortraitPages(row: {
+  portraitPages?: PageLayout[] | null;
+  portraitPagesJson?: string | null;
+}): PageLayout[] | null {
+  if (Array.isArray(row.portraitPages)) return row.portraitPages.map((layout) => normalizeLayout(layout));
+  return parsePortraitPages(row.portraitPagesJson);
 }
 
 function nowIso(): string {
@@ -111,6 +126,9 @@ function hydrateBook(book: Book): PublicBook {
     coverLayout: { ...book.coverLayout, elements: hydrateElements(book.coverLayout?.elements || []) },
     backCoverLayout: { ...book.backCoverLayout, elements: hydrateElements(book.backCoverLayout?.elements || []) },
     endLayout: { ...book.endLayout, elements: hydrateElements(book.endLayout.elements) },
+    portraitPages: book.portraitPages
+      ? book.portraitPages.map((layout) => ({ ...layout, elements: hydrateElements(layout.elements) }))
+      : null,
   };
 }
 
@@ -195,10 +213,12 @@ function recordBook(row: {
   coverLayoutJson?: string | null;
   backCoverLayoutJson?: string | null;
   endLayoutJson?: string | null;
+  portraitPagesJson?: string | null;
   titleLayout?: Book["titleLayout"] | null;
   coverLayout?: Book["coverLayout"] | null;
   backCoverLayout?: Book["backCoverLayout"] | null;
   endLayout?: Book["endLayout"] | null;
+  portraitPages?: PageLayout[] | null;
   createdAt?: Date | string | null;
   updatedAt?: Date | string | null;
 }): Book {
@@ -228,6 +248,7 @@ function recordBook(row: {
     coverLayout: row.coverLayout || parseLayoutJson(row.coverLayoutJson),
     backCoverLayout: row.backCoverLayout || parseLayoutJson(row.backCoverLayoutJson),
     endLayout: row.endLayout || parseLayoutJson(row.endLayoutJson),
+    portraitPages: storedPortraitPages(row),
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : undefined,
     updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : undefined,
   };
@@ -306,6 +327,7 @@ export class JsonBookStore implements BookStore {
       coverLayout: normalizeLayout(input.coverLayout),
       backCoverLayout: normalizeLayout(input.backCoverLayout),
       endLayout: normalizeLayout(input.endLayout),
+      portraitPages: Array.isArray(input.portraitPages) ? input.portraitPages.map((layout) => normalizeLayout(layout)) : null,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     };
@@ -342,6 +364,9 @@ export class JsonBookStore implements BookStore {
     if (input.coverLayout !== undefined) book.coverLayout = normalizeLayout(input.coverLayout);
     if (input.backCoverLayout !== undefined) book.backCoverLayout = normalizeLayout(input.backCoverLayout);
     if (input.endLayout !== undefined) book.endLayout = normalizeLayout(input.endLayout);
+    if (input.portraitPages !== undefined) {
+      book.portraitPages = input.portraitPages === null ? null : input.portraitPages.map((layout) => normalizeLayout(layout));
+    }
     book.updatedAt = nowIso();
     this.write(catalog);
     return hydrateBook(book);
@@ -466,6 +491,7 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS cover_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS back_cover_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS end_layout_json TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS portrait_pages_json TEXT NOT NULL DEFAULT ''`);
   }
 
   async listBooks(): Promise<BookListItem[]> {
@@ -513,6 +539,7 @@ export class PostgresBookStore implements BookStore {
         coverLayoutJson: layoutToJson(normalizeLayout(input.coverLayout)),
         backCoverLayoutJson: layoutToJson(normalizeLayout(input.backCoverLayout)),
         endLayoutJson: layoutToJson(normalizeLayout(input.endLayout)),
+        portraitPagesJson: portraitPagesToJson(input.portraitPages),
       })
       .returning();
     return hydrateBook(recordBook(row));
@@ -544,6 +571,7 @@ export class PostgresBookStore implements BookStore {
     if (input.coverLayout !== undefined) patch.coverLayoutJson = layoutToJson(normalizeLayout(input.coverLayout));
     if (input.backCoverLayout !== undefined) patch.backCoverLayoutJson = layoutToJson(normalizeLayout(input.backCoverLayout));
     if (input.endLayout !== undefined) patch.endLayoutJson = layoutToJson(normalizeLayout(input.endLayout));
+    if (input.portraitPages !== undefined) patch.portraitPagesJson = portraitPagesToJson(input.portraitPages);
     const [row] = await this.db.update(books).set(patch).where(eq(books.id, id)).returning();
     return row ? hydrateBook(recordBook(row)) : null;
   }

@@ -77,6 +77,8 @@ export type Book = {
   coverLayout: PageLayout;
   backCoverLayout: PageLayout;
   endLayout: PageLayout;
+  /** Upright phone pages. Missing until Portrait Mobile Display is saved. */
+  portraitPages?: PageLayout[] | null;
   pages: BookPage[];
   createdAt?: string;
   updatedAt?: string;

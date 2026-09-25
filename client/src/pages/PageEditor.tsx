@@ -817,8 +817,10 @@ export default function PageEditorPage() {
     <main className="page-editor">
       <header className="page-editor-bar">
         <Link href="/admin" className="ghost">Close</Link>
+        <Link href={`/admin/portrait/${slug}`} className="ghost">Portrait Mobile Display</Link>
         <button type="button" className="ghost" disabled={index === 0} onClick={() => { setIndex(index - 1); setSelectedId(""); setEditingId(""); }}>Previous</button>
         <strong>{book.title}</strong>
+        <span>Flipbook display</span>
         <span>{label} of {screens.length}</span>
         <button type="button" className="ghost" disabled={index === screens.length - 1} onClick={() => { setIndex(index + 1); setSelectedId(""); setEditingId(""); }}>Next</button>
         <span className="page-editor-status">{status}</span>
