@@ -1345,33 +1345,6 @@ html:not(.mobile) .page.front-cover .reader-close{
 .mobile .front-cover-leaf{
   inset:0;
 }
-@media(max-width:700px) and (orientation:portrait),(pointer:coarse) and (max-width:1100px) and (orientation:portrait){
-  .mobile .page.front-cover .front-cover-leaf{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding:48px max(18px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));
-    box-sizing:border-box;
-    overflow:hidden;
-  }
-  .mobile .page.front-cover .cover-bit{
-    position:relative!important;
-    inset:auto!important;
-    left:auto!important;
-    top:auto!important;
-    width:92%!important;
-    height:auto!important;
-    max-width:92%;
-  }
-  .mobile .page.front-cover .cover-bit-image{
-    width:100%!important;
-    height:auto!important;
-    max-height:42vh;
-    object-fit:contain!important;
-    object-position:center center!important;
-  }
-}
 .page.front-cover .zone[data-dir="1"]{
   left:25%;
   width:50%;

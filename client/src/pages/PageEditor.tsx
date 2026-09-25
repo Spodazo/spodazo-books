@@ -75,6 +75,12 @@ function storyText(item: PageElement) {
   return item.type === "text" && (item.role === "body" || !item.role);
 }
 
+function canDeleteStoryPage(book: PublicBook, pageId: string): boolean {
+  const remaining = book.pages.filter((page) => page.id !== pageId);
+  if (remaining.length === book.pages.length) return false;
+  return visibleStoryPages({ ...book, pages: remaining }).length >= 1;
+}
+
 function measureStoryHeight(text: string, widthPx: number, fontPx: number, family: string, framed: boolean) {
   const host = document.createElement("div");
   host.style.cssText = `position:absolute;left:-9999px;top:0;width:${Math.max(40, widthPx)}px;visibility:hidden;`;
@@ -388,7 +394,9 @@ export default function PageEditorPage() {
     }
     setStatus("Saving…");
     saveTimer.current = window.setTimeout(() => {
-      void saveBookNow(synced);
+      const latest = bookRef.current;
+      if (!latest || latest.id !== synced.id) return;
+      void saveBookNow(latest);
     }, 700);
   }
 
@@ -408,24 +416,26 @@ export default function PageEditorPage() {
   }, [index, screens.length]);
 
   function layoutOf(target: Screen | undefined): PageLayout {
-    if (!book || !target) return { elements: [], background: "" };
-    if (target.kind === "cover") return book.coverLayout;
-    if (target.kind === "back") return book.backCoverLayout;
-    if (target.kind === "title") return book.titleLayout;
-    if (target.kind === "end") return book.endLayout;
-    return book.pages.find((page) => page.id === target.pageId) || { elements: [], background: "" };
+    const current = bookRef.current;
+    if (!current || !target) return { elements: [], background: "" };
+    if (target.kind === "cover") return current.coverLayout;
+    if (target.kind === "back") return current.backCoverLayout;
+    if (target.kind === "title") return current.titleLayout;
+    if (target.kind === "end") return current.endLayout;
+    return current.pages.find((page) => page.id === target.pageId) || { elements: [], background: "" };
   }
 
   function writeLayout(target: Screen, layout: PageLayout, options?: { recordUndo?: boolean }) {
-    if (!book) return;
-    if (target.kind === "cover") persist({ ...book, coverLayout: layout }, options);
-    else if (target.kind === "back") persist({ ...book, backCoverLayout: layout }, options);
-    else if (target.kind === "title") persist({ ...book, titleLayout: layout }, options);
-    else if (target.kind === "end") persist({ ...book, endLayout: layout }, options);
+    const current = bookRef.current;
+    if (!current) return;
+    if (target.kind === "cover") persist({ ...current, coverLayout: layout }, options);
+    else if (target.kind === "back") persist({ ...current, backCoverLayout: layout }, options);
+    else if (target.kind === "title") persist({ ...current, titleLayout: layout }, options);
+    else if (target.kind === "end") persist({ ...current, endLayout: layout }, options);
     else {
       persist({
-        ...book,
-        pages: book.pages.map((page) => (page.id === target.pageId ? { ...page, ...layout, elements: layout.elements } : page)),
+        ...current,
+        pages: current.pages.map((page) => (page.id === target.pageId ? { ...page, ...layout, elements: layout.elements } : page)),
       }, options);
     }
   }
@@ -456,40 +466,20 @@ export default function PageEditorPage() {
     restoringRef.current = false;
     setStatus("Saving…");
     window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      void updateBook(synced.id, {
-        title: synced.title,
-        tagline: synced.tagline,
-        author: synced.author,
-        date: synced.date,
-        coverUrl: synced.coverUrl,
-        pages: synced.pages,
-        pageBackground: synced.pageBackground,
-        pageTexture: synced.pageTexture,
-        spreadBackground: synced.spreadBackground,
-        textFont: synced.textFont,
-        textColor: synced.textColor,
-        titleLayout: synced.titleLayout,
-        coverLayout: synced.coverLayout,
-        backCoverLayout: synced.backCoverLayout,
-        endLayout: synced.endLayout,
-      }).then(() => setStatus("Saved")).catch((err: Error) => {
-        setStatus("");
-        setError(err.message);
-      });
-    }, 700);
+    void saveBookNow(synced);
   }
 
   function applyStorySize(fontSize: number) {
-    if (!book) return;
+    const current = bookRef.current;
+    if (!current) return;
     const pageBox = pageRef.current;
     const pageW = pageBox?.clientWidth || bookBox.width;
     const pageH = pageBox?.clientHeight || bookBox.height;
     persist({
-      ...book,
-      pages: book.pages.map((page) => ({
+      ...current,
+      pages: current.pages.map((page) => ({
         ...page,
-        elements: placeStoryText(page.elements, fontSize, pageW, pageH, book.textFont || DEFAULT_TEXT_FONT),
+        elements: placeStoryText(page.elements, fontSize, pageW, pageH, current.textFont || DEFAULT_TEXT_FONT),
       })),
     });
   }
@@ -570,11 +560,12 @@ export default function PageEditorPage() {
   }
 
   function addPage() {
-    if (!book) return;
-    const page = emptyStoryPage(book.pages.length);
-    const pages = [...book.pages, page];
-    persist({ ...book, pages });
-    setIndex(visibleStoryPages({ ...book, pages }).length + 2);
+    const current = bookRef.current;
+    if (!current) return;
+    const page = emptyStoryPage(current.pages.length);
+    const pages = [...current.pages, page];
+    persist({ ...current, pages });
+    setIndex(visibleStoryPages({ ...current, pages }).length + 2);
     setSelectedId(page.elements[0]?.id || "");
   }
 
@@ -645,7 +636,10 @@ export default function PageEditorPage() {
     else if (picking === "frame" && current) patchElement(current.id, { frameColor: color });
     else if (picking === "shape" && current) patchElement(current.id, { color });
     else if (picking === "page") writeLayout(screen, { ...layoutOf(screen), background: color });
-    else if (picking === "ink") persist({ ...book, textColor: color });
+    else if (picking === "ink") {
+      const current = bookRef.current;
+      if (current) persist({ ...current, textColor: color });
+    }
     setPicking("");
     setStatus("Matched");
   }
@@ -894,7 +888,7 @@ export default function PageEditorPage() {
         <button type="button" onClick={addPage}>Add page</button>
         <button
           type="button"
-          disabled={screen.kind !== "page" || storyPages.length < 2 || book.pages.length < 2}
+          disabled={screen.kind !== "page" || !canDeleteStoryPage(book, screen.pageId)}
           onClick={removePage}
         >
           Delete page
