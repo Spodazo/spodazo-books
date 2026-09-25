@@ -383,16 +383,7 @@ export function defaultStoryElements(page: BookPage): PageElement[] {
 
 export function ensurePageElements(page: BookPage): BookPage {
   if (isOneLeafPdfPage(page)) {
-    const leaf = { ...page, kind: "facsimile" as const };
-    if (page.elements.length && !isLegacySingleLeafLayout(page.elements)) {
-      const elements = page.elements.map((item, index) => normalizeElement(item, index)).map((item) => (
-        item.type === "image" && item.w >= 95 && item.h >= 95 && item.fit !== "contain"
-          ? { ...item, fit: "contain" as const }
-          : item
-      ));
-      return { ...leaf, elements };
-    }
-    return { ...leaf, elements: defaultStoryElements(leaf) };
+    return { ...page, kind: "facsimile", elements: [] };
   }
   if (page.elements.length && !isLegacySingleLeafLayout(page.elements)) {
     return { ...page, elements: page.elements.map((item, index) => normalizeElement(item, index)) };

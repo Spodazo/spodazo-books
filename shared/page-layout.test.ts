@@ -104,8 +104,7 @@ test("an imported full PDF page is treated as one leaf even if saved as story", 
   } as BookPage;
   const next = ensurePageElements(page);
   assert.equal(next.kind, "facsimile");
-  assert.equal(next.elements[0].fit, "contain");
-  assert.equal(next.elements[0].w, 100);
+  assert.equal(next.elements.length, 0);
 });
 
 test("legacy full-page layouts become a two-leaf spread", () => {

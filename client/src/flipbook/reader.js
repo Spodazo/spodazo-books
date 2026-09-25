@@ -188,12 +188,10 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
     const coverOnly=!skipCover&&i===0;
     const pdfLeaf=isOneLeafPdfPage(p);
-    if(hasLayout(p)) {
-      const leafClass=oneLeaf&&pdfLeaf?' facsimile one-leaf':'';
-      return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones,leafClass);
-    }
+    if(hasLayout(p)&&!pdfLeaf) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const fallback=pdfLeaf||coverOnly;
-    const classes=`page${fallback?' facsimile':''}${oneLeaf&&fallback?' one-leaf':''}${coverOnly?' cover-plate':''}`;
+    const leafSide=oneLeaf&&fallback&&!coverOnly?(i%2===0?' leaf-right':' leaf-left'):'';
+    const classes=`page${fallback?' facsimile':''}${oneLeaf&&fallback?` one-leaf${leafSide}`:''}${coverOnly?' cover-plate':''}`;
     const focal=/^\d{1,3}% \d{1,3}%$/.test(p.focalPoint||'')?p.focalPoint:'50% 50%';
     const image=safeURL(coverOnly?(book.coverUrl||p.fullPageUrl||p.imageUrl):fallback?p.fullPageUrl||p.imageUrl:p.imageUrl,baseUrl);
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;

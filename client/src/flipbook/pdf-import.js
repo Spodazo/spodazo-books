@@ -1,5 +1,5 @@
-import * as pdfjs from 'pdfjs-dist';
-import workerURL from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import workerURL from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import {detectStoryLayout} from './layout.js';
 pdfjs.GlobalWorkerOptions.workerSrc = workerURL;
 const toBlob = canvas => new Promise((resolve,reject) => canvas.toBlob(b=>b?resolve(b):reject(new Error('Image conversion failed')), 'image/jpeg', .91));
@@ -29,7 +29,10 @@ export async function importPDF(file, {mode='auto', signal, onProgress=()=>{}, m
       const scale=Math.min(1800/Math.max(base.width,base.height),Math.sqrt(4_000_000/(base.width*base.height)));
       const viewport=page.getViewport({scale});
       const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
-      await page.render({canvasContext:canvas.getContext('2d'),viewport,background:'rgb(255,255,255)'}).promise;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({canvasContext:ctx,viewport}).promise;
       check();
       const fullBlob=await toBlob(canvas);const fullName=`page-${String(i).padStart(3,'0')}.jpg`;
       const fullURL=URL.createObjectURL(fullBlob);urls.push(fullURL);assets.push({name:fullName,blob:fullBlob});
