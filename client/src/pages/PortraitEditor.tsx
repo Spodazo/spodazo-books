@@ -556,17 +556,6 @@ export default function PortraitEditorPage() {
     state.from = target;
   }
 
-  function onVisualPointerDown(event: React.PointerEvent, pageIndex: number, layout: PageLayout) {
-    const target = event.target as HTMLElement;
-    if (target.closest(".portrait-edit-hit") || target.closest(".page-editor-handle")) return;
-    const marked = target.closest("[data-id]");
-    if (!marked?.closest(".portrait-mirror-visual")) return;
-    const id = marked.getAttribute("data-id");
-    const element = layout.elements.find((item) => item.id === id);
-    if (!element) return;
-    onPointerDown(event, pageIndex, element, "move");
-  }
-
   function onPointerDown(event: React.PointerEvent, pageIndex: number, element: PageElement, mode: "move" | "resize") {
     if (editingId === element.id && mode === "move") return;
     event.preventDefault();
@@ -769,7 +758,7 @@ export default function PortraitEditorPage() {
         <button type="button" disabled={!selected} onClick={() => copySelection()}>Copy</button>
         <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>
         <button type="button" disabled={!canUndo} onClick={() => undo()}>Undo</button>
-        <span className="hint">Click any item on the preview to select it, or use the spread boxes underneath. Double-click wording to edit. ⌘C / ⌘V / ⌘Z</span>
+        <span className="hint">Click a dashed box on the preview to select, drag to move, double-click wording to edit. ⌘C / ⌘V / ⌘Z</span>
         {selected?.element.type === "image" ? (
           <>
             <button type="button" className={imageObjectFit(selected.element) === "cover" ? "active" : ""} onClick={() => patchSelected({ fit: "cover" })}>Fill frame</button>
@@ -886,13 +875,6 @@ export default function PortraitEditorPage() {
                   className="portrait-editor-preview mobile portrait-phone-frame"
                   style={{ ...previewStyle, width: pageBox.width, height: pageBox.phoneHeight }}
                   onMouseDown={() => { setSelectedId(""); setEditingId(""); setFocus(index); }}
-                  onPointerDownCapture={(event) => onVisualPointerDown(event, index, layout)}
-                  onDoubleClickCapture={(event) => {
-                    const target = event.target as HTMLElement;
-                    const id = target.closest("[data-id]")?.getAttribute("data-id");
-                    const element = id ? layout.elements.find((item) => item.id === id) : undefined;
-                    if (element?.type === "text") setEditingId(element.id);
-                  }}
                 >
                   <div className="portrait-edit-layer">
                     {layout.elements.map((element) => (
