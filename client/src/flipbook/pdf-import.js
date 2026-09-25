@@ -1,5 +1,6 @@
+import './pdf-bytes-polyfill.js';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import workerURL from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
+import workerURL from './pdf-import.worker.js?worker&url';
 import {detectStoryLayout} from './layout.js';
 pdfjs.GlobalWorkerOptions.workerSrc = workerURL;
 const toBlob = canvas => new Promise((resolve,reject) => canvas.toBlob(b=>b?resolve(b):reject(new Error('Image conversion failed')), 'image/jpeg', .91));
