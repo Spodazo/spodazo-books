@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import {
   BOOK_FONTS,
@@ -13,6 +13,7 @@ import {
   DEFAULT_PAGE_BACKGROUND,
   DEFAULT_SPREAD_BACKGROUND,
   PAGE_COLOR_PALETTE,
+  alignJustify,
   decodeElementClipboard,
   duplicateElement,
   ELEMENT_CLIPBOARD_MIME,
@@ -24,18 +25,18 @@ import {
   pageFill,
   ensureBookLayouts,
 } from "@shared/page-layout";
-import { PAPER_TEXTURES, paperSwatchStyle } from "@shared/paper";
+import { PAPER_TEXTURES, paperSurfaceStyle, paperSwatchStyle } from "@shared/paper";
+import { DEFAULT_FRAME_COLOR, frameClass, frameMarkup } from "@shared/text-frames";
 import { paletteById } from "@shared/palettes";
 import {
   PORTRAIT_PAGE_RATIO,
   portraitFlipRole,
   portraitPagesForEditor,
   portraitPhoneViewportHeight,
-  type PortraitFlipRole,
 } from "@shared/portrait-pages";
 import { characterUrlFor } from "@shared/reader-pages";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
-import PortraitMobileMirror from "../components/PortraitMobileMirror";
+import EditorText from "../components/EditorText";
 import { adminMe, fetchBook, updateBook, uploadBookAsset } from "../lib/api";
 
 const WINDOW = 4;
@@ -50,25 +51,6 @@ function isTypingTarget(target: EventTarget | null) {
 
 function cloneBook(book: PublicBook): PublicBook {
   return JSON.parse(JSON.stringify(book)) as PublicBook;
-}
-
-function elementBoxInPage(page: HTMLDivElement | null, element: PageElement) {
-  if (!page) return { x: element.x, y: element.y, w: element.w, h: element.h };
-  const bounds = page.getBoundingClientRect();
-  if (bounds.width < 2 || bounds.height < 2) {
-    return { x: element.x, y: element.y, w: element.w, h: element.h };
-  }
-  const node = page.querySelector(`.portrait-mirror-visual [data-id="${CSS.escape(element.id)}"]`);
-  if (node instanceof HTMLElement) {
-    const rect = node.getBoundingClientRect();
-    return {
-      x: ((rect.left - bounds.left) / bounds.width) * 100,
-      y: ((rect.top - bounds.top) / bounds.height) * 100,
-      w: (rect.width / bounds.width) * 100,
-      h: (rect.height / bounds.height) * 100,
-    };
-  }
-  return { x: element.x, y: element.y, w: element.w, h: element.h };
 }
 
 function pastedRole(source: PageElement, pageIndex: number, pages: PageLayout[]): PageElement["role"] | undefined {
@@ -108,193 +90,12 @@ function FontSelect({
 
 type DragState = {
   id: string;
-  from: number;
+  pageIndex: number;
   mode: "move" | "resize";
   startX: number;
   startY: number;
-  offsetX: number;
-  offsetY: number;
   orig: PageElement;
 };
-
-function usePortraitHitStyles(frameRef: React.RefObject<HTMLDivElement | null>, layout: PageLayout, layoutKey: string) {
-  const [hitStyles, setHitStyles] = useState<Record<string, CSSProperties>>({});
-
-  useLayoutEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-
-    const measure = () => {
-      const bounds = frame.getBoundingClientRect();
-      if (bounds.width < 2 || bounds.height < 2) return;
-      const next: Record<string, CSSProperties> = {};
-      for (const element of layout.elements) {
-        const node = frame.querySelector(`.portrait-mirror-visual [data-id="${CSS.escape(element.id)}"]`);
-        if (node instanceof HTMLElement) {
-          const rect = node.getBoundingClientRect();
-          next[element.id] = {
-            left: `${((rect.left - bounds.left) / bounds.width) * 100}%`,
-            top: `${((rect.top - bounds.top) / bounds.height) * 100}%`,
-            width: `${(rect.width / bounds.width) * 100}%`,
-            height: `${(rect.height / bounds.height) * 100}%`,
-            zIndex: element.z,
-          };
-        } else {
-          next[element.id] = {
-            left: `${element.x}%`,
-            top: `${element.y}%`,
-            width: `${element.w}%`,
-            height: `${element.h}%`,
-            zIndex: element.z,
-          };
-        }
-      }
-      setHitStyles((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
-    };
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(frame);
-    window.requestAnimationFrame(measure);
-    window.setTimeout(measure, 50);
-    frame.querySelectorAll(".portrait-mirror-visual img").forEach((img) => {
-      if (!(img instanceof HTMLImageElement) || img.complete) return;
-      img.addEventListener("load", measure, { once: true });
-    });
-    const fonts = document.getElementById("book-editor-fonts");
-    fonts?.addEventListener("load", measure);
-    return () => {
-      observer.disconnect();
-      fonts?.removeEventListener("load", measure);
-    };
-  }, [frameRef, layoutKey, layout.elements]);
-
-  return hitStyles;
-}
-
-function PortraitPhoneFrame({
-  pageIndex,
-  layout,
-  flipRole,
-  book,
-  width,
-  phoneHeight,
-  previewStyle,
-  registerRef,
-  selectedId,
-  editingId,
-  bookFont,
-  bookInk,
-  onBackgroundMouseDown,
-  onPointerDown,
-  beginDeferredEdit,
-  onEndTextEdit,
-  onStartTextEdit,
-  onPlaceText,
-}: {
-  pageIndex: number;
-  layout: PageLayout;
-  flipRole: PortraitFlipRole;
-  book: PublicBook;
-  width: number;
-  phoneHeight: number;
-  previewStyle: CSSProperties;
-  registerRef: (node: HTMLDivElement | null) => void;
-  selectedId: string;
-  editingId: string;
-  bookFont: string;
-  bookInk: string;
-  onBackgroundMouseDown: () => void;
-  onPointerDown: (
-    event: React.PointerEvent,
-    pageIndex: number,
-    element: PageElement,
-    mode: "move" | "resize",
-    flipRole: PortraitFlipRole,
-  ) => void;
-  beginDeferredEdit: () => void;
-  onEndTextEdit: () => void;
-  onStartTextEdit: (id: string) => void;
-  onPlaceText: (pageIndex: number, id: string, text: string) => void;
-}) {
-  const frameRef = useRef<HTMLDivElement | null>(null);
-  const layoutKey = `${width}x${phoneHeight}:${layout.elements.map((item) => (
-    `${item.id}:${item.x},${item.y},${item.w},${item.h},${item.text?.length ?? 0}`
-  )).join("|")}`;
-  const hitStyles = usePortraitHitStyles(frameRef, layout, layoutKey);
-
-  function hitBox(element: PageElement) {
-    const measured = hitStyles[element.id];
-    if (measured) return measured;
-    return {
-      left: `${element.x}%`,
-      top: `${element.y}%`,
-      width: `${element.w}%`,
-      height: `${element.h}%`,
-      zIndex: element.z,
-    };
-  }
-
-  return (
-    <div
-      ref={(node) => {
-        frameRef.current = node;
-        registerRef(node);
-      }}
-      className="portrait-editor-preview mobile portrait-phone-frame"
-      style={{ ...previewStyle, width, height: phoneHeight }}
-      onMouseDown={(event) => {
-        const target = event.target as HTMLElement;
-        if (target.closest(".portrait-edit-hit, .portrait-mirror-visual [data-id]")) return;
-        onBackgroundMouseDown();
-      }}
-    >
-      <PortraitMobileMirror layout={layout} role={flipRole} book={book} width={width} height={phoneHeight} />
-      <div className="portrait-edit-layer">
-        {layout.elements.map((element) => (
-          <div
-            key={element.id}
-            className={`page-editor-el portrait-edit-hit${selectedId === element.id ? " selected" : ""}`}
-            style={hitBox(element)}
-            onMouseDown={(event) => event.stopPropagation()}
-            onPointerDown={(event) => onPointerDown(event, pageIndex, element, "move", flipRole)}
-            onDoubleClick={(event) => {
-              event.stopPropagation();
-              if (element.type === "text") onStartTextEdit(element.id);
-            }}
-          >
-            {editingId === element.id && element.type === "text" ? (
-              <textarea
-                autoFocus
-                value={element.text || ""}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  fontFamily: fontStack(element.fontFamily || bookFont),
-                  fontSize: `${element.fontSize || 4}cqh`,
-                  color: normalizeColor(element.color, "") || bookInk,
-                  textAlign: element.align || "left",
-                }}
-                onFocus={beginDeferredEdit}
-                onChange={(event) => onPlaceText(pageIndex, element.id, event.target.value)}
-                onKeyDown={(event) => event.stopPropagation()}
-                onBlur={onEndTextEdit}
-              />
-            ) : null}
-            {selectedId === element.id ? (
-              <button
-                type="button"
-                className="page-editor-handle"
-                aria-label="Resize"
-                onPointerDown={(event) => onPointerDown(event, pageIndex, element, "resize", flipRole)}
-              />
-            ) : null}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function PortraitEditorPage() {
   const [, params] = useRoute("/admin/portrait/:slug");
@@ -316,7 +117,6 @@ export default function PortraitEditorPage() {
   const bookRef = useRef<PublicBook | null>(null);
   const startRef = useRef(0);
   const drag = useRef<DragState | null>(null);
-  const dragMoved = useRef(false);
   const pageRefs = useRef<Array<HTMLDivElement | null>>([]);
   const stageRef = useRef<HTMLDivElement>(null);
   const undoStack = useRef<PublicBook[]>([]);
@@ -697,57 +497,46 @@ export default function PortraitEditorPage() {
     });
   }
 
-  function pageNearest(clientX: number, clientY: number, fallback: number) {
-    const begin = startRef.current;
-    const total = bookRef.current?.portraitPages?.length || 0;
-    let best = fallback;
-    let bestDist = Infinity;
-    for (let index = begin; index < begin + WINDOW && index < total; index += 1) {
-      const node = pageRefs.current[index];
-      if (!node) continue;
-      const rect = node.getBoundingClientRect();
-      const dx = clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0;
-      const dy = clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0;
-      const dist = dx * dx + dy * dy;
-      if (dist < bestDist) {
-        best = index;
-        bestDist = dist;
-      }
-    }
-    return best;
+  function patchElement(
+    pageIndex: number,
+    id: string,
+    patch: Partial<PageElement>,
+    options?: { recordUndo?: boolean },
+  ) {
+    place(pageIndex, pageIndex, id, patch, options);
   }
 
-  function onDrag(event: PointerEvent) {
+  function onPointerMove(event: React.PointerEvent, pageIndex: number) {
     const state = drag.current;
-    if (!state) return;
-    if (!dragMoved.current) {
-      pushUndoSnapshot();
-      dragMoved.current = true;
-    }
-    if (state.mode === "resize") {
-      const page = pageRefs.current[state.from];
-      if (!page) return;
-      const rect = page.getBoundingClientRect();
-      const dx = ((event.clientX - state.startX) / rect.width) * 100;
-      const dy = ((event.clientY - state.startY) / rect.height) * 100;
-      const min = state.orig.type === "image" ? 1 : 8;
-      place(state.from, state.from, state.id, {
-        w: Math.min(100 - state.orig.x, Math.max(min, state.orig.w + dx)),
-        h: Math.min(100 - state.orig.y, Math.max(min, state.orig.h + dy)),
-      });
-      return;
-    }
-    const target = pageNearest(event.clientX, event.clientY, state.from);
-    const page = pageRefs.current[target];
+    if (!state || state.pageIndex !== pageIndex) return;
+    const page = pageRefs.current[pageIndex];
     if (!page) return;
     const rect = page.getBoundingClientRect();
-    const current = bookRef.current?.portraitPages?.[state.from]?.elements.find((item) => item.id === state.id);
-    const w = current?.w ?? state.orig.w;
-    const h = current?.h ?? state.orig.h;
-    const x = Math.min(100 - w, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100 - state.offsetX));
-    const y = Math.min(100 - h, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100 - state.offsetY));
-    place(state.from, target, state.id, { x, y });
-    state.from = target;
+    const dx = ((event.clientX - state.startX) / rect.width) * 100;
+    const dy = ((event.clientY - state.startY) / rect.height) * 100;
+    if (state.mode === "move") {
+      patchElement(pageIndex, state.id, {
+        x: Math.min(100 - state.orig.w, Math.max(0, state.orig.x + dx)),
+        y: Math.min(100 - state.orig.h, Math.max(0, state.orig.y + dy)),
+      }, { recordUndo: false });
+      return;
+    }
+    const next = {
+      w: Math.min(100 - state.orig.x, Math.max(state.orig.type === "image" ? 1 : 8, state.orig.w + dx)),
+      h: Math.min(100 - state.orig.y, Math.max(state.orig.type === "image" ? 1 : 8, state.orig.h + dy)),
+    };
+    patchElement(
+      pageIndex,
+      state.id,
+      state.orig.type === "image" ? { ...next, fit: "cover" } : next,
+      { recordUndo: false },
+    );
+  }
+
+  function onPointerUp() {
+    const wasDragging = drag.current !== null;
+    drag.current = null;
+    if (wasDragging && bookRef.current) queueSave(bookRef.current);
   }
 
   function onPointerDown(
@@ -755,7 +544,6 @@ export default function PortraitEditorPage() {
     pageIndex: number,
     element: PageElement,
     mode: "move" | "resize",
-    flipRole: PortraitFlipRole,
   ) {
     if (editingId === element.id && mode === "move") return;
     event.preventDefault();
@@ -763,34 +551,16 @@ export default function PortraitEditorPage() {
     setSelectedId(element.id);
     setFocus(pageIndex);
     setEditingId("");
-    const page = pageRefs.current[pageIndex];
-    if (!page) return;
-    const rect = page.getBoundingClientRect();
-    const box = elementBoxInPage(page, element);
-    dragMoved.current = false;
+    pushUndoSnapshot();
     drag.current = {
       id: element.id,
-      from: pageIndex,
+      pageIndex,
       mode,
       startX: event.clientX,
       startY: event.clientY,
-      offsetX: ((event.clientX - rect.left) / rect.width) * 100 - box.x,
-      offsetY: ((event.clientY - rect.top) / rect.height) * 100 - box.y,
       orig: { ...element },
     };
-    const move = (ev: PointerEvent) => onDrag(ev);
-    const up = () => {
-      const current = bookRef.current;
-      drag.current = null;
-      if (dragMoved.current && current) queueSave(current);
-      dragMoved.current = false;
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function selectedAt() {
@@ -959,7 +729,7 @@ export default function PortraitEditorPage() {
         <button type="button" disabled={!selected} onClick={() => copySelection()}>Copy</button>
         <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>
         <button type="button" disabled={!canUndo} onClick={() => undo()}>Undo</button>
-        <span className="hint">Click a box on the preview to select, drag to move, double-click wording to edit. ⌘C / ⌘V / ⌘Z</span>
+        <span className="hint">Same as flipbook editor: drag to move, handle to resize, double-click wording to edit. ⌘C / ⌘V / ⌘Z</span>
         {selected?.element.type === "image" ? (
           <>
             <button type="button" className={imageObjectFit(selected.element) === "cover" ? "active" : ""} onClick={() => patchSelected({ fit: "cover" })}>Fill frame</button>
@@ -1069,35 +839,100 @@ export default function PortraitEditorPage() {
             const index = windowStart + offset;
             const flipRole = portraitFlipRole(layout, index);
             const roleLabel = flipRole === "cover" ? "Cover" : flipRole === "title" ? "Title" : flipRole === "end" ? "End" : `Page ${index + 1}`;
+            const pageFillColor = pageFill(layout.background, book.pageBackground);
             return (
               <figure key={index} className={`portrait-slot${index === focusIndex ? " active" : ""}`}>
-                <PortraitPhoneFrame
-                  pageIndex={index}
-                  layout={layout}
-                  flipRole={flipRole}
-                  book={book}
-                  width={pageBox.width}
-                  phoneHeight={pageBox.phoneHeight}
-                  previewStyle={previewStyle}
-                  registerRef={(node) => { pageRefs.current[index] = node; }}
-                  selectedId={selectedId}
-                  editingId={editingId}
-                  bookFont={bookFont}
-                  bookInk={bookInk}
-                  onBackgroundMouseDown={() => { setSelectedId(""); setEditingId(""); setFocus(index); }}
-                  onPointerDown={onPointerDown}
-                  beginDeferredEdit={beginDeferredEdit}
-                  onEndTextEdit={() => {
-                    endDeferredEdit();
-                    setEditingId("");
-                  }}
-                  onStartTextEdit={(id) => {
-                    setSelectedId(id);
-                    setFocus(index);
-                    setEditingId(id);
-                  }}
-                  onPlaceText={(pageIndex, id, text) => place(pageIndex, pageIndex, id, { text }, { recordUndo: false })}
-                />
+                <div
+                  className="portrait-phone-frame"
+                  style={{ ...previewStyle, width: pageBox.width, height: pageBox.phoneHeight }}
+                >
+                  <div
+                    ref={(node) => { pageRefs.current[index] = node; }}
+                    className="page-editor-page portrait-editor-page"
+                    style={paperSurfaceStyle(pageFillColor, book.pageTexture)}
+                    onPointerMove={(event) => onPointerMove(event, index)}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerUp}
+                    onMouseDown={() => { setSelectedId(""); setEditingId(""); setFocus(index); }}
+                  >
+                    {layout.elements.slice().sort((a, b) => a.z - b.z).map((element) => (
+                      <div
+                        key={element.id}
+                        className={`page-editor-el${selectedId === element.id ? " selected" : ""}${element.type === "image" ? " image" : ""}${element.type === "text" ? ` ${frameClass(element.frame)}` : ""}`}
+                        style={{
+                          left: `${element.x}%`,
+                          top: `${element.y}%`,
+                          width: `${element.w}%`,
+                          height: `${element.h}%`,
+                          zIndex: element.z,
+                          ["--frame" as string]: element.type === "text"
+                            ? (normalizeColor(element.frameColor, "") || bookInk || DEFAULT_FRAME_COLOR)
+                            : undefined,
+                        }}
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => onPointerDown(event, index, element, "move")}
+                        onDoubleClick={() => {
+                          if (element.type === "text") setEditingId(element.id);
+                        }}
+                      >
+                        {element.type === "text" && frameMarkup(element.frame, element.w / element.h) ? (
+                          <span className="page-editor-frame" dangerouslySetInnerHTML={{ __html: frameMarkup(element.frame, element.w / element.h) }} />
+                        ) : null}
+                        {element.type === "shape" ? (
+                          <div style={{ width: "100%", height: "100%", background: normalizeColor(element.color, "") || "#ffffff", opacity: (element.opacity ?? 100) / 100, borderRadius: element.shape === "circle" ? "50%" : "2%" }} />
+                        ) : element.type === "image" ? (
+                          element.imageUrl ? (
+                            <img
+                              src={element.imageUrl}
+                              alt=""
+                              style={{
+                                objectFit: imageObjectFit(element),
+                                objectPosition: imageObjectPosition(element),
+                                opacity: (element.opacity ?? 100) / 100,
+                                background: "transparent",
+                              }}
+                            />
+                          ) : (
+                            <span className="page-editor-empty">Picture</span>
+                          )
+                        ) : editingId === element.id ? (
+                          <textarea
+                            autoFocus
+                            value={element.text || ""}
+                            style={{
+                              fontFamily: fontStack(element.fontFamily || bookFont),
+                              fontSize: `${element.fontSize || 4}cqh`,
+                              color: normalizeColor(element.color, "") || bookInk,
+                              textAlign: element.align || "left",
+                            }}
+                            onFocus={beginDeferredEdit}
+                            onChange={(event) => patchElement(index, element.id, { text: event.target.value }, { recordUndo: false })}
+                            onKeyDown={(event) => event.stopPropagation()}
+                            onBlur={() => {
+                              endDeferredEdit();
+                              setEditingId("");
+                            }}
+                          />
+                        ) : (
+                          <EditorText
+                            text={element.text || ""}
+                            placeholder="Double-click to type"
+                            style={{
+                              fontFamily: fontStack(element.fontFamily || bookFont),
+                              fontSize: `${element.fontSize || 4}cqh`,
+                              color: normalizeColor(element.color, "") || bookInk,
+                              textAlign: element.align || "left",
+                              alignItems: alignJustify(element.align),
+                            }}
+                          />
+                        )}
+                        {selectedId === element.id ? (
+                          <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, index, element, "resize")} />
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <figcaption>{roleLabel}</figcaption>
               </figure>
             );

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import {
   BOOK_FONTS,
@@ -35,67 +35,8 @@ import { PAPER_TEXTURES, paperSurfaceStyle, paperSwatchStyle } from "@shared/pap
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { DEFAULT_FRAME_COLOR, TEXT_FRAMES, frameClass, frameMarkup, normalizeFrame } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
+import EditorText from "../components/EditorText";
 import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } from "../lib/api";
-
-function useFitText(text: string, fontSize?: CSSProperties["fontSize"]) {
-  const ref = useRef<HTMLElement>(null);
-  const fitRef = useRef<() => void>(() => {});
-  fitRef.current = () => {
-    const el = ref.current;
-    if (!el) return;
-    const base = fontSize ? String(fontSize) : "";
-    if (base) el.style.fontSize = base;
-    const start = parseFloat(getComputedStyle(el).fontSize);
-    if (!start || el.clientHeight < 8) return;
-    let size = start;
-    const min = Math.max(8, start * 0.45);
-    let n = 0;
-    while ((el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) && size > min && n < 30) {
-      size = Math.round(size * 0.94 * 10) / 10;
-      el.style.fontSize = `${size}px`;
-      n += 1;
-    }
-  };
-  useLayoutEffect(() => {
-    fitRef.current();
-  });
-  useEffect(() => {
-    const parent = ref.current?.parentElement;
-    if (!parent) return;
-    const observer = new ResizeObserver(() => fitRef.current());
-    observer.observe(parent);
-    return () => observer.disconnect();
-  }, [text]);
-  return ref;
-}
-
-function EditorText({
-  text,
-  placeholder,
-  style,
-}: {
-  text: string;
-  placeholder: string;
-  style: CSSProperties;
-}) {
-  const raw = text || "";
-  const ref = useFitText(raw || placeholder, style.fontSize);
-  if (!raw) return <p ref={ref} style={style}>{placeholder}</p>;
-  return (
-    <div ref={ref} className="page-editor-text" style={style}>
-      {raw.split(/\n{2,}/).map((para, index) => (
-        <p key={index}>
-          {para.split("\n").map((line, lineIndex) => (
-            <span key={lineIndex}>
-              {lineIndex > 0 ? <br /> : null}
-              {line}
-            </span>
-          ))}
-        </p>
-      ))}
-    </div>
-  );
-}
 
 function samplePicture(page: HTMLElement, clientX: number, clientY: number) {
   const images = Array.prototype.slice.call(page.querySelectorAll("img")) as HTMLImageElement[];

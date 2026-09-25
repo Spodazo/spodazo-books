@@ -805,6 +805,12 @@ html:has(.upright-pdf) body {
 .portrait-phone-frame {
   position: relative;
 }
+.portrait-phone-frame .portrait-editor-page {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  overflow: hidden;
+}
 .portrait-mirror-visual {
   position: relative;
   z-index: 1;
