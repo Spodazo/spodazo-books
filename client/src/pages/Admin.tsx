@@ -366,7 +366,11 @@ function ImportBookForm({
                     tagline: imported.book.tagline,
                     author: imported.book.author,
                     date: imported.book.date,
-                    slug: /willow/i.test(manifest.title) ? "Willows-Big-Forest-Adventure" : undefined,
+                    slug: /willow/i.test(manifest.title)
+                      ? "Willows-Big-Forest-Adventure"
+                      : /rudolph/i.test(manifest.title)
+                        ? "Rudolph-The-Red-Nosed-Reindeer"
+                        : undefined,
                     pdfUrl: manifest.pdfUrl,
                     coverUrl: manifest.pages[0]?.imageUrl,
                     pages: manifest.pages,

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isDuplicateTitlePage, visibleStoryPages } from "./reader-pages";
+import { characterUrlFor, isDuplicateTitlePage, visibleStoryPages } from "./reader-pages";
 import type { BookPage } from "./types";
 
 function page(partial: Partial<BookPage> & { id: string }): BookPage {
@@ -42,4 +42,11 @@ test("other books keep a first page that is real story", () => {
   };
   assert.equal(isDuplicateTitlePage(book, book.pages[0], 0), false);
   assert.equal(visibleStoryPages(book).length, 1);
+});
+
+test("Rudolph uses the bundled character on the end page", () => {
+  assert.equal(
+    characterUrlFor({ slug: "Rudolph-The-Red-Nosed-Reindeer", title: "Rudolph" }),
+    "/media/images/rudolph-character.webp",
+  );
 });

@@ -5,6 +5,10 @@ export function isWillowBook(book: { slug?: string | null; title?: string | null
   return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
 }
 
+export function isRudolphBook(book: { slug?: string | null; title?: string | null }): boolean {
+  return /rudolph/i.test(String(book.slug || "")) || /rudolph/i.test(String(book.title || ""));
+}
+
 function pageStoryText(page: BookPage): string {
   return [page.title, ...(page.paragraphs || []), ...bodyParagraphs(page.elements || [])]
     .join(" ")
@@ -30,5 +34,8 @@ export function visibleStoryPages<T extends Pick<Book, "title" | "slug" | "pages
 }
 
 export function characterUrlFor(book: { slug?: string | null; title?: string | null; characterUrl?: string | null }): string {
-  return book.characterUrl || (isWillowBook(book) ? "/media/images/willow-character.webp" : "");
+  if (book.characterUrl) return book.characterUrl;
+  if (isWillowBook(book)) return "/media/images/willow-character.webp";
+  if (isRudolphBook(book)) return "/media/images/rudolph-character.webp";
+  return "";
 }
