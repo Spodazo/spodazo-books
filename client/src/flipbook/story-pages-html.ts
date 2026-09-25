@@ -69,12 +69,12 @@ export function storyPagesHtml(storyPages: BookPage[], deps: StoryPageHtmlDeps):
   }
   const slice = storyPages.slice(start);
   for (let i = 0; i < slice.length; i += 2) {
-    const right = slice[i];
-    const left = slice[i + 1] || null;
+    const left = slice[i];
+    const right = slice[i + 1] || null;
     const spreadNum = Math.floor(i / 2) + 1;
-    const label = left
-      ? `${right.title || `Page ${i + 1}`} / ${left.title || `Page ${i + 2}`}`
-      : (right.title || `Spread ${spreadNum}`);
+    const label = right
+      ? `${left.title || `Page ${i + 1}`} / ${right.title || `Page ${i + 2}`}`
+      : (left.title || `Spread ${spreadNum}`);
     html += facsimileSpreadHtml(left, right, deps, label, spreadNum);
   }
   return html;

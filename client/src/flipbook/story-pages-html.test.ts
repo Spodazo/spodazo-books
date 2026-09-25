@@ -43,12 +43,12 @@ test("facsimileSpreadCount pairs PDF pages two per spread", () => {
   assert.equal(facsimileSpreadCount([facsimilePage(1)], false), 0);
 });
 
-test("storyPagesHtml renders recto on the right and verso on the left", () => {
+test("storyPagesHtml puts page 1 on the left and page 2 on the right", () => {
   const pages = [1, 2, 3, 4].map(facsimilePage);
   const html = storyPagesHtml(pages, stubDeps);
   assert.equal((html.match(/pdf-spread/g) || []).length, 2);
-  assert.match(html, /leaf-right"><img[^>]+page-001\.jpg/);
-  assert.match(html, /leaf-left"><img[^>]+page-002\.jpg/);
-  assert.match(html, /leaf-right"><img[^>]+page-003\.jpg/);
-  assert.match(html, /leaf-left"><img[^>]+page-004\.jpg/);
+  assert.match(html, /leaf-left"><img[^>]+page-001\.jpg/);
+  assert.match(html, /leaf-right"><img[^>]+page-002\.jpg/);
+  assert.match(html, /leaf-left"><img[^>]+page-003\.jpg/);
+  assert.match(html, /leaf-right"><img[^>]+page-004\.jpg/);
 });
