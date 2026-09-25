@@ -7,6 +7,7 @@ import {
   ensureBookLayouts,
   ensurePageElements,
   isLegacySingleLeafLayout,
+  isOneLeafPdfPage,
   normalizeAlign,
   normalizeColor,
   decodeElementClipboard,
@@ -54,7 +55,57 @@ test("defaultStoryElements places art and wording", () => {
   assert.equal(elements[1].type, "text");
   assert.equal(elements[1].text, "The fox ran.");
   assert.equal(elements[0].w, 50);
+  assert.equal(elements[0].fit, "cover");
   assert.ok((elements[1].x || 0) >= 50);
+});
+
+test("a facsimile PDF page fills one leaf without covering the spread", () => {
+  const page = {
+    id: "page-1",
+    sourcePage: 1,
+    kind: "facsimile",
+    title: "Page 1",
+    paragraphs: [],
+    imageAsset: "page-001.jpg",
+    fullPageAsset: "page-001.jpg",
+    imageUrl: "/media/images/page-001.jpg",
+    fullPageUrl: "/media/images/page-001.jpg",
+    position: "bottom",
+    focalPoint: "50% 50%",
+    elements: [],
+    background: "",
+  } as BookPage;
+  assert.equal(isOneLeafPdfPage(page), true);
+  const elements = defaultStoryElements(page);
+  assert.equal(elements[0].type, "image");
+  assert.equal(elements[0].w, 100);
+  assert.equal(elements[0].h, 100);
+  assert.equal(elements[0].fit, "contain");
+  assert.equal(elements.length, 1);
+});
+
+test("an imported full PDF page is treated as one leaf even if saved as story", () => {
+  const page = {
+    id: "page-2",
+    sourcePage: 2,
+    kind: "story",
+    title: "Page 2",
+    paragraphs: ["Words from the PDF"],
+    imageAsset: "page-002.jpg",
+    fullPageAsset: "page-002.jpg",
+    imageUrl: "/media/images/page-002.jpg",
+    fullPageUrl: "/media/images/page-002.jpg",
+    position: "bottom",
+    focalPoint: "50% 50%",
+    elements: [
+      { id: "page-2-art", type: "image", x: 0, y: 0, w: 100, h: 100, z: 1, imageAsset: "page-002.jpg" },
+    ],
+    background: "",
+  } as BookPage;
+  const next = ensurePageElements(page);
+  assert.equal(next.kind, "facsimile");
+  assert.equal(next.elements[0].fit, "contain");
+  assert.equal(next.elements[0].w, 100);
 });
 
 test("legacy full-page layouts become a two-leaf spread", () => {

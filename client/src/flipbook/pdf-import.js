@@ -33,25 +33,7 @@ export async function importPDF(file, {mode='auto', signal, onProgress=()=>{}, m
       check();
       const fullBlob=await toBlob(canvas);const fullName=`page-${String(i).padStart(3,'0')}.jpg`;
       const fullURL=URL.createObjectURL(fullBlob);urls.push(fullURL);assets.push({name:fullName,blob:fullBlob});
-      let imageURL=fullURL,imageAsset=fullName;
-      if(layout){
-        const crop=document.createElement('canvas');
-        if(layout.portrait){
-          const artH=Math.round(canvas.height*layout.imageFraction);
-          if(layout.artOnTop!==false){
-            crop.width=canvas.width;crop.height=artH;
-            crop.getContext('2d').drawImage(canvas,0,0,canvas.width,artH,0,0,crop.width,crop.height);
-          }else{
-            crop.width=canvas.width;crop.height=artH;
-            crop.getContext('2d').drawImage(canvas,0,canvas.height-artH,canvas.width,artH,0,0,crop.width,crop.height);
-          }
-        }else{
-          crop.width=Math.round(canvas.width*layout.imageFraction);crop.height=canvas.height;
-          crop.getContext('2d').drawImage(canvas,0,0, crop.width,crop.height,0,0,crop.width,crop.height);
-        }
-        const blob=await toBlob(crop);imageAsset=`art-${String(i).padStart(3,'0')}.jpg`;imageURL=URL.createObjectURL(blob);urls.push(imageURL);assets.push({name:imageAsset,blob});crop.width=crop.height=0;
-      }
-      pages.push({id:`page-${i}`,sourcePage:i,kind:layout?'story':'facsimile',title:layout?.title||`Page ${i}`,paragraphs:layout?.paragraphs||[],imageUrl:imageURL,imageAsset,fullPageUrl:fullURL,fullPageAsset:fullName,position:'bottom',focalPoint:'50% 50%'});
+      pages.push({id:`page-${i}`,sourcePage:i,kind:'facsimile',title:layout?.title||`Page ${i}`,paragraphs:layout?.paragraphs||[],imageUrl:fullURL,imageAsset:fullName,fullPageUrl:fullURL,fullPageAsset:fullName,position:'bottom',focalPoint:'50% 50%'});
       canvas.width=canvas.height=0;page.cleanup();
     }
     const pdfURL=URL.createObjectURL(file);urls.push(pdfURL);

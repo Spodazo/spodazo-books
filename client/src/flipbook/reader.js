@@ -1,7 +1,7 @@
 import css from './reader.css?raw';
 import runtime from './reader-runtime.js?raw';
 import {escapeHTML as esc, safeURL} from './layout.js';
-import {DEFAULT_SPREAD_BACKGROUND, elementTextHtml, imageObjectFit, imageObjectPosition, normalizeColor, publishedLabel} from '@shared/page-layout';
+import {DEFAULT_SPREAD_BACKGROUND, elementTextHtml, imageObjectFit, imageObjectPosition, isOneLeafPdfPage, normalizeColor, publishedLabel} from '@shared/page-layout';
 import {normalizePaperTexture, paperTexture, paperTextureUrl} from '@shared/paper';
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
@@ -186,9 +186,13 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
   const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
-    if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;
-    const fallback=p.kind==='facsimile'||coverOnly;
+    const pdfLeaf=isOneLeafPdfPage(p);
+    if(hasLayout(p)) {
+      const leafClass=oneLeaf&&pdfLeaf?' facsimile one-leaf':'';
+      return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones,leafClass);
+    }
+    const fallback=pdfLeaf||coverOnly;
     const classes=`page${fallback?' facsimile':''}${oneLeaf&&fallback?' one-leaf':''}${coverOnly?' cover-plate':''}`;
     const focal=/^\d{1,3}% \d{1,3}%$/.test(p.focalPoint||'')?p.focalPoint:'50% 50%';
     const image=safeURL(coverOnly?(book.coverUrl||p.fullPageUrl||p.imageUrl):fallback?p.fullPageUrl||p.imageUrl:p.imageUrl,baseUrl);

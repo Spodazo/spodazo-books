@@ -337,21 +337,31 @@ export function isLegacySingleLeafLayout(elements: PageElement[]): boolean {
   return texts.length >= 1 && overlayText;
 }
 
+export function isOneLeafPdfPage(page: Pick<BookPage, "kind" | "imageAsset" | "fullPageAsset">): boolean {
+  if (page.kind === "facsimile") return true;
+  const image = String(page.imageAsset || page.fullPageAsset || "");
+  const full = String(page.fullPageAsset || page.imageAsset || "");
+  return Boolean(image) && image === full && /^page-\d+\./i.test(image);
+}
+
 export function defaultStoryElements(page: BookPage): PageElement[] {
-  const image = page.imageAsset || page.fullPageAsset;
+  const image = page.kind === "facsimile"
+    ? (page.fullPageAsset || page.imageAsset)
+    : (page.imageAsset || page.fullPageAsset);
   const elements: PageElement[] = [];
   const hasImage = Boolean(image || page.imageUrl || page.fullPageUrl);
-  const twoLeaf = page.kind !== "facsimile";
+  const oneLeaf = isOneLeafPdfPage(page);
   if (hasImage) {
     elements.push(imageEl({
       id: `${page.id}-art`,
       x: 0,
       y: 0,
-      w: twoLeaf ? 50 : 100,
+      w: oneLeaf ? 100 : 50,
       h: 100,
       z: 1,
       imageAsset: image,
-      imageUrl: page.imageUrl || page.fullPageUrl,
+      imageUrl: page.kind === "facsimile" ? (page.fullPageUrl || page.imageUrl) : (page.imageUrl || page.fullPageUrl),
+      fit: oneLeaf ? "contain" : undefined,
     }));
   }
   const text = page.paragraphs.join("\n\n").trim();
@@ -372,6 +382,18 @@ export function defaultStoryElements(page: BookPage): PageElement[] {
 }
 
 export function ensurePageElements(page: BookPage): BookPage {
+  if (isOneLeafPdfPage(page)) {
+    const leaf = { ...page, kind: "facsimile" as const };
+    if (page.elements.length && !isLegacySingleLeafLayout(page.elements)) {
+      const elements = page.elements.map((item, index) => normalizeElement(item, index)).map((item) => (
+        item.type === "image" && item.w >= 95 && item.h >= 95 && item.fit !== "contain"
+          ? { ...item, fit: "contain" as const }
+          : item
+      ));
+      return { ...leaf, elements };
+    }
+    return { ...leaf, elements: defaultStoryElements(leaf) };
+  }
   if (page.elements.length && !isLegacySingleLeafLayout(page.elements)) {
     return { ...page, elements: page.elements.map((item, index) => normalizeElement(item, index)) };
   }

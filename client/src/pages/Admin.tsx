@@ -21,6 +21,7 @@ import {
   uploadBookAsset,
   verifyCuratorPassword,
 } from "../lib/api";
+import { ensureBookLayouts } from "@shared/page-layout";
 import { writeCachedSetup } from "../lib/homeCache";
 import { applyPalette } from "../lib/palette";
 import { applySiteIcons } from "../lib/siteIcons";
@@ -305,7 +306,7 @@ function ImportBookForm({
         const file = event.currentTarget.files?.[0];
         if (file) void load(file);
       }} />
-      <p className="hint">{status || "Willow-style PDFs extract illustration + text. Other layouts stay as full pages."}</p>
+      <p className="hint">{status || "Each PDF page becomes one leaf of the flip book."}</p>
       {imported && page ? (
         <>
           <label>Book title</label>
@@ -322,7 +323,7 @@ function ImportBookForm({
               <option key={item.id} value={index}>{index + 1}. {item.title}</option>
             ))}
           </select>
-          <p className="hint">{page.kind === "facsimile" ? "This layout was kept as a whole PDF page." : "Illustration and text extracted. Check the wording."}</p>
+          <p className="hint">This PDF page is kept as one leaf. Check the title if wording was found.</p>
           <label>Page title</label>
           <input value={page.title} onChange={(event) => { page.title = event.target.value; setImported({ ...imported }); }} />
           <label>Story text</label>
@@ -373,6 +374,7 @@ function ImportBookForm({
                         : undefined,
                     pdfUrl: manifest.pdfUrl,
                     coverUrl: manifest.pages[0]?.imageUrl,
+                    pageTemplate: "one-up",
                     pages: manifest.pages,
                     published: true,
                     hidden: false,
@@ -740,7 +742,7 @@ function BookEditor({
 
   useEffect(() => {
     if (!preview || !previewRef.current) return;
-    const handle = mountReader(previewRef.current, { ...book, title, tagline, author, date, coverUrl }, { libraryUrl: "/admin", baseUrl: location.href });
+    const handle = mountReader(previewRef.current, ensureBookLayouts({ ...book, title, tagline, author, date, coverUrl }, { coverUrl }), { libraryUrl: "/admin", baseUrl: location.href });
     return () => handle.destroy();
   }, [preview, book, title, tagline, author, date, coverUrl]);
 
