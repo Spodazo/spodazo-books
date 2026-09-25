@@ -806,8 +806,7 @@ html:has(.upright-pdf) body {
   position: relative;
 }
 .portrait-mirror-visual {
-  position: absolute;
-  inset: 0;
+  position: relative;
   z-index: 1;
   pointer-events: none;
 }
@@ -822,14 +821,13 @@ html:has(.upright-pdf) body {
 }
 .portrait-edit-layer .portrait-edit-hit {
   pointer-events: auto;
-  background: rgba(217, 144, 40, 0.06);
-  border: 1px dashed rgba(217, 144, 40, 0.35);
+  background: transparent;
+  border: 2px dashed transparent;
   box-sizing: border-box;
 }
 .portrait-edit-layer .portrait-edit-hit.selected {
-  background: rgba(217, 144, 40, 0.12);
+  background: rgba(217, 144, 40, 0.1);
   border-color: #d99028;
-  border-width: 2px;
 }
 /* Portrait editor: same DOM/classes as the flipbook reader in .mobile portrait mode */
 .portrait-editor-preview.mobile .page {
@@ -869,15 +867,17 @@ html:has(.upright-pdf) body {
   color: var(--ink, #203b2a);
   -webkit-text-fill-color: var(--ink, #203b2a);
 }
-/* Editor: keep spread % positions so selection boxes match the artwork (phone reader restacks when reading). */
 .portrait-editor-preview.mobile .page.laid-out.current {
   display: block;
-  position: relative;
   container-type: size;
-  overflow: hidden;
 }
 .portrait-editor-preview.mobile .page.laid-out > .el {
-  position: absolute;
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: 100%;
   margin: 0;
   padding: 0;
   border: 0;
@@ -885,25 +885,138 @@ html:has(.upright-pdf) body {
   background: transparent;
 }
 .portrait-editor-preview.mobile .page.laid-out > .el-image {
+  height: auto !important;
   object-fit: var(--fit, cover);
   object-position: var(--focus, center center);
+}
+.portrait-editor-preview.mobile .page.laid-out > .el-image[data-size="small"] {
+  display: none !important;
 }
 .portrait-editor-preview.mobile .page.laid-out > .el-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: var(--tj, flex-start);
-  overflow: hidden;
+  overflow: visible;
   font-family: var(--ff, Nunito, sans-serif);
   font-size: calc(var(--fs, 4) * 1cqh);
   color: var(--ink, #203b2a);
   -webkit-text-fill-color: var(--ink, #203b2a);
 }
 .portrait-editor-preview.mobile .page.laid-out > .el-text p {
-  margin: 0;
+  margin: 0 0 1.6lh;
   width: 100%;
   font: inherit;
   line-height: 1.25;
   white-space: pre-wrap;
   overflow-wrap: break-word;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page.current {
+  display: grid !important;
+  grid-template-rows: 1fr auto auto auto 1fr auto auto;
+  justify-items: center;
+  align-items: center;
+  padding: 48px 18px 16px;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-text[data-role="title"] {
+  grid-row: 2;
+  width: 92% !important;
+  margin: 0 0 18px;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-text[data-role="title"] p {
+  font-size: clamp(34px, 8.6vw, 56px) !important;
+  font-weight: 800;
+  line-height: 1.05;
+  text-align: center;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-image[data-size="main"] {
+  grid-row: 3;
+  width: auto !important;
+  max-width: 72%;
+  max-height: 36%;
+  object-fit: contain !important;
+  margin: 8px 0 22px;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-text[data-role="tagline"] {
+  grid-row: 4;
+  width: 90% !important;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-text[data-role="tagline"] p {
+  font-size: clamp(16px, 2.5cqh, 26px) !important;
+  font-weight: 700;
+  text-align: center;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-text[data-role="author"] {
+  grid-row: 6;
+  width: 90% !important;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-text[data-role="date"] {
+  grid-row: 7;
+  width: 90% !important;
+}
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-text[data-role="author"] p,
+.portrait-editor-preview.mobile .page.laid-out.title-page > .el-text[data-role="date"] p {
+  font-size: clamp(14px, 2cqh, 18px) !important;
+  text-align: center;
+}
+.portrait-editor-preview.mobile .page.laid-out.current:not(.title-page):not(.end-page) {
+  display: flex !important;
+  flex-direction: column;
+  padding: 8px 18px 12px 26px !important;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+.portrait-editor-preview.mobile .page.laid-out:not(.title-page):not(.end-page) > .el-image[data-size="main"] {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  flex: 0 0 auto;
+  object-fit: contain !important;
+  border: 1px solid var(--title-outline, #285e45);
+  border-radius: 12px;
+  margin: 0 0 22px;
+  order: 1;
+}
+.portrait-editor-preview.mobile .page.laid-out:not(.title-page):not(.end-page) > .el-text {
+  width: 100% !important;
+  height: auto !important;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  justify-content: flex-start;
+  padding: 12px 10px 16px 12px;
+  order: 2;
+}
+.portrait-editor-preview.mobile .page.laid-out:not(.title-page):not(.end-page) > .el-text p {
+  font-size: clamp(15.6px, 2.16cqh, 19.2px) !important;
+  text-align: left;
+  line-height: 1.25;
+}
+.portrait-editor-preview.mobile .page.laid-out.end-page.current {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10vh 16px 80px;
+  overflow: hidden;
+}
+.portrait-editor-preview.mobile .page.laid-out.end-page > .el-image[data-size="main"] {
+  width: auto !important;
+  max-width: 58%;
+  max-height: 34%;
+  height: auto !important;
+  object-fit: contain;
+  margin: 0 0 28px;
+  order: 1;
+}
+.portrait-editor-preview.mobile .page.laid-out.end-page > .el-text {
+  width: 86% !important;
+  order: 2;
+}
+.portrait-editor-preview.mobile .page.laid-out.end-page > .el-text p {
+  font-size: clamp(32px, 8vw, 56px) !important;
+  font-weight: 700;
+  text-align: center;
 }

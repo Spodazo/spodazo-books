@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import {
   BOOK_FONTS,
@@ -28,10 +28,10 @@ import { PAPER_TEXTURES, paperSwatchStyle } from "@shared/paper";
 import { paletteById } from "@shared/palettes";
 import {
   PORTRAIT_PAGE_RATIO,
-  mergePortraitPagesIntoBook,
   portraitFlipRole,
   portraitPagesForEditor,
   portraitPhoneViewportHeight,
+  type PortraitFlipRole,
 } from "@shared/portrait-pages";
 import { characterUrlFor } from "@shared/reader-pages";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
@@ -97,6 +97,174 @@ type DragState = {
   offsetY: number;
   orig: PageElement;
 };
+
+function usePortraitHitStyles(frameRef: React.RefObject<HTMLDivElement | null>, layout: PageLayout, layoutKey: string) {
+  const [hitStyles, setHitStyles] = useState<Record<string, CSSProperties>>({});
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    const measure = () => {
+      const bounds = frame.getBoundingClientRect();
+      if (bounds.width < 2 || bounds.height < 2) return;
+      const next: Record<string, CSSProperties> = {};
+      for (const element of layout.elements) {
+        const node = frame.querySelector(`.portrait-mirror-visual [data-id="${CSS.escape(element.id)}"]`);
+        if (node instanceof HTMLElement) {
+          const rect = node.getBoundingClientRect();
+          next[element.id] = {
+            left: `${((rect.left - bounds.left) / bounds.width) * 100}%`,
+            top: `${((rect.top - bounds.top) / bounds.height) * 100}%`,
+            width: `${(rect.width / bounds.width) * 100}%`,
+            height: `${(rect.height / bounds.height) * 100}%`,
+            zIndex: element.z,
+          };
+        } else {
+          next[element.id] = {
+            left: `${element.x}%`,
+            top: `${element.y}%`,
+            width: `${element.w}%`,
+            height: `${element.h}%`,
+            zIndex: element.z,
+          };
+        }
+      }
+      setHitStyles((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    window.requestAnimationFrame(measure);
+    const fonts = document.getElementById("book-editor-fonts");
+    fonts?.addEventListener("load", measure);
+    return () => {
+      observer.disconnect();
+      fonts?.removeEventListener("load", measure);
+    };
+  }, [frameRef, layoutKey, layout.elements]);
+
+  return hitStyles;
+}
+
+function PortraitPhoneFrame({
+  pageIndex,
+  layout,
+  flipRole,
+  book,
+  width,
+  phoneHeight,
+  previewStyle,
+  registerRef,
+  selectedId,
+  editingId,
+  bookFont,
+  bookInk,
+  onBackgroundMouseDown,
+  onPointerDown,
+  beginDeferredEdit,
+  onEndTextEdit,
+  onStartTextEdit,
+  onPlaceText,
+}: {
+  pageIndex: number;
+  layout: PageLayout;
+  flipRole: PortraitFlipRole;
+  book: PublicBook;
+  width: number;
+  phoneHeight: number;
+  previewStyle: CSSProperties;
+  registerRef: (node: HTMLDivElement | null) => void;
+  selectedId: string;
+  editingId: string;
+  bookFont: string;
+  bookInk: string;
+  onBackgroundMouseDown: () => void;
+  onPointerDown: (
+    event: React.PointerEvent,
+    pageIndex: number,
+    element: PageElement,
+    mode: "move" | "resize",
+    flipRole: PortraitFlipRole,
+  ) => void;
+  beginDeferredEdit: () => void;
+  onEndTextEdit: () => void;
+  onStartTextEdit: (id: string) => void;
+  onPlaceText: (pageIndex: number, id: string, text: string) => void;
+}) {
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const layoutKey = `${width}x${phoneHeight}:${layout.elements.map((item) => (
+    `${item.id}:${item.x},${item.y},${item.w},${item.h},${item.text?.length ?? 0}`
+  )).join("|")}`;
+  const hitStyles = usePortraitHitStyles(frameRef, layout, layoutKey);
+  const coverLayout = flipRole === "cover";
+
+  return (
+    <div
+      ref={(node) => {
+        frameRef.current = node;
+        registerRef(node);
+      }}
+      className="portrait-editor-preview mobile portrait-phone-frame"
+      style={{ ...previewStyle, width, height: phoneHeight }}
+      onMouseDown={onBackgroundMouseDown}
+    >
+      <PortraitMobileMirror layout={layout} role={flipRole} book={book} width={width} height={phoneHeight} />
+      <div className="portrait-edit-layer">
+        {layout.elements.map((element) => {
+          const box = hitStyles[element.id] || {
+            left: `${element.x}%`,
+            top: `${element.y}%`,
+            width: `${element.w}%`,
+            height: `${element.h}%`,
+            zIndex: element.z,
+          };
+          return (
+            <div
+              key={element.id}
+              className={`page-editor-el portrait-edit-hit${selectedId === element.id ? " selected" : ""}`}
+              style={box}
+              onMouseDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => onPointerDown(event, pageIndex, element, "move", flipRole)}
+              onDoubleClick={(event) => {
+                event.stopPropagation();
+                if (element.type === "text") onStartTextEdit(element.id);
+              }}
+            >
+              {editingId === element.id && element.type === "text" ? (
+                <textarea
+                  autoFocus
+                  value={element.text || ""}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    fontFamily: fontStack(element.fontFamily || bookFont),
+                    fontSize: `${element.fontSize || 4}cqh`,
+                    color: normalizeColor(element.color, "") || bookInk,
+                    textAlign: element.align || "left",
+                  }}
+                  onFocus={beginDeferredEdit}
+                  onChange={(event) => onPlaceText(pageIndex, element.id, event.target.value)}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  onBlur={onEndTextEdit}
+                />
+              ) : null}
+              {coverLayout && selectedId === element.id ? (
+                <button
+                  type="button"
+                  className="page-editor-handle"
+                  aria-label="Resize"
+                  onPointerDown={(event) => onPointerDown(event, pageIndex, element, "resize", flipRole)}
+                />
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function PortraitEditorPage() {
   const [, params] = useRoute("/admin/portrait/:slug");
@@ -228,11 +396,9 @@ export default function PortraitEditorPage() {
   }
 
   function applyBook(next: PublicBook) {
-    const pages = next.portraitPages || [];
-    const merged = mergePortraitPagesIntoBook(next, pages);
-    bookRef.current = merged;
-    setBook(merged);
-    return merged;
+    bookRef.current = next;
+    setBook(next);
+    return next;
   }
 
   function queueSave(next: PublicBook) {
@@ -240,13 +406,8 @@ export default function PortraitEditorPage() {
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       const pages = next.portraitPages || [];
-      const merged = mergePortraitPagesIntoBook(next, pages);
       void updateBook(next.id, {
         portraitPages: pages,
-        coverLayout: merged.coverLayout,
-        titleLayout: merged.titleLayout,
-        endLayout: merged.endLayout,
-        pages: merged.pages,
         pageBackground: next.pageBackground,
         pageTexture: next.pageTexture,
         spreadBackground: next.spreadBackground,
@@ -556,13 +717,20 @@ export default function PortraitEditorPage() {
     state.from = target;
   }
 
-  function onPointerDown(event: React.PointerEvent, pageIndex: number, element: PageElement, mode: "move" | "resize") {
+  function onPointerDown(
+    event: React.PointerEvent,
+    pageIndex: number,
+    element: PageElement,
+    mode: "move" | "resize",
+    flipRole: PortraitFlipRole,
+  ) {
     if (editingId === element.id && mode === "move") return;
     event.preventDefault();
     event.stopPropagation();
     setSelectedId(element.id);
     setFocus(pageIndex);
     setEditingId("");
+    if (flipRole !== "cover") return;
     const page = pageRefs.current[pageIndex];
     if (!page) return;
     const rect = page.getBoundingClientRect();
@@ -758,7 +926,7 @@ export default function PortraitEditorPage() {
         <button type="button" disabled={!selected} onClick={() => copySelection()}>Copy</button>
         <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>
         <button type="button" disabled={!canUndo} onClick={() => undo()}>Undo</button>
-        <span className="hint">Click a dashed box on the preview to select, drag to move, double-click wording to edit. ⌘C / ⌘V / ⌘Z</span>
+        <span className="hint">Preview matches the phone. Click wording or art to select; double-click text to edit. Drag to reposition on the cover only. ⌘C / ⌘V / ⌘Z</span>
         {selected?.element.type === "image" ? (
           <>
             <button type="button" className={imageObjectFit(selected.element) === "cover" ? "active" : ""} onClick={() => patchSelected({ fit: "cover" })}>Fill frame</button>
@@ -870,66 +1038,29 @@ export default function PortraitEditorPage() {
             const roleLabel = flipRole === "cover" ? "Cover" : flipRole === "title" ? "Title" : flipRole === "end" ? "End" : `Page ${index + 1}`;
             return (
               <figure key={index} className={`portrait-slot${index === focusIndex ? " active" : ""}`}>
-                <div
-                  ref={(node) => { pageRefs.current[index] = node; }}
-                  className="portrait-editor-preview mobile portrait-phone-frame"
-                  style={{ ...previewStyle, width: pageBox.width, height: pageBox.phoneHeight }}
-                  onMouseDown={() => { setSelectedId(""); setEditingId(""); setFocus(index); }}
-                >
-                  <div className="portrait-edit-layer">
-                    {layout.elements.map((element) => (
-                      <div
-                        key={element.id}
-                        className={`page-editor-el portrait-edit-hit${selectedId === element.id ? " selected" : ""}`}
-                        style={{
-                          left: `${element.x}%`,
-                          top: `${element.y}%`,
-                          width: `${element.w}%`,
-                          height: `${element.h}%`,
-                          zIndex: element.z,
-                        }}
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onPointerDown={(event) => onPointerDown(event, index, element, "move")}
-                        onDoubleClick={(event) => {
-                          event.stopPropagation();
-                          if (element.type === "text") setEditingId(element.id);
-                        }}
-                      >
-                        {editingId === element.id && element.type === "text" ? (
-                          <textarea
-                            autoFocus
-                            value={element.text || ""}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              fontFamily: fontStack(element.fontFamily || bookFont),
-                              fontSize: `${element.fontSize || 4}cqh`,
-                              color: normalizeColor(element.color, "") || bookInk,
-                              textAlign: element.align || "left",
-                            }}
-                            onFocus={beginDeferredEdit}
-                            onChange={(event) => place(index, index, element.id, { text: event.target.value }, { recordUndo: false })}
-                            onKeyDown={(event) => event.stopPropagation()}
-                            onBlur={() => {
-                              endDeferredEdit();
-                              setEditingId("");
-                            }}
-                          />
-                        ) : null}
-                        {selectedId === element.id ? (
-                          <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, index, element, "resize")} />
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                  <PortraitMobileMirror
-                    layout={layout}
-                    role={flipRole}
-                    book={book}
-                    width={pageBox.width}
-                    height={pageBox.phoneHeight}
-                  />
-                </div>
+                <PortraitPhoneFrame
+                  pageIndex={index}
+                  layout={layout}
+                  flipRole={flipRole}
+                  book={book}
+                  width={pageBox.width}
+                  phoneHeight={pageBox.phoneHeight}
+                  previewStyle={previewStyle}
+                  registerRef={(node) => { pageRefs.current[index] = node; }}
+                  selectedId={selectedId}
+                  editingId={editingId}
+                  bookFont={bookFont}
+                  bookInk={bookInk}
+                  onBackgroundMouseDown={() => { setSelectedId(""); setEditingId(""); setFocus(index); }}
+                  onPointerDown={onPointerDown}
+                  beginDeferredEdit={beginDeferredEdit}
+                  onEndTextEdit={() => {
+                    endDeferredEdit();
+                    setEditingId("");
+                  }}
+                  onStartTextEdit={(id) => setEditingId(id)}
+                  onPlaceText={(pageIndex, id, text) => place(pageIndex, pageIndex, id, { text }, { recordUndo: false })}
+                />
                 <figcaption>{roleLabel}</figcaption>
               </figure>
             );

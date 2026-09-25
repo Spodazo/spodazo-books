@@ -109,6 +109,53 @@ test("portraitPagesForEditor drops stale leaf-split saves", () => {
   assert.equal(pages[0]?.portraitRole, "cover");
 });
 
+test("portraitPagesForEditor keeps saved portrait layouts when flipbook layouts change", () => {
+  const base = ensureBookLayouts({
+    id: "book-1",
+    slug: "willow",
+    title: "Willow",
+    tagline: "",
+    author: "",
+    date: "",
+    cover: "",
+    pdf: "",
+    color: "honey",
+    sortOrder: 1,
+    hidden: false,
+    published: true,
+    audience: "children",
+    pageTemplate: "one-up",
+    characterRender: "scene",
+    pageBackground: "#efdda6",
+    pageTexture: "",
+    spreadBackground: "#bd9a61",
+    textFont: "story",
+    textColor: "#203b2a",
+    titleLayout: { elements: [{ id: "flip-title", type: "text", x: 5, y: 5, w: 90, h: 20, z: 1, text: "Flipbook title", role: "title" }] },
+    coverLayout: { elements: [] },
+    backCoverLayout: { elements: [] },
+    endLayout: { elements: [] },
+    portraitPages: null,
+    pages: [storyPage()],
+  } as Book);
+  const derived = derivePortraitPages(base);
+  const savedPortrait = derived.map((page, index) => (
+    index === 0
+      ? {
+        ...page,
+        elements: [{ id: "phone-cover", type: "text", x: 10, y: 10, w: 80, h: 20, z: 1, text: "Phone cover only" }],
+      }
+      : page
+  ));
+  const book = {
+    ...base,
+    titleLayout: { elements: [{ id: "flip-title", type: "text", x: 5, y: 5, w: 90, h: 20, z: 1, text: "Changed in flipbook", role: "title" }] },
+    portraitPages: savedPortrait,
+  } as Book;
+  const pages = portraitPagesForEditor(book);
+  assert.equal(pages[0]?.elements[0]?.text, "Phone cover only");
+});
+
 test("portraitPagesFor keeps a saved portrait and ignores the flipbook split", () => {
   const book = ensureBookLayouts({
     id: "book-1",
