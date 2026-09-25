@@ -13,6 +13,10 @@ import {
   DEFAULT_PAGE_BACKGROUND,
   DEFAULT_SPREAD_BACKGROUND,
   PAGE_COLOR_PALETTE,
+  decodeElementClipboard,
+  duplicateElement,
+  ELEMENT_CLIPBOARD_MIME,
+  encodeElementClipboard,
   imageObjectFit,
   imageObjectPosition,
   newElementId,
@@ -24,6 +28,7 @@ import { PAPER_TEXTURES, paperSwatchStyle } from "@shared/paper";
 import { paletteById } from "@shared/palettes";
 import {
   PORTRAIT_PAGE_RATIO,
+  mergePortraitPagesIntoBook,
   portraitFlipRole,
   portraitPagesForEditor,
   portraitPhoneViewportHeight,
@@ -34,6 +39,27 @@ import PortraitMobileMirror from "../components/PortraitMobileMirror";
 import { adminMe, fetchBook, updateBook, uploadBookAsset } from "../lib/api";
 
 const WINDOW = 4;
+const UNDO_LIMIT = 50;
+
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT";
+}
+
+function cloneBook(book: PublicBook): PublicBook {
+  return JSON.parse(JSON.stringify(book)) as PublicBook;
+}
+
+function pastedRole(source: PageElement, pageIndex: number, pages: PageLayout[]): PageElement["role"] | undefined {
+  if (source.type !== "text") return undefined;
+  if (source.role === "body" || source.role === "end" || source.role === "back") return source.role;
+  const pageRole = portraitFlipRole(pages[pageIndex] || { elements: [] }, pageIndex);
+  if (pageRole === "end") return "end";
+  if (pageRole === "title" && source.role) return source.role;
+  return "body";
+}
 
 function FontSelect({
   value,
@@ -84,6 +110,7 @@ export default function PortraitEditorPage() {
   const [selectedId, setSelectedId] = useState("");
   const [editingId, setEditingId] = useState("");
   const [status, setStatus] = useState("Saved");
+  const [canUndo, setCanUndo] = useState(false);
   const [pageBox, setPageBox] = useState({ width: 180, phoneHeight: 390 });
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceId = useRef("");
@@ -91,8 +118,19 @@ export default function PortraitEditorPage() {
   const bookRef = useRef<PublicBook | null>(null);
   const startRef = useRef(0);
   const drag = useRef<DragState | null>(null);
+  const dragMoved = useRef(false);
   const pageRefs = useRef<Array<HTMLDivElement | null>>([]);
   const stageRef = useRef<HTMLDivElement>(null);
+  const undoStack = useRef<PublicBook[]>([]);
+  const restoringRef = useRef(false);
+  const deferUndoRef = useRef(false);
+  const clipboardRef = useRef<{ element: PageElement; plain: string } | null>(null);
+  const pasteNudge = useRef(0);
+  const selectedIdRef = useRef("");
+  const focusIndexRef = useRef(0);
+  const copyRef = useRef<(event?: ClipboardEvent) => void>(() => {});
+  const pasteRef = useRef<(event: ClipboardEvent) => void>(() => {});
+  const undoRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     bookRef.current = book;
@@ -100,6 +138,17 @@ export default function PortraitEditorPage() {
   useEffect(() => {
     startRef.current = start;
   }, [start]);
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+  useEffect(() => {
+    focusIndexRef.current = focus;
+  }, [focus]);
+  useEffect(() => {
+    if (!book || !ready) return;
+    undoStack.current = [cloneBook(book)];
+    setCanUndo(false);
+  }, [book?.id, ready]);
 
   useEffect(() => {
     const href = googleFontsHref(BOOK_FONTS.map((font) => font.id));
@@ -166,21 +215,38 @@ export default function PortraitEditorPage() {
     };
   }, [slug, setLocation]);
 
-  function coverLayoutFromPortrait(pages: PageLayout[]) {
-    const index = pages.findIndex((layout, at) => portraitFlipRole(layout, at) === "cover");
-    if (index < 0) return null;
-    const cover = pages[index];
-    return { elements: cover.elements, background: cover.background || "" };
+  function pushUndoSnapshot() {
+    const current = bookRef.current;
+    if (!current || restoringRef.current) return;
+    const stack = undoStack.current;
+    const snap = cloneBook(current);
+    const top = stack[stack.length - 1];
+    if (top && JSON.stringify(top) === JSON.stringify(snap)) return;
+    stack.push(snap);
+    if (stack.length > UNDO_LIMIT) stack.shift();
+    setCanUndo(stack.length >= 2);
+  }
+
+  function applyBook(next: PublicBook) {
+    const pages = next.portraitPages || [];
+    const merged = mergePortraitPagesIntoBook(next, pages);
+    bookRef.current = merged;
+    setBook(merged);
+    return merged;
   }
 
   function queueSave(next: PublicBook) {
     setStatus("Saving…");
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      const coverLayout = coverLayoutFromPortrait(next.portraitPages || []);
+      const pages = next.portraitPages || [];
+      const merged = mergePortraitPagesIntoBook(next, pages);
       void updateBook(next.id, {
-        portraitPages: next.portraitPages,
-        ...(coverLayout ? { coverLayout } : {}),
+        portraitPages: pages,
+        coverLayout: merged.coverLayout,
+        titleLayout: merged.titleLayout,
+        endLayout: merged.endLayout,
+        pages: merged.pages,
         pageBackground: next.pageBackground,
         pageTexture: next.pageTexture,
         spreadBackground: next.spreadBackground,
@@ -197,19 +263,201 @@ export default function PortraitEditorPage() {
     }, 700);
   }
 
-  function commit(next: PublicBook) {
-    bookRef.current = next;
-    setBook(next);
-    queueSave(next);
+  function commit(next: PublicBook, options?: { recordUndo?: boolean }) {
+    const record = options?.recordUndo !== false && !restoringRef.current && !drag.current;
+    if (record) pushUndoSnapshot();
+    const merged = applyBook(next);
+    queueSave(merged);
   }
 
-  function updatePages(mutator: (pages: PageLayout[]) => PageLayout[]) {
+  function updatePages(mutator: (pages: PageLayout[]) => PageLayout[], options?: { recordUndo?: boolean }) {
     const current = bookRef.current;
     if (!current) return;
-    commit({ ...current, portraitPages: mutator(current.portraitPages || []) });
+    const record = options?.recordUndo ?? (!drag.current && !deferUndoRef.current);
+    if (record) pushUndoSnapshot();
+    const pages = mutator(current.portraitPages || []);
+    const merged = applyBook({ ...current, portraitPages: pages });
+    if (record) queueSave(merged);
   }
 
-  function place(from: number, to: number, id: string, patch: Partial<PageElement>) {
+  function undo() {
+    const stack = undoStack.current;
+    if (stack.length < 2) return;
+    stack.pop();
+    const prev = stack[stack.length - 1];
+    if (!prev) return;
+    restoringRef.current = true;
+    const merged = applyBook(prev);
+    queueSave(merged);
+    restoringRef.current = false;
+    setCanUndo(stack.length >= 2);
+    setSelectedId("");
+    setEditingId("");
+    setStatus("Undone");
+  }
+
+  function copySelection(event?: ClipboardEvent) {
+    const current = bookRef.current;
+    const id = selectedIdRef.current;
+    const pageIndex = focusIndexRef.current;
+    if (!current || !id) return;
+    const layout = current.portraitPages?.[pageIndex];
+    const element = layout?.elements.find((item) => item.id === id);
+    if (!element) return;
+    const encoded = encodeElementClipboard(element);
+    const plain = element.type === "text" ? (element.text || "") : encoded;
+    clipboardRef.current = { element: { ...element }, plain };
+    pasteNudge.current = 0;
+    if (event) {
+      event.preventDefault();
+      event.clipboardData?.setData("text/plain", plain);
+      event.clipboardData?.setData(ELEMENT_CLIPBOARD_MIME, encoded);
+    } else {
+      void navigator.clipboard?.writeText(plain).catch(() => {});
+    }
+    setStatus("Copied");
+  }
+
+  function insertCopied(source: PageElement) {
+    const current = bookRef.current;
+    const pageIndex = focusIndexRef.current;
+    if (!current) return;
+    const layout = current.portraitPages?.[pageIndex];
+    if (!layout) return;
+    pushUndoSnapshot();
+    pasteNudge.current += 1;
+    const pages = current.portraitPages || [];
+    const element = duplicateElement(source, layout.elements.reduce((max, item) => Math.max(max, item.z), 0) + 1, 3 * pasteNudge.current);
+    element.role = pastedRole(source, pageIndex, pages);
+    const nextPages = pages.map((page, index) => (
+      index === pageIndex ? { ...page, elements: [...page.elements, element] } : page
+    ));
+    const merged = applyBook({ ...current, portraitPages: nextPages });
+    queueSave(merged);
+    setSelectedId(element.id);
+    setEditingId("");
+    setStatus("Pasted");
+  }
+
+  function insertText(text: string) {
+    const current = bookRef.current;
+    const pageIndex = focusIndexRef.current;
+    if (!current) return;
+    const pages = current.portraitPages || [];
+    const layout = pages[pageIndex];
+    if (!layout) return;
+    const selected = layout.elements.find((item) => item.id === selectedIdRef.current);
+    if (selected?.type === "text") {
+      pushUndoSnapshot();
+      place(pageIndex, pageIndex, selected.id, { text }, { recordUndo: false });
+      if (bookRef.current) queueSave(bookRef.current);
+      setStatus("Pasted");
+      return;
+    }
+    pushUndoSnapshot();
+    const element: PageElement = {
+      id: newElementId(),
+      type: "text",
+      x: 10,
+      y: 12,
+      w: 80,
+      h: 16,
+      z: layout.elements.reduce((max, item) => Math.max(max, item.z), 0) + 1,
+      text,
+      role: portraitFlipRole(layout, pageIndex) === "end" ? "end" : "body",
+      fontSize: 4,
+      align: "left",
+    };
+    const nextPages = pages.map((page, index) => (
+      index === pageIndex ? { ...page, elements: [...page.elements, element] } : page
+    ));
+    const merged = applyBook({ ...current, portraitPages: nextPages });
+    queueSave(merged);
+    setSelectedId(element.id);
+    setEditingId("");
+    setStatus("Pasted");
+  }
+
+  async function pasteFromButton() {
+    try {
+      const text = await navigator.clipboard.readText();
+      const decoded = decodeElementClipboard(text);
+      if (decoded) {
+        insertCopied(decoded);
+        return;
+      }
+      if (clipboardRef.current && text === clipboardRef.current.plain) {
+        insertCopied(clipboardRef.current.element);
+        return;
+      }
+      if (text.trim()) {
+        insertText(text.replace(/\r\n/g, "\n"));
+        return;
+      }
+    } catch {
+      if (clipboardRef.current) {
+        insertCopied(clipboardRef.current.element);
+        return;
+      }
+    }
+    setStatus("Copy an item first");
+  }
+
+  function pasteSelection(event: ClipboardEvent) {
+    if (isTypingTarget(event.target)) return;
+    const plain = event.clipboardData?.getData("text/plain") || "";
+    const custom = event.clipboardData?.getData(ELEMENT_CLIPBOARD_MIME) || "";
+    const decoded = decodeElementClipboard(custom) || decodeElementClipboard(plain);
+    const remembered = clipboardRef.current && plain === clipboardRef.current.plain ? clipboardRef.current.element : null;
+    const source = decoded || remembered;
+    if (source) {
+      event.preventDefault();
+      insertCopied(source);
+      return;
+    }
+    const text = plain.replace(/\r\n/g, "\n");
+    if (!text.trim()) return;
+    event.preventDefault();
+    insertText(text);
+  }
+
+  copyRef.current = copySelection;
+  pasteRef.current = pasteSelection;
+  undoRef.current = undo;
+
+  useEffect(() => {
+    function onCopy(event: ClipboardEvent) {
+      if (isTypingTarget(event.target)) return;
+      copyRef.current(event);
+    }
+    function onPaste(event: ClipboardEvent) {
+      pasteRef.current(event);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (isTypingTarget(event.target)) return;
+      const mod = event.metaKey || event.ctrlKey;
+      if (!mod) return;
+      if (event.key === "z" || event.key === "Z") {
+        event.preventDefault();
+        undoRef.current();
+        return;
+      }
+      if (event.key === "v" || event.key === "V") {
+        event.preventDefault();
+        void pasteFromButton();
+      }
+    }
+    window.addEventListener("copy", onCopy);
+    window.addEventListener("paste", onPaste);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("copy", onCopy);
+      window.removeEventListener("paste", onPaste);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  function place(from: number, to: number, id: string, patch: Partial<PageElement>, options?: { recordUndo?: boolean }) {
     updatePages((pages) => {
       const source = pages[from];
       const element = source?.elements.find((item) => item.id === id);
@@ -225,7 +473,21 @@ export default function PortraitEditorPage() {
         if (index === to) return { ...page, elements: [...page.elements, next] };
         return page;
       });
-    });
+    }, options);
+  }
+
+  function beginDeferredEdit() {
+    if (!deferUndoRef.current) {
+      pushUndoSnapshot();
+      deferUndoRef.current = true;
+    }
+  }
+
+  function endDeferredEdit() {
+    if (!deferUndoRef.current) return;
+    deferUndoRef.current = false;
+    const current = bookRef.current;
+    if (current) queueSave(current);
   }
 
   const pages = book?.portraitPages || [];
@@ -264,6 +526,10 @@ export default function PortraitEditorPage() {
   function onDrag(event: PointerEvent) {
     const state = drag.current;
     if (!state) return;
+    if (!dragMoved.current) {
+      pushUndoSnapshot();
+      dragMoved.current = true;
+    }
     if (state.mode === "resize") {
       const page = pageRefs.current[state.from];
       if (!page) return;
@@ -290,9 +556,18 @@ export default function PortraitEditorPage() {
     state.from = target;
   }
 
+  function onVisualPointerDown(event: React.PointerEvent, pageIndex: number, layout: PageLayout) {
+    const target = event.target as HTMLElement;
+    if (target.closest(".portrait-edit-hit") || target.closest(".page-editor-handle")) return;
+    const marked = target.closest("[data-id]");
+    if (!marked?.closest(".portrait-mirror-visual")) return;
+    const id = marked.getAttribute("data-id");
+    const element = layout.elements.find((item) => item.id === id);
+    if (!element) return;
+    onPointerDown(event, pageIndex, element, "move");
+  }
+
   function onPointerDown(event: React.PointerEvent, pageIndex: number, element: PageElement, mode: "move" | "resize") {
-    const role = portraitFlipRole(pages[pageIndex] || { elements: [] }, pageIndex);
-    if (role !== "cover") return;
     if (editingId === element.id && mode === "move") return;
     event.preventDefault();
     event.stopPropagation();
@@ -302,6 +577,7 @@ export default function PortraitEditorPage() {
     const page = pageRefs.current[pageIndex];
     if (!page) return;
     const rect = page.getBoundingClientRect();
+    dragMoved.current = false;
     drag.current = {
       id: element.id,
       from: pageIndex,
@@ -314,7 +590,10 @@ export default function PortraitEditorPage() {
     };
     const move = (ev: PointerEvent) => onDrag(ev);
     const up = () => {
+      const current = bookRef.current;
       drag.current = null;
+      if (dragMoved.current && current) queueSave(current);
+      dragMoved.current = false;
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
@@ -343,7 +622,6 @@ export default function PortraitEditorPage() {
   }
 
   function addText() {
-    if (portraitFlipRole(pages[focusIndex] || { elements: [] }, focusIndex) !== "cover") return;
     const layout = pages[focusIndex];
     if (!layout) return;
     const element: PageElement = {
@@ -367,7 +645,6 @@ export default function PortraitEditorPage() {
   }
 
   function addShape(shape: "rectangle" | "circle") {
-    if (portraitFlipRole(pages[focusIndex] || { elements: [] }, focusIndex) !== "cover") return;
     const layout = pages[focusIndex];
     if (!layout) return;
     const element: PageElement = {
@@ -489,7 +766,10 @@ export default function PortraitEditorPage() {
         <button type="button" onClick={addPage}>Add page</button>
         <button type="button" disabled={pages.length < 2} onClick={removePage}>Delete page</button>
         <button type="button" disabled={!selected} onClick={removeElement}>Delete item</button>
-        <span className="hint">Preview matches the portrait flipbook. Drag items on the cover; use Edit Flipbook Display for title, story, and end pages.</span>
+        <button type="button" disabled={!selected} onClick={() => copySelection()}>Copy</button>
+        <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>
+        <button type="button" disabled={!canUndo} onClick={() => undo()}>Undo</button>
+        <span className="hint">Click any item on the preview to select it, or use the spread boxes underneath. Double-click wording to edit. ⌘C / ⌘V / ⌘Z</span>
         {selected?.element.type === "image" ? (
           <>
             <button type="button" className={imageObjectFit(selected.element) === "cover" ? "active" : ""} onClick={() => patchSelected({ fit: "cover" })}>Fill frame</button>
@@ -598,51 +878,7 @@ export default function PortraitEditorPage() {
           {visible.map((layout, offset) => {
             const index = windowStart + offset;
             const flipRole = portraitFlipRole(layout, index);
-            const isCover = flipRole === "cover";
-            const roleLabel = isCover ? "Cover" : flipRole === "title" ? "Title" : flipRole === "end" ? "End" : `Page ${index + 1}`;
-            const coverOverlay = isCover ? (
-              <div className="portrait-cover-edit-layer" aria-hidden={false}>
-                {layout.elements.map((element) => (
-                  <div
-                    key={element.id}
-                    className={`page-editor-el portrait-cover-hit${selectedId === element.id ? " selected" : ""}`}
-                    style={{
-                      left: `${element.x}%`,
-                      top: `${element.y}%`,
-                      width: `${element.w}%`,
-                      height: `${element.h}%`,
-                      zIndex: element.z,
-                    }}
-                    onMouseDown={(event) => event.stopPropagation()}
-                    onPointerDown={(event) => onPointerDown(event, index, element, "move")}
-                    onDoubleClick={() => {
-                      if (element.type === "text") setEditingId(element.id);
-                    }}
-                  >
-                    {editingId === element.id && element.type === "text" ? (
-                      <textarea
-                        autoFocus
-                        value={element.text || ""}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          fontFamily: fontStack(element.fontFamily || bookFont),
-                          fontSize: `${element.fontSize || 4}cqh`,
-                          color: normalizeColor(element.color, "") || bookInk,
-                          textAlign: element.align || "left",
-                        }}
-                        onChange={(event) => place(index, index, element.id, { text: event.target.value })}
-                        onKeyDown={(event) => event.stopPropagation()}
-                        onBlur={() => setEditingId("")}
-                      />
-                    ) : null}
-                    {selectedId === element.id ? (
-                      <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, index, element, "resize")} />
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : null;
+            const roleLabel = flipRole === "cover" ? "Cover" : flipRole === "title" ? "Title" : flipRole === "end" ? "End" : `Page ${index + 1}`;
             return (
               <figure key={index} className={`portrait-slot${index === focusIndex ? " active" : ""}`}>
                 <div
@@ -650,14 +886,66 @@ export default function PortraitEditorPage() {
                   className="portrait-editor-preview mobile portrait-phone-frame"
                   style={{ ...previewStyle, width: pageBox.width, height: pageBox.phoneHeight }}
                   onMouseDown={() => { setSelectedId(""); setEditingId(""); setFocus(index); }}
+                  onPointerDownCapture={(event) => onVisualPointerDown(event, index, layout)}
+                  onDoubleClickCapture={(event) => {
+                    const target = event.target as HTMLElement;
+                    const id = target.closest("[data-id]")?.getAttribute("data-id");
+                    const element = id ? layout.elements.find((item) => item.id === id) : undefined;
+                    if (element?.type === "text") setEditingId(element.id);
+                  }}
                 >
+                  <div className="portrait-edit-layer">
+                    {layout.elements.map((element) => (
+                      <div
+                        key={element.id}
+                        className={`page-editor-el portrait-edit-hit${selectedId === element.id ? " selected" : ""}`}
+                        style={{
+                          left: `${element.x}%`,
+                          top: `${element.y}%`,
+                          width: `${element.w}%`,
+                          height: `${element.h}%`,
+                          zIndex: element.z,
+                        }}
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => onPointerDown(event, index, element, "move")}
+                        onDoubleClick={(event) => {
+                          event.stopPropagation();
+                          if (element.type === "text") setEditingId(element.id);
+                        }}
+                      >
+                        {editingId === element.id && element.type === "text" ? (
+                          <textarea
+                            autoFocus
+                            value={element.text || ""}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              fontFamily: fontStack(element.fontFamily || bookFont),
+                              fontSize: `${element.fontSize || 4}cqh`,
+                              color: normalizeColor(element.color, "") || bookInk,
+                              textAlign: element.align || "left",
+                            }}
+                            onFocus={beginDeferredEdit}
+                            onChange={(event) => place(index, index, element.id, { text: event.target.value }, { recordUndo: false })}
+                            onKeyDown={(event) => event.stopPropagation()}
+                            onBlur={() => {
+                              endDeferredEdit();
+                              setEditingId("");
+                            }}
+                          />
+                        ) : null}
+                        {selectedId === element.id ? (
+                          <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, index, element, "resize")} />
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
                   <PortraitMobileMirror
                     layout={layout}
                     role={flipRole}
                     book={book}
                     width={pageBox.width}
                     height={pageBox.phoneHeight}
-                    coverOverlay={coverOverlay}
                   />
                 </div>
                 <figcaption>{roleLabel}</figcaption>

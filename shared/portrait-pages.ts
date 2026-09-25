@@ -121,6 +121,34 @@ export function portraitPagesFor(book: Book): PageLayout[] {
 }
 
 /** Portrait editor: same page list as the phone flipbook; drop stale leaf-split saves. */
+function layoutPatch(layout: PageLayout): PageLayout {
+  return { elements: layout.elements, background: layout.background || "" };
+}
+
+/** Push portrait editor changes into the flipbook layouts the phone reader uses. */
+export function mergePortraitPagesIntoBook<T extends Book>(book: T, pages: PageLayout[]): T {
+  let storyIndex = 0;
+  const story = visibleStoryPages(book);
+  const next = { ...book, portraitPages: pages };
+  pages.forEach((page, index) => {
+    const role = portraitFlipRole(page, index);
+    const patch = layoutPatch(page);
+    if (role === "cover") next.coverLayout = patch;
+    else if (role === "title") next.titleLayout = patch;
+    else if (role === "end") next.endLayout = patch;
+    else if (role === "spread" && story[storyIndex]) {
+      const target = story[storyIndex];
+      storyIndex += 1;
+      next.pages = (next.pages || []).map((row) => (
+        row.id === target.id
+          ? { ...row, elements: patch.elements, background: patch.background || row.background }
+          : row
+      ));
+    }
+  });
+  return next;
+}
+
 export function portraitPagesForEditor(book: Book): PageLayout[] {
   const derived = derivePortraitPages(book);
   const saved = book.portraitPages;

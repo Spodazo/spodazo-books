@@ -802,20 +802,35 @@ html:has(.upright-pdf) body {
   box-shadow: 0 10px 28px #0006;
   background: var(--page-paper, #efdda6);
 }
-.portrait-cover-edit-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
+.portrait-phone-frame {
+  position: relative;
+}
+.portrait-mirror-visual {
+  position: relative;
+  z-index: 2;
   pointer-events: none;
 }
-.portrait-cover-edit-layer .page-editor-el {
+.portrait-mirror-visual .el,
+.portrait-mirror-visual .cover-bit {
   pointer-events: auto;
-  background: transparent;
-  border: 1px dashed transparent;
+  cursor: grab;
+}
+.portrait-edit-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.portrait-edit-layer .portrait-edit-hit {
+  pointer-events: auto;
+  background: rgba(217, 144, 40, 0.06);
+  border: 1px dashed rgba(217, 144, 40, 0.35);
   box-sizing: border-box;
 }
-.portrait-cover-edit-layer .page-editor-el.selected {
+.portrait-edit-layer .portrait-edit-hit.selected {
+  background: rgba(217, 144, 40, 0.12);
   border-color: #d99028;
+  border-width: 2px;
 }
 /* Portrait editor: same DOM/classes as the flipbook reader in .mobile portrait mode */
 .portrait-editor-preview.mobile .page {

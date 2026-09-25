@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { DEFAULT_TEXT_COLOR, fontStack } from "@shared/book-fonts";
 import {
   alignJustify,
@@ -117,14 +117,12 @@ export default function PortraitMobileMirror({
   book,
   width,
   height,
-  coverOverlay,
 }: {
   layout: PageLayout;
   role: PortraitFlipRole;
   book: PublicBook;
   width: number;
   height: number;
-  coverOverlay?: ReactNode;
 }) {
   const fill = pageFill(layout.background, book.pageBackground);
   const sorted = layout.elements.slice().sort((a, b) => a.z - b.z);
@@ -132,13 +130,12 @@ export default function PortraitMobileMirror({
 
   if (role === "cover") {
     return (
-      <article className="page front-cover" style={{ ...surface, width, height, position: "relative", backgroundColor: fill }}>
-        <div className="front-cover-leaf" style={{ ...surface, backgroundColor: fill }}>
+      <article className="page front-cover portrait-mirror-visual" style={{ ...surface, width, height, position: "relative", backgroundColor: fill }}>
+        <div className="front-cover-leaf" style={{ ...surface, backgroundColor: fill, position: "absolute", inset: 0 }}>
           {sorted.map((element) => (
             <CoverBits key={element.id} element={element} book={book} />
           ))}
         </div>
-        {coverOverlay}
       </article>
     );
   }
@@ -146,7 +143,7 @@ export default function PortraitMobileMirror({
   const pageClass = role === "title" ? "page laid-out title-page current" : role === "end" ? "page laid-out end-page current" : "page laid-out current";
 
   return (
-    <article className={pageClass} style={{ ...surface, width, height, backgroundColor: fill }}>
+    <article className={`${pageClass} portrait-mirror-visual`} style={{ ...surface, width, height, backgroundColor: fill, position: "relative" }}>
       {sorted.map((element) => (
         <LaidOutEl key={element.id} element={element} book={book} />
       ))}
