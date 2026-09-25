@@ -16,12 +16,8 @@ function fitBoxFont(el){
   }
 }
 function fitPageText(root){
-  var nodes=(root||book).querySelectorAll('.el-text, .cover-bit-text'),i,page;
-  for(i=0;i<nodes.length;i++){
-    page=nodes[i].closest('.page');
-    if(page&&(page.classList.contains('front-cover')||page.classList.contains('title-page')||page.classList.contains('end-page')))continue;
-    fitBoxFont(nodes[i]);
-  }
+  var nodes=(root||book).querySelectorAll('.el-text, .cover-bit-text'),i;
+  for(i=0;i<nodes.length;i++)fitBoxFont(nodes[i]);
 }
 function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});document.documentElement.classList.toggle('closed-book',!mobile&&!!(pages[index]&&pages[index].classList.contains('front-cover')));count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
 function isPicturePage(p){
@@ -245,31 +241,10 @@ function shrinkStory(p){
   if(!keep)p.classList.remove('current');
   if(!keep)p.style.visibility='';
 }
-function applyMobilePortraitLayout(){
-  if(!mobile)return;
-  pages.forEach(function(p){
-    if(!p.classList.contains('laid-out'))return;
-    if(p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile'))return;
-    var imgs=p.querySelectorAll('.el-image');
-    var i;
-    for(i=0;i<imgs.length;i++){
-      var img=imgs[i];
-      if(img.getAttribute('data-size')==='small')continue;
-      img.style.setProperty('width','100%','important');
-      img.style.setProperty('max-width','100%','important');
-      img.style.setProperty('height','auto','important');
-      img.style.setProperty('left','auto','important');
-      img.style.setProperty('top','auto','important');
-      img.style.setProperty('object-fit','contain','important');
-      img.style.setProperty('object-position','center center','important');
-    }
-  });
-}
 function rebuild(){
   if(busy)return;
   var source=pages[index]?pages[index].getAttribute('data-source'):null;
   mobile=matchMedia('(max-width: 700px), (pointer: coarse) and (max-width: 1100px)').matches&&matchMedia('(orientation: portrait)').matches;
-  /* Portrait upright layout CSS lives only under html.mobile in reader.css — keep in sync with bootMobile in reader.js. */
   document.documentElement.classList.toggle('mobile',mobile);
   var first=!pages.length;
   if(first){
@@ -292,7 +267,6 @@ function rebuild(){
     if(template)splitStory(p,template,isNaN(src)?i:src);
   });
   pages.forEach(shrinkStory);
-  applyMobilePortraitLayout();
   if(source){
     index=Math.max(0,pages.findIndex(function(p){return p.getAttribute('data-source')===source;}));
     if(index<0)index=0;
@@ -357,7 +331,6 @@ function releaseFlip(layer,after){
   document.documentElement.classList.remove('opening');
   pages.forEach(function(p){p.style.visibility='';});
   status();
-  if(mobile)applyMobilePortraitLayout();
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
       if(layer.parentNode)layer.remove();
@@ -714,7 +687,7 @@ function alreadyFit(p){
   return !!(box&&(box.style.lineHeight||box.style.fontSize||(p.querySelector('.el-text')||{}).style.fontSize));
 }
 function fitLaidOut(p){
-  if(mobile||!storyPage(p))return false;
+  if(!storyPage(p))return false;
   var boxes=p.querySelectorAll('.el-text');
   if(!boxes.length)return false;
   var was=p.classList.contains('current');
@@ -743,7 +716,6 @@ function refitPages(){
     if(!was)p.classList.remove('current');
     p.style.visibility=vis;
   });
-  if(mobile)applyMobilePortraitLayout();
   if(busy)return;
   pages.forEach(function(p){p.style.visibility='';});
   status();
@@ -762,5 +734,6 @@ function bootPages(){
 rebuild();
 bootPages();
 requestAnimationFrame(function(){requestAnimationFrame(function(){curlHold=false;if(!busy)updateCurl();});});
+var hint=document.getElementById('hint');setTimeout(function(){if(hint)hint.remove()},3000);
 var resizeTimer;window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(busy)return;rebuild();bootPages();},200)});
 })();

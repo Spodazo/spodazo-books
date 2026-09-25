@@ -16,14 +16,13 @@ import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
 import { bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
-import { fitHeightBox, fittedBox, sideBleedStrip } from "../lib/cover-bleed";
 
 export type BookPdfKind = "standard" | "a3-a4" | "a4-a5";
 
 const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 const A3_LANDSCAPE: [number, number] = [1190.55, 841.89];
 
-type Rendered = { png: Uint8Array; width: number; height: number; color: string };
+type Rendered = { png: Uint8Array; width: number; height: number };
 type PaperPaint = { id: string; image: HTMLImageElement | null; edge: HTMLImageElement | null };
 
 function paintPaper(ctx: CanvasRenderingContext2D, color: string, width: number, height: number, paper?: PaperPaint) {
@@ -212,7 +211,7 @@ function drawFittedImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement, e
   ctx.restore();
 }
 
-async function snapshot(node: HTMLElement): Promise<{ png: Uint8Array; width: number; height: number }> {
+async function snapshot(node: HTMLElement): Promise<Rendered> {
   node.querySelectorAll<HTMLElement>(":scope > div").forEach((el) => {
     if (el.querySelector("p")) fitTextBox(el);
   });
@@ -287,7 +286,7 @@ async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" 
       else resolve(new Uint8Array(await blob.arrayBuffer()));
     }, "image/png");
   });
-  return { png, width: canvas.width, height: canvas.height, color: paper };
+  return { png, width: canvas.width, height: canvas.height };
 }
 
 function blankLeaf(color: string, paperPaint?: PaperPaint): Rendered {
@@ -301,7 +300,7 @@ function blankLeaf(color: string, paperPaint?: PaperPaint): Rendered {
   const binary = atob(data.split(",")[1] || "");
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return { png: bytes, width: canvas.width, height: canvas.height, color };
+  return { png: bytes, width: canvas.width, height: canvas.height };
 }
 
 async function halves(spread: Rendered): Promise<[Rendered, Rendered]> {
@@ -319,7 +318,7 @@ async function halves(spread: Rendered): Promise<[Rendered, Rendered]> {
         else resolve(new Uint8Array(await blob.arrayBuffer()));
       }, "image/png");
     });
-    return { png, width: canvas.width, height: canvas.height, color: spread.color };
+    return { png, width: canvas.width, height: canvas.height };
   };
   return [await cut(0), await cut(Math.floor(img.width / 2))];
 }
@@ -340,53 +339,20 @@ function loadImage(png: Uint8Array) {
   });
 }
 
-function canvasPng(canvas: HTMLCanvasElement) {
-  return new Promise<Uint8Array>((resolve, reject) => {
-    canvas.toBlob(async (blob) => {
-      if (!blob) reject(new Error("Could not draw a page"));
-      else resolve(new Uint8Array(await blob.arrayBuffer()));
-    }, "image/png");
-  });
-}
-
-/** Keep the full cover height and extend textured edges into the side gaps. */
-async function extendCover(shot: Rendered, pageW: number, pageH: number): Promise<Rendered> {
-  const width = Math.max(1, Math.round(pageW * 2));
-  const height = Math.max(1, Math.round(pageH * 2));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Could not extend a cover");
-  const img = await loadImage(shot.png);
-  const box = fitHeightBox(img, width, height);
-  const strip = sideBleedStrip(img.width);
-  if (box.leftGap > 0) {
-    ctx.drawImage(img, 0, 0, strip, img.height, 0, 0, box.leftGap, height);
-    ctx.drawImage(img, img.width - strip, 0, strip, img.height, box.x + box.width, 0, box.rightGap, height);
-  }
-  ctx.drawImage(img, box.x, box.y, box.width, box.height);
-  return { png: await canvasPng(canvas), width, height, color: shot.color };
+function fitRect(image: { width: number; height: number }, boxW: number, boxH: number) {
+  const scale = Math.min(boxW / image.width, boxH / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+  return { width, height, x: (boxW - width) / 2, y: (boxH - height) / 2 };
 }
 
 async function standardPdf(cover: Rendered, spreads: Rendered[], back: Rendered | null) {
   const pdf = await PDFDocument.create();
-  const jobs = [
-    { shot: cover, cover: true },
-    ...spreads.map((shot) => ({ shot, cover: false })),
-    ...(back ? [{ shot: back, cover: true }] : []),
-  ];
-  for (const job of jobs) {
-    if (job.cover) {
-      const bled = await extendCover(job.shot, 960, 600);
-      const embedded = await pdf.embedPng(bled.png);
-      const page = pdf.addPage([960, 600]);
-      page.drawImage(embedded, { x: 0, y: 0, width: 960, height: 600 });
-      continue;
-    }
-    const embedded = await pdf.embedPng(job.shot.png);
-    const page = pdf.addPage([job.shot.width > job.shot.height ? 960 : 480, 600]);
-    const box = fittedBox(job.shot, page.getWidth(), page.getHeight());
+  const pages = back ? [cover, ...spreads, back] : [cover, ...spreads];
+  for (const shot of pages) {
+    const embedded = await pdf.embedPng(shot.png);
+    const page = pdf.addPage([shot.width > shot.height ? 960 : 480, 600]);
+    const box = fitRect(shot, page.getWidth(), page.getHeight());
     page.drawImage(embedded, box);
   }
   return pdf.save();
@@ -415,7 +381,7 @@ async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: st
     for (const [index, place] of [[side.left, 0], [side.right, halfW]] as const) {
       const shot = pages[index];
       const embedded = await pdf.embedPng(shot.png);
-      const box = fittedBox(shot, halfW - 24, sheetH - 24);
+      const box = fitRect(shot, halfW - 24, sheetH - 24);
       page.drawImage(embedded, { x: place + 12 + box.x, y: 12 + box.y, width: box.width, height: box.height });
     }
   }
@@ -437,9 +403,7 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   const cover = await renderLayout(book.coverLayout, book, "cover", false, undefined, paperPaint);
   const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover", "back", legal, paperPaint) : null;
   const spreads: Rendered[] = [];
-  if (book.showTitlePage !== false) {
-    spreads.push(await renderLayout(book.titleLayout, book, "spread", false, undefined, paperPaint));
-  }
+  spreads.push(await renderLayout(book.titleLayout, book, "spread", false, undefined, paperPaint));
   for (const page of visibleStoryPages(book)) {
     spreads.push(await renderLayout(page, book, "spread", false, undefined, paperPaint));
   }

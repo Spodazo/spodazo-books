@@ -3,8 +3,7 @@ import fs from "fs";
 import path from "path";
 import multer from "multer";
 import { slugify, uniqueSlug } from "../shared/seed-data";
-import { normalizeLayout } from "../shared/page-layout";
-import type { BookPage, PageLayout, PlayerSetup } from "../shared/types";
+import type { BookPage, PlayerSetup } from "../shared/types";
 import { loginAdmin, logoutAdmin, requireAdmin } from "./auth";
 import { curatorPasswordMatches, curatorRecoveryError, hashPassword, MIN_PASSWORD_LENGTH } from "./password";
 import { currentIconStamp } from "./htmlIcons";
@@ -88,24 +87,6 @@ function pagesFromBody(raw: unknown): BookPage[] | undefined {
   const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
   if (!Array.isArray(parsed)) return [];
   return parsed;
-}
-
-function bookUploadFields(req: Request, res: Response, next: NextFunction) {
-  const type = String(req.headers["content-type"] || "");
-  if (type.includes("multipart/form-data")) {
-    return upload.fields([{ name: "cover", maxCount: 1 }, { name: "pdf", maxCount: 1 }])(req, res, next);
-  }
-  return next();
-}
-
-function sendNoStoreJson(res: import("express").Response, body: unknown): void {
-  res.set({
-    "Cache-Control": "no-store, no-cache, must-revalidate",
-    "CDN-Cache-Control": "no-store",
-    "Cloudflare-CDN-Cache-Control": "no-store",
-    Pragma: "no-cache",
-  });
-  res.json(body);
 }
 
 export function registerRoutes(app: Express): void {
@@ -246,7 +227,7 @@ export function registerRoutes(app: Express): void {
   app.get("/api/books", async (req, res) => {
     const store = await getStore();
     const list = await store.listBooks();
-    sendNoStoreJson(res, req.session?.admin ? list : list.filter((book) => !book.hidden && book.published));
+    res.json(req.session?.admin ? list : list.filter((book) => !book.hidden && book.published));
     void warmHomeCardImages(list);
   });
 
@@ -257,7 +238,7 @@ export function registerRoutes(app: Express): void {
       res.status(404).json({ error: "Book not found" });
       return;
     }
-    sendNoStoreJson(res, book);
+    res.json(book);
   });
 
   app.get("/api/admin/me", (req, res) => {
@@ -439,7 +420,6 @@ export function registerRoutes(app: Express): void {
         textFont: String(body.textFont || ""),
         textColor: String(body.textColor || ""),
         titleLayout: body.titleLayout,
-        showTitlePage: body.showTitlePage !== false && body.showTitlePage !== "false",
         coverLayout: body.coverLayout,
         backCoverLayout: body.backCoverLayout,
         endLayout: body.endLayout,
@@ -450,7 +430,7 @@ export function registerRoutes(app: Express): void {
     }
   });
 
-  app.patch("/api/admin/books/:id", requireAdmin, bookUploadFields, async (req, res) => {
+  app.patch("/api/admin/books/:id", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 }, { name: "pdf", maxCount: 1 }]), async (req, res) => {
     try {
       const store = await getStore();
       const files = req.files as Record<string, Express.Multer.File[]> | undefined;
@@ -485,9 +465,6 @@ export function registerRoutes(app: Express): void {
         textFont: body.textFont !== undefined ? String(body.textFont) : undefined,
         textColor: body.textColor !== undefined ? String(body.textColor) : undefined,
         titleLayout: body.titleLayout !== undefined ? body.titleLayout : undefined,
-        showTitlePage: body.showTitlePage !== undefined
-          ? body.showTitlePage !== false && body.showTitlePage !== "false"
-          : undefined,
         coverLayout: body.coverLayout !== undefined ? body.coverLayout : undefined,
         backCoverLayout: body.backCoverLayout !== undefined ? body.backCoverLayout : undefined,
         endLayout: body.endLayout !== undefined ? body.endLayout : undefined,
@@ -536,12 +513,7 @@ export function registerRoutes(app: Express): void {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    res.sendFile(path.resolve(full), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${path.basename(full)}"`,
-        "Cache-Control": "public, max-age=86400",
-      },
-    });
+    res.setHeader("Content-Disposition", `attachment; filename="${path.basename(full)}"`);
+    res.sendFile(path.resolve(full));
   });
 }

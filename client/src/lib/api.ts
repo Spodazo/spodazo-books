@@ -22,28 +22,13 @@ export function fetchBooks(): Promise<BookListItem[]> {
 
 const bookLoads = new Map<string, Promise<PublicBook>>();
 
-function bookCacheKey(slug: string): string {
-  return String(slug || "").toLowerCase();
-}
-
-export function invalidateBookCache(slug?: string): void {
-  if (slug) bookLoads.delete(bookCacheKey(slug));
-  else bookLoads.clear();
-}
-
 export function fetchBook(slug: string): Promise<PublicBook> {
-  const key = bookCacheKey(slug);
+  const key = String(slug || "");
   const pending = bookLoads.get(key);
   if (pending) return pending;
-  const load = fetch(`/api/books/${encodeURIComponent(slug)}`, {
-    cache: "no-store",
-    headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-  })
-    .then((res) => parse<PublicBook>(res))
-    .finally(() => {
-      bookLoads.delete(key);
-    });
+  const load = fetch(`/api/books/${encodeURIComponent(key)}`).then((res) => parse<PublicBook>(res));
   bookLoads.set(key, load);
+  load.catch(() => bookLoads.delete(key));
   return load;
 }
 
@@ -174,10 +159,7 @@ export function updateBook(id: string, body: Record<string, unknown>): Promise<P
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
     body: JSON.stringify(body),
-  }).then((res) => parse<PublicBook>(res)).then((saved) => {
-    invalidateBookCache(saved.slug);
-    return saved;
-  });
+  }).then((res) => parse<PublicBook>(res));
 }
 
 export function deleteBook(id: string): Promise<void> {

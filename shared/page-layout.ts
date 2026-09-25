@@ -72,28 +72,6 @@ export function pageFill(pageBackground: string | undefined, bookBackground: str
   return normalizeColor(pageBackground, "") || normalizeColor(bookBackground, DEFAULT_PAGE_BACKGROUND);
 }
 
-/** Map a spread box onto one 4:5 leaf. Boxes that miss that leaf return null. */
-export function remapSpreadBoxToLeaf(
-  box: { x: number; y: number; w: number; h: number },
-  side: "left" | "right",
-): { x: number; y: number; w: number; h: number } | null {
-  const leafX = side === "left" ? 0 : 50;
-  if (box.x + box.w <= leafX || box.x >= leafX + 50) return null;
-  const crosses = box.x < 50 && box.x + box.w > 50;
-  const bleed = box.x <= 2 && box.w >= 95;
-  if (crosses && !bleed) {
-    const home = box.x + box.w / 2 < 50 ? "left" : "right";
-    if (home !== side) return null;
-    return { x: 6, y: box.y, w: 88, h: box.h };
-  }
-  return {
-    x: (box.x - leafX) * 2,
-    y: box.y,
-    w: box.w * 2,
-    h: box.h,
-  };
-}
-
 export function normalizeElement(raw: Partial<PageElement> | null | undefined, index: number): PageElement {
   const type = raw?.type === "image" ? "image" : raw?.type === "shape" ? "shape" : "text";
   const role = raw?.role && ROLES.has(raw.role) ? raw.role : undefined;
@@ -180,12 +158,9 @@ export function duplicateElement(element: PageElement, z: number, offset = 3): P
 export function normalizeLayout(raw?: Partial<PageLayout> | PageElement[] | null): PageLayout {
   const record = Array.isArray(raw) ? { elements: raw } : raw || {};
   const elements = Array.isArray(record.elements) ? record.elements : [];
-  const roles = new Set(["cover", "title", "spread", "end", "leaf"]);
-  const portraitRole = roles.has(String(record.portraitRole || "")) ? (record.portraitRole as PageLayout["portraitRole"]) : undefined;
   return {
     elements: elements.map((item, index) => normalizeElement(item, index)),
     background: normalizeColor(record.background, ""),
-    ...(portraitRole ? { portraitRole } : {}),
   };
 }
 
@@ -229,10 +204,6 @@ export function layoutToJson(layout: PageLayout): string {
 
 export function hasLayout(layout?: PageLayout | null): boolean {
   return Boolean(layout?.elements?.length);
-}
-
-export function titlePageEnabled(book: Pick<Book, "showTitlePage">): boolean {
-  return book.showTitlePage !== false;
 }
 
 export function firstImageAsset(elements: PageElement[]): string {
@@ -442,12 +413,9 @@ export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?:
     spreadBackground: normalizeColor(book.spreadBackground, DEFAULT_SPREAD_BACKGROUND),
     textFont: normalizeFont(book.textFont, DEFAULT_TEXT_FONT),
     textColor: normalizeColor(book.textColor, DEFAULT_TEXT_COLOR),
-    titleLayout: titlePageEnabled(book)
-      ? (hasLayout(book.titleLayout)
-        ? normalizeLayout(book.titleLayout)
-        : defaultTitleLayout(book, coverUrl))
-      : { elements: [], background: "" },
-    showTitlePage: titlePageEnabled(book),
+    titleLayout: hasLayout(book.titleLayout)
+      ? normalizeLayout(book.titleLayout)
+      : defaultTitleLayout(book, coverUrl),
     coverLayout: hasLayout(book.coverLayout)
       ? normalizeLayout(book.coverLayout)
       : defaultCoverLayout(book, coverUrl),

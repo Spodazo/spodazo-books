@@ -14,7 +14,6 @@ import {
   encodeElementClipboard,
   imageObjectFit,
   imageObjectPosition,
-  remapSpreadBoxToLeaf,
   normalizeElement,
   pageFill,
   panImageFocus,
@@ -32,20 +31,6 @@ test("pageFill uses the page override then the book default", () => {
   assert.equal(pageFill("#112233", "#efdda6"), "#112233");
   assert.equal(pageFill("", "#445566"), "#445566");
   assert.equal(pageFill("", ""), DEFAULT_PAGE_BACKGROUND);
-});
-
-test("remapSpreadBoxToLeaf keeps a designed leaf and drops the other side", () => {
-  assert.deepEqual(remapSpreadBoxToLeaf({ x: 0, y: 0, w: 50, h: 100 }, "left"), { x: 0, y: 0, w: 100, h: 100 });
-  assert.equal(remapSpreadBoxToLeaf({ x: 0, y: 0, w: 50, h: 100 }, "right"), null);
-  assert.deepEqual(remapSpreadBoxToLeaf({ x: 53, y: 18, w: 44, h: 66 }, "right"), { x: 6, y: 18, w: 88, h: 66 });
-  const bleed = remapSpreadBoxToLeaf({ x: 0, y: 0, w: 100, h: 100 }, "right");
-  assert.deepEqual(bleed, { x: -100, y: 0, w: 200, h: 100 });
-});
-
-test("remapSpreadBoxToLeaf keeps spanning art whole on its home leaf", () => {
-  const wordmark = { x: 35, y: 4, w: 65, h: 41 };
-  assert.equal(remapSpreadBoxToLeaf(wordmark, "left"), null);
-  assert.deepEqual(remapSpreadBoxToLeaf(wordmark, "right"), { x: 6, y: 4, w: 88, h: 41 });
 });
 
 test("defaultStoryElements places art and wording", () => {

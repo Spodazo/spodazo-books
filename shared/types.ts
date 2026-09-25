@@ -33,8 +33,6 @@ export type PageElement = {
 export type PageLayout = {
   elements: PageElement[];
   background?: string;
-  /** Which flipbook screen this portrait page mirrors. */
-  portraitRole?: "cover" | "title" | "spread" | "end" | "leaf";
 };
 
 export type BookPage = {
@@ -76,13 +74,9 @@ export type Book = {
   textFont: string;
   textColor: string;
   titleLayout: PageLayout;
-  /** When false, the designed title spread is omitted from the flipbook and editor. */
-  showTitlePage?: boolean;
   coverLayout: PageLayout;
   backCoverLayout: PageLayout;
   endLayout: PageLayout;
-  /** Upright phone pages. Missing until Portrait Mobile Display is saved. */
-  portraitPages?: PageLayout[] | null;
   pages: BookPage[];
   createdAt?: string;
   updatedAt?: string;

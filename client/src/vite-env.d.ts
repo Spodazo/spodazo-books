@@ -34,7 +34,7 @@ declare module "*.js" {
   export const mountReader: (
     container: HTMLElement,
     book: unknown,
-    options?: { libraryUrl?: string; baseUrl?: string; credits?: string; copyright?: string; logoUrl?: string; alwaysLandscape?: boolean; fadeOpen?: boolean },
-  ) => { frame: HTMLIFrameElement; destroy: () => void };
+    options?: { libraryUrl?: string; baseUrl?: string; credits?: string; copyright?: string; logoUrl?: string },
+  ) => { destroy: () => void };
 }
 

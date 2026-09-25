@@ -736,7 +736,7 @@ function BookEditor({
 
   useEffect(() => {
     if (!preview || !previewRef.current) return;
-    const handle = mountReader(previewRef.current, { ...book, title, tagline, author, date, coverUrl }, { libraryUrl: "/admin", baseUrl: location.href, alwaysLandscape: false });
+    const handle = mountReader(previewRef.current, { ...book, title, tagline, author, date, coverUrl }, { libraryUrl: "/admin", baseUrl: location.href });
     return () => handle.destroy();
   }, [preview, book, title, tagline, author, date, coverUrl]);
 
@@ -792,7 +792,7 @@ function BookEditor({
         >
           Save
         </button>
-        <a className="ghost" href={`/admin/edit/${book.slug}`}>Edit Flipbook Display</a>
+        <a className="ghost" href={`/admin/edit/${book.slug}`}>Edit pages</a>
         <button type="button" className="ghost" onClick={() => setPreview(true)}>Preview</button>
         {(["standard", "a3-a4", "a4-a5"] as BookPdfKind[]).map((kind) => (
           <button

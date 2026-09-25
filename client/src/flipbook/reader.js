@@ -60,8 +60,7 @@ function elementFrameInk(el, book) {
 
 function bookFontFamilies(book) {
   const ids = [book?.textFont];
-  const layouts = [book?.coverLayout, book?.titleLayout, book?.endLayout, ...(book?.pages || [])];
-  for (const layout of layouts) {
+  for (const layout of [book?.coverLayout, book?.titleLayout, book?.endLayout, ...(book?.pages || [])]) {
     for (const el of layout?.elements || []) {
       if (el.fontFamily) ids.push(el.fontFamily);
     }
@@ -111,6 +110,10 @@ function storyBody(paragraphs) {
     .filter((line) => line && !/^\d+\s*\/\s*\d+$/.test(line));
 }
 
+function isWillow(book) {
+  return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
+}
+
 function legalHtml(credits, copyright, logoUrl, baseUrl, date) {
   const credit = String(credits || "").trim();
   const copy = String(copyright || "").trim();
@@ -138,34 +141,23 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
-function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=false}={}) {
-  const hintHtml = hint ? `<div id="hint" class="hint" role="status"></div>` : "";
+function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hintDesktop="Tap the right page to turn", hintMobile="Swipe left to turn the page"}={}) {
+  const hintHtml = hint ? `<div id="hint" class="hint" role="status"><span class="hint-desktop">${esc(hintDesktop)}</span><span class="hint-mobile">${esc(hintMobile)}</span></div>` : "";
   const close = `<a class="reader-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a>`;
   const zones = `${back?`<button class="zone" data-dir="-1" aria-label="Previous page"></button>`:""}${next?`<button class="zone" data-dir="1" aria-label="Next page"></button>`:""}`;
   return `${close}${hintHtml}${zones}`;
 }
 
-function coverElementsHtml(layout, book, baseUrl) {
-  return (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
-}
-
-function frontCoverFromLayout(layout, book, baseUrl, libraryUrl, { current = true } = {}) {
-  const fill = pageFill(layout, book);
-  const currentClass = current ? " current" : "";
-  return `<article class="page front-cover${currentClass}" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false})}<div class="front-cover-leaf" style="background-color:${fill}">${coverElementsHtml(layout, book, baseUrl)}</div></article>`;
-}
-
 function frontCoverHtml(book, baseUrl, libraryUrl) {
   if (!hasLayout(book.coverLayout)) return "";
-  return frontCoverFromLayout(book.coverLayout, book, baseUrl, libraryUrl);
-}
-
-function spreadZones() {
-  return `<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
+  const layout = book.coverLayout;
+  const fill = pageFill(layout, book);
+  const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
+  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
-  const chrome = readerChrome(libraryUrl, baseUrl);
+  const chrome = readerChrome(libraryUrl, baseUrl, {hint: isCurrent});
   const current = isCurrent ? " current" : "";
   if (hasLayout(book.titleLayout)) {
     return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, ` title-page${current}`).replace("<article", '<article data-source="title"');
@@ -190,10 +182,9 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const edgeUrl=textureMeta?.id==='deckle'?esc(safeURL('/paper/deckle-edge.png',baseUrl)):'';
   const paperAttr=texture?` data-paper="${texture}"`:'';
   const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}');--paper-w:${textureMeta.w}px;--paper-h:${textureMeta.h}px${edgeUrl?`;--paper-edge:url('${edgeUrl}')`:''}`:'';
-  const showTitle=book.showTitlePage!==false;
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
-  const articles=cover+(showTitle?titlePageHtml(book,baseUrl,libraryUrl,!cover):'')+storyPages.map((p,i)=>{
-    const zones=spreadZones();
+  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
+    const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
     if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;
     const fallback=p.kind==='facsimile'||coverOnly;
@@ -203,8 +194,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background-color:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  const hasCover=Boolean(cover);
-  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${hasCover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
+  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
   return `<!doctype html><html${fadeOpen?' class="opening"':''}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }

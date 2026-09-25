@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import {
   BOOK_FONTS,
@@ -30,14 +30,72 @@ import {
   panImageFocus,
   publishedLabel,
   syncBookFromLayouts,
-  titlePageEnabled,
 } from "@shared/page-layout";
 import { PAPER_TEXTURES, paperSurfaceStyle, paperSwatchStyle } from "@shared/paper";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { DEFAULT_FRAME_COLOR, TEXT_FRAMES, frameClass, frameMarkup, normalizeFrame } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
-import EditorText from "../components/EditorText";
-import { adminMe, fetchBook, fetchPlayerSetup, invalidateBookCache, updateBook, uploadBookAsset } from "../lib/api";
+import { adminMe, fetchBook, fetchPlayerSetup, updateBook, uploadBookAsset } from "../lib/api";
+
+function useFitText(text: string, fontSize?: CSSProperties["fontSize"]) {
+  const ref = useRef<HTMLElement>(null);
+  const fitRef = useRef<() => void>(() => {});
+  fitRef.current = () => {
+    const el = ref.current;
+    if (!el) return;
+    const base = fontSize ? String(fontSize) : "";
+    if (base) el.style.fontSize = base;
+    const start = parseFloat(getComputedStyle(el).fontSize);
+    if (!start || el.clientHeight < 8) return;
+    let size = start;
+    const min = Math.max(8, start * 0.45);
+    let n = 0;
+    while ((el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) && size > min && n < 30) {
+      size = Math.round(size * 0.94 * 10) / 10;
+      el.style.fontSize = `${size}px`;
+      n += 1;
+    }
+  };
+  useLayoutEffect(() => {
+    fitRef.current();
+  });
+  useEffect(() => {
+    const parent = ref.current?.parentElement;
+    if (!parent) return;
+    const observer = new ResizeObserver(() => fitRef.current());
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, [text]);
+  return ref;
+}
+
+function EditorText({
+  text,
+  placeholder,
+  style,
+}: {
+  text: string;
+  placeholder: string;
+  style: CSSProperties;
+}) {
+  const raw = text || "";
+  const ref = useFitText(raw || placeholder, style.fontSize);
+  if (!raw) return <p ref={ref} style={style}>{placeholder}</p>;
+  return (
+    <div ref={ref} className="page-editor-text" style={style}>
+      {raw.split(/\n{2,}/).map((para, index) => (
+        <p key={index}>
+          {para.split("\n").map((line, lineIndex) => (
+            <span key={lineIndex}>
+              {lineIndex > 0 ? <br /> : null}
+              {line}
+            </span>
+          ))}
+        </p>
+      ))}
+    </div>
+  );
+}
 
 function samplePicture(page: HTMLElement, clientX: number, clientY: number) {
   const images = Array.prototype.slice.call(page.querySelectorAll("img")) as HTMLImageElement[];
@@ -74,48 +132,6 @@ function samplePicture(page: HTMLElement, clientX: number, clientY: number) {
 
 function storyText(item: PageElement) {
   return item.type === "text" && (item.role === "body" || !item.role);
-}
-
-function canDeleteStoryPage(book: PublicBook, pageId: string): boolean {
-  const remaining = book.pages.filter((page) => page.id !== pageId);
-  if (remaining.length === book.pages.length) return false;
-  return visibleStoryPages({ ...book, pages: remaining }).length >= 1;
-}
-
-function storyScreenStart(book: PublicBook): number {
-  return 2 + (titlePageEnabled(book) ? 1 : 0);
-}
-
-function screenLabel(screen: Screen, storyPages: { id: string }[]): string {
-  if (screen.kind === "cover") return "Cover";
-  if (screen.kind === "back") return "Back cover";
-  if (screen.kind === "title") return "Title";
-  if (screen.kind === "end") return "The end";
-  const ord = storyPages.findIndex((page) => page.id === screen.pageId);
-  return ord >= 0 ? `Page ${ord + 1}` : "Story page";
-}
-
-function storyScreenIndex(book: PublicBook, storyOrdinal: number): number {
-  return storyScreenStart(book) + storyOrdinal;
-}
-
-function screensForBook(book: PublicBook): Screen[] {
-  const storyPages = visibleStoryPages(book);
-  const prefix: Screen[] = [{ kind: "cover" }, { kind: "back" }];
-  if (titlePageEnabled(book)) prefix.push({ kind: "title" });
-  return [...prefix, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
-}
-
-function canDeleteCurrentScreen(book: PublicBook, screen: Screen): boolean {
-  if (screen.kind === "title") return titlePageEnabled(book);
-  if (screen.kind === "page") return canDeleteStoryPage(book, screen.pageId);
-  return false;
-}
-
-function screenAtIndex(book: PublicBook, screenIndex: number): Screen | undefined {
-  const list = screensForBook(book);
-  if (!list.length) return undefined;
-  return list[screenIndex] ?? list[list.length - 1];
 }
 
 function measureStoryHeight(text: string, widthPx: number, fontPx: number, family: string, framed: boolean) {
@@ -246,12 +262,6 @@ function pastedRole(source: PageElement, screen: Screen): PageElement["role"] {
   return "body";
 }
 
-const UNDO_LIMIT = 50;
-
-function cloneBook(book: PublicBook): PublicBook {
-  return JSON.parse(JSON.stringify(book)) as PublicBook;
-}
-
 export default function PageEditorPage() {
   const [, params] = useRoute("/admin/edit/:slug");
   const [, setLocation] = useLocation();
@@ -263,7 +273,6 @@ export default function PageEditorPage() {
   const [selectedId, setSelectedId] = useState("");
   const [editingId, setEditingId] = useState("");
   const [status, setStatus] = useState("Saved");
-  const [canUndo, setCanUndo] = useState(false);
   const [credits, setCredits] = useState("");
   const [copyright, setCopyright] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -280,24 +289,13 @@ export default function PageEditorPage() {
   const clipboardRef = useRef<{ element: PageElement; plain: string } | null>(null);
   const pasteNudge = useRef(0);
   const screenRef = useRef<Screen | undefined>(undefined);
-  const indexRef = useRef(0);
   const selectedIdRef = useRef("");
   const copyRef = useRef<(event?: ClipboardEvent) => void>(() => {});
   const pasteRef = useRef<(event: ClipboardEvent) => void>(() => {});
-  const undoRef = useRef<() => void>(() => {});
-  const undoStack = useRef<PublicBook[]>([]);
-  const restoringRef = useRef(false);
-  const deferUndoRef = useRef(false);
 
   useEffect(() => {
     bookRef.current = book;
   }, [book]);
-
-  useEffect(() => {
-    if (!book || !ready) return;
-    undoStack.current = [cloneBook(book)];
-    setCanUndo(false);
-  }, [book?.id, ready]);
 
   useEffect(() => {
     const href = googleFontsHref(BOOK_FONTS.map((font) => font.id));
@@ -350,18 +348,9 @@ export default function PageEditorPage() {
           setLocation("/admin");
           return;
         }
-        invalidateBookCache(slug);
         const [next, setup] = await Promise.all([fetchBook(slug), fetchPlayerSetup()]);
         if (cancelled) return;
-        const loaded = ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) });
-        setBook(loaded);
-        setIndex(
-          visibleStoryPages(loaded).length
-            ? storyScreenStart(loaded)
-            : titlePageEnabled(loaded)
-              ? 2
-              : 0,
-        );
+        setBook(ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) }));
         setCredits(setup.credits);
         setCopyright(setup.copyright);
         setLogoUrl(setup.logoUrl);
@@ -377,159 +366,96 @@ export default function PageEditorPage() {
     };
   }, [slug, setLocation]);
 
-  function pushUndoSnapshot() {
-    const current = bookRef.current;
-    if (!current || restoringRef.current) return;
-    const stack = undoStack.current;
-    const snap = cloneBook(current);
-    const top = stack[stack.length - 1];
-    if (top && JSON.stringify(top) === JSON.stringify(snap)) return;
-    stack.push(snap);
-    if (stack.length > UNDO_LIMIT) stack.shift();
-    setCanUndo(stack.length >= 2);
-  }
-
-  function bookSavePayload(synced: PublicBook): Record<string, unknown> {
-    const cover = synced.coverLayout.elements.find((item) => item.type === "image" && (item.imageAsset || item.imageUrl));
-    const coverUrl = cover?.imageAsset
-      ? `/media/images/${encodeURIComponent(cover.imageAsset)}`
-      : cover?.imageUrl || synced.coverUrl;
-    return {
-      title: synced.title,
-      tagline: synced.tagline,
-      author: synced.author,
-      date: synced.date,
-      coverUrl,
-      pages: synced.pages,
-      pageBackground: synced.pageBackground,
-      pageTexture: synced.pageTexture,
-      spreadBackground: synced.spreadBackground,
-      textFont: synced.textFont,
-      textColor: synced.textColor,
-      titleLayout: synced.titleLayout,
-      coverLayout: synced.coverLayout,
-      backCoverLayout: synced.backCoverLayout,
-      endLayout: synced.endLayout,
-      showTitlePage: synced.showTitlePage !== false,
-    };
-  }
-
-  function saveBookNow(synced: PublicBook) {
-    window.clearTimeout(saveTimer.current);
-    setStatus("Saving…");
-    return updateBook(synced.id, bookSavePayload(synced))
-      .then((saved) => {
-        const latest = bookRef.current;
-        if (!latest || latest.id !== saved.id) return;
-        if (saved.pages.length !== latest.pages.length) {
-          setError(`Save did not stick: server still has ${saved.pages.length} pages (editor has ${latest.pages.length}). Try again or refresh.`);
-          setStatus("");
-          return;
-        }
-        setStatus("Saved");
-      })
-      .catch((err: Error) => {
-        setStatus("");
-        setError(err.message);
-      });
-  }
-
-  function persist(next: PublicBook, options?: { recordUndo?: boolean; saveNow?: boolean }) {
-    const record = options?.recordUndo !== false && !restoringRef.current && !drag.current;
-    if (record) pushUndoSnapshot();
+  function persist(next: PublicBook) {
     const synced = syncBookFromLayouts(next);
-    bookRef.current = synced;
     setBook(synced);
-    window.clearTimeout(saveTimer.current);
-    if (options?.saveNow) {
-      void saveBookNow(synced);
-      return;
-    }
     setStatus("Saving…");
+    window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      const latest = bookRef.current;
-      if (!latest || latest.id !== synced.id) return;
-      void saveBookNow(latest);
+      void updateBook(synced.id, {
+        title: synced.title,
+        tagline: synced.tagline,
+        author: synced.author,
+        date: synced.date,
+        coverUrl: (() => {
+          const cover = synced.coverLayout.elements.find((item) => item.type === "image" && (item.imageAsset || item.imageUrl));
+          if (cover?.imageAsset) return `/media/images/${encodeURIComponent(cover.imageAsset)}`;
+          return cover?.imageUrl || synced.coverUrl;
+        })(),
+        pages: synced.pages,
+        pageBackground: synced.pageBackground,
+        pageTexture: synced.pageTexture,
+        spreadBackground: synced.spreadBackground,
+        textFont: synced.textFont,
+        textColor: synced.textColor,
+        titleLayout: synced.titleLayout,
+        coverLayout: synced.coverLayout,
+        backCoverLayout: synced.backCoverLayout,
+        endLayout: synced.endLayout,
+      })
+        .then((saved) => {
+          const latest = bookRef.current;
+          if (!latest || latest.id !== saved.id) return;
+          setStatus("Saved");
+        })
+        .catch((err: Error) => {
+          setStatus("");
+          setError(err.message);
+        });
     }, 700);
   }
 
   const storyPages = useMemo(() => (book ? visibleStoryPages(book) : []), [book]);
 
-  const screens: Screen[] = useMemo(() => (book ? screensForBook(book) : []), [book, storyPages]);
+  const screens: Screen[] = useMemo(() => {
+    if (!book) return [];
+    return [{ kind: "cover" }, { kind: "back" }, { kind: "title" }, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
+  }, [book, storyPages]);
 
-  const screen = screens[index] ?? screens[Math.max(0, screens.length - 1)];
-
-  useEffect(() => {
-    if (index >= screens.length && screens.length) {
-      setIndex(screens.length - 1);
-    }
-  }, [index, screens.length]);
+  const screen = screens[index];
 
   function layoutOf(target: Screen | undefined): PageLayout {
-    const current = bookRef.current;
-    if (!current || !target) return { elements: [], background: "" };
-    if (target.kind === "cover") return current.coverLayout;
-    if (target.kind === "back") return current.backCoverLayout;
-    if (target.kind === "title") return current.titleLayout;
-    if (target.kind === "end") return current.endLayout;
-    return current.pages.find((page) => page.id === target.pageId) || { elements: [], background: "" };
+    if (!book || !target) return { elements: [], background: "" };
+    if (target.kind === "cover") return book.coverLayout;
+    if (target.kind === "back") return book.backCoverLayout;
+    if (target.kind === "title") return book.titleLayout;
+    if (target.kind === "end") return book.endLayout;
+    return book.pages.find((page) => page.id === target.pageId) || { elements: [], background: "" };
   }
 
-  function writeLayout(target: Screen, layout: PageLayout, options?: { recordUndo?: boolean }) {
-    const current = bookRef.current;
-    if (!current) return;
-    if (target.kind === "cover") persist({ ...current, coverLayout: layout }, options);
-    else if (target.kind === "back") persist({ ...current, backCoverLayout: layout }, options);
-    else if (target.kind === "title") persist({ ...current, titleLayout: layout }, options);
-    else if (target.kind === "end") persist({ ...current, endLayout: layout }, options);
+  function writeLayout(target: Screen, layout: PageLayout) {
+    if (!book) return;
+    if (target.kind === "cover") persist({ ...book, coverLayout: layout });
+    else if (target.kind === "back") persist({ ...book, backCoverLayout: layout });
+    else if (target.kind === "title") persist({ ...book, titleLayout: layout });
+    else if (target.kind === "end") persist({ ...book, endLayout: layout });
     else {
       persist({
-        ...current,
-        pages: current.pages.map((page) => (page.id === target.pageId ? { ...page, ...layout, elements: layout.elements } : page)),
-      }, options);
+        ...book,
+        pages: book.pages.map((page) => (page.id === target.pageId ? { ...page, ...layout, elements: layout.elements } : page)),
+      });
     }
   }
 
-  function patchElement(id: string, patch: Partial<PageElement>, options?: { recordUndo?: boolean }) {
+  function patchElement(id: string, patch: Partial<PageElement>) {
     if (!screen) return;
     const layout = layoutOf(screen);
     writeLayout(screen, {
       ...layout,
       elements: layout.elements.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    }, options);
-  }
-
-  function undo() {
-    const stack = undoStack.current;
-    if (stack.length < 2) return;
-    stack.pop();
-    const prev = stack[stack.length - 1];
-    if (!prev) return;
-    restoringRef.current = true;
-    const synced = syncBookFromLayouts(prev);
-    bookRef.current = synced;
-    setBook(synced);
-    setCanUndo(stack.length >= 2);
-    setSelectedId("");
-    setEditingId("");
-    setStatus("Undone");
-    restoringRef.current = false;
-    setStatus("Saving…");
-    window.clearTimeout(saveTimer.current);
-    void saveBookNow(synced);
+    });
   }
 
   function applyStorySize(fontSize: number) {
-    const current = bookRef.current;
-    if (!current) return;
+    if (!book) return;
     const pageBox = pageRef.current;
     const pageW = pageBox?.clientWidth || bookBox.width;
     const pageH = pageBox?.clientHeight || bookBox.height;
     persist({
-      ...current,
-      pages: current.pages.map((page) => ({
+      ...book,
+      pages: book.pages.map((page) => ({
         ...page,
-        elements: placeStoryText(page.elements, fontSize, pageW, pageH, current.textFont || DEFAULT_TEXT_FONT),
+        elements: placeStoryText(page.elements, fontSize, pageW, pageH, book.textFont || DEFAULT_TEXT_FONT),
       })),
     });
   }
@@ -610,63 +536,20 @@ export default function PageEditorPage() {
   }
 
   function addPage() {
-    const current = bookRef.current;
-    if (!current) return;
-    const page = emptyStoryPage(current.pages.length);
-    const pages = [...current.pages, page];
-    persist({ ...current, pages });
-    const nextStory = visibleStoryPages({ ...current, pages });
-    setIndex(storyScreenIndex(current, Math.max(0, nextStory.length - 1)));
+    if (!book) return;
+    const page = emptyStoryPage(book.pages.length);
+    const pages = [...book.pages, page];
+    persist({ ...book, pages });
+    setIndex(visibleStoryPages({ ...book, pages }).length + 2);
     setSelectedId(page.elements[0]?.id || "");
   }
 
   function removePage() {
-    const current = bookRef.current;
-    if (!current) return;
-    const target = screenAtIndex(current, indexRef.current);
-    if (!target) return;
-    const storyNow = visibleStoryPages(current);
-    if (target.kind === "title") {
-      if (!window.confirm("Remove the title page from this book? (Cover and story pages stay.)")) return;
-      setError("");
-      const nextBook = {
-        ...current,
-        showTitlePage: false,
-        titleLayout: { elements: [], background: "" },
-      };
-      persist(nextBook, { saveNow: true });
-      setSelectedId("");
-      setEditingId("");
-      setIndex(storyNow.length ? storyScreenStart(nextBook) : 1);
-      setStatus("Title page removed");
-      return;
-    }
-    if (target.kind !== "page") {
-      setError("");
-      setStatus("Pick Title or a story page (Page 1, 2, …) in the Screen menu, then Delete page.");
-      return;
-    }
-    const pageId = target.pageId;
-    if (!canDeleteStoryPage(current, pageId)) {
-      setError("Keep at least one story page in the book.");
-      return;
-    }
-    const pages = current.pages.filter((page) => page.id !== pageId);
-    if (pages.length === current.pages.length) {
-      setError("That page could not be found in the book data.");
-      return;
-    }
-    const deleteLabel = screenLabel(target, storyNow);
-    if (!window.confirm(`Remove “${deleteLabel}” from this book?`)) return;
-    setError("");
-    const deletedOrd = storyNow.findIndex((page) => page.id === pageId);
-    const nextStoryPages = visibleStoryPages(syncBookFromLayouts({ ...current, pages }));
-    const nextOrd = deletedOrd >= 0 ? Math.min(deletedOrd, nextStoryPages.length - 1) : 0;
-    persist({ ...current, pages }, { saveNow: true });
+    if (!book || !screen || screen.kind !== "page" || storyPages.length < 2) return;
+    const pages = book.pages.filter((page) => page.id !== screen.pageId);
+    persist({ ...book, pages });
+    setIndex(Math.max(0, index - 1));
     setSelectedId("");
-    setEditingId("");
-    setIndex(storyScreenIndex(current, nextOrd));
-    setStatus(`Removed ${deleteLabel}`);
   }
 
   function removeElement() {
@@ -712,10 +595,7 @@ export default function PageEditorPage() {
     else if (picking === "frame" && current) patchElement(current.id, { frameColor: color });
     else if (picking === "shape" && current) patchElement(current.id, { color });
     else if (picking === "page") writeLayout(screen, { ...layoutOf(screen), background: color });
-    else if (picking === "ink") {
-      const current = bookRef.current;
-      if (current) persist({ ...current, textColor: color });
-    }
+    else if (picking === "ink") persist({ ...book, textColor: color });
     setPicking("");
     setStatus("Matched");
   }
@@ -739,7 +619,6 @@ export default function PageEditorPage() {
     setEditingId("");
     const page = pageRef.current;
     if (!page) return;
-    pushUndoSnapshot();
     drag.current = {
       id: element.id,
       mode: cropThis ? "crop" : mode,
@@ -758,21 +637,21 @@ export default function PageEditorPage() {
     const dx = ((event.clientX - state.startX) / rect.width) * 100;
     const dy = ((event.clientY - state.startY) / rect.height) * 100;
     if (state.mode === "crop") {
-      patchElement(state.id, { fit: "cover", ...panImageFocus(state.orig, dx, dy) }, { recordUndo: false });
+      patchElement(state.id, { fit: "cover", ...panImageFocus(state.orig, dx, dy) });
       return;
     }
     if (state.mode === "move") {
       patchElement(state.id, {
         x: Math.min(100 - state.orig.w, Math.max(0, state.orig.x + dx)),
         y: Math.min(100 - state.orig.h, Math.max(0, state.orig.y + dy)),
-      }, { recordUndo: false });
+      });
       return;
     }
     const next = {
       w: Math.min(100 - state.orig.x, Math.max(state.orig.type === "image" ? 1 : 8, state.orig.w + dx)),
       h: Math.min(100 - state.orig.y, Math.max(state.orig.type === "image" ? 1 : 8, state.orig.h + dy)),
     };
-    patchElement(state.id, state.orig.type === "image" ? { ...next, fit: "cover" } : next, { recordUndo: false });
+    patchElement(state.id, state.orig.type === "image" ? { ...next, fit: "cover" } : next);
   }
 
   function onPointerUp() {
@@ -781,7 +660,6 @@ export default function PageEditorPage() {
 
   bookRef.current = book;
   screenRef.current = screen;
-  indexRef.current = index;
   selectedIdRef.current = selectedId;
 
   function copySelection(event?: ClipboardEvent) {
@@ -895,7 +773,6 @@ export default function PageEditorPage() {
 
   copyRef.current = copySelection;
   pasteRef.current = pasteSelection;
-  undoRef.current = undo;
 
   useEffect(() => {
     function onCopy(event: ClipboardEvent) {
@@ -905,21 +782,11 @@ export default function PageEditorPage() {
     function onPaste(event: ClipboardEvent) {
       pasteRef.current(event);
     }
-    function onKeyDown(event: KeyboardEvent) {
-      if (isTypingTarget(event.target)) return;
-      if (!(event.metaKey || event.ctrlKey)) return;
-      if (event.key === "z" || event.key === "Z") {
-        event.preventDefault();
-        undoRef.current();
-      }
-    }
     window.addEventListener("copy", onCopy);
     window.addEventListener("paste", onPaste);
-    window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("copy", onCopy);
       window.removeEventListener("paste", onPaste);
-      window.removeEventListener("keydown", onKeyDown);
     };
   }, []);
 
@@ -944,7 +811,7 @@ export default function PageEditorPage() {
   const selectedText = selected?.type === "text" ? selected : undefined;
   const bookFont = book.textFont || DEFAULT_TEXT_FONT;
   const bookInk = book.textColor || DEFAULT_TEXT_COLOR;
-  const label = screenLabel(screen, storyPages);
+  const label = screen.kind === "cover" ? "Cover" : screen.kind === "back" ? "Back cover" : screen.kind === "title" ? "Title" : screen.kind === "end" ? "The end" : `Page ${storyPages.findIndex((page) => page.id === screen.pageId) + 1}`;
 
   return (
     <main className="page-editor">
@@ -952,24 +819,6 @@ export default function PageEditorPage() {
         <Link href="/admin" className="ghost">Close</Link>
         <button type="button" className="ghost" disabled={index === 0} onClick={() => { setIndex(index - 1); setSelectedId(""); setEditingId(""); }}>Previous</button>
         <strong>{book.title}</strong>
-        <span>Flipbook display</span>
-        <label className="page-editor-screen">
-          Screen
-          <select
-            value={index}
-            onChange={(event) => {
-              setIndex(Number(event.target.value));
-              setSelectedId("");
-              setEditingId("");
-            }}
-          >
-            {screens.map((item, screenIndex) => (
-              <option key={`${item.kind}-${item.kind === "page" ? item.pageId : screenIndex}`} value={screenIndex}>
-                {screenLabel(item, storyPages)}
-              </option>
-            ))}
-          </select>
-        </label>
         <span>{label} of {screens.length}</span>
         <button type="button" className="ghost" disabled={index === screens.length - 1} onClick={() => { setIndex(index + 1); setSelectedId(""); setEditingId(""); }}>Next</button>
         <span className="page-editor-status">{status}</span>
@@ -980,26 +829,10 @@ export default function PageEditorPage() {
         <button type="button" onClick={() => addShape("circle")}>Circle</button>
         <button type="button" onClick={() => { replaceId.current = ""; fileRef.current?.click(); }}>Add picture</button>
         <button type="button" onClick={addPage}>Add page</button>
-        <button
-          type="button"
-          className={!canDeleteCurrentScreen(book, screen) ? "muted-tool" : undefined}
-          onClick={removePage}
-          title={
-            screen.kind === "title"
-              ? "Remove the title page from the flipbook and reader."
-              : screen.kind === "page"
-                ? (!canDeleteStoryPage(book, screen.pageId)
-                  ? "Keep at least one story page in the book."
-                  : "Remove this story page from the book.")
-                : "Open Title or a story page (Page 1, 2, …) in the Screen menu first."
-          }
-        >
-          Delete page
-        </button>
+        <button type="button" disabled={screen.kind !== "page" || storyPages.length < 2} onClick={removePage}>Delete page</button>
         <button type="button" disabled={!selectedId} onClick={removeElement}>Delete item</button>
         <button type="button" disabled={!selectedId} onClick={() => copyRef.current()}>Copy</button>
         <button type="button" onClick={() => { void pasteFromButton(); }}>Paste</button>
-        <button type="button" disabled={!canUndo} onClick={() => undo()}>Undo</button>
         {selectedId ? (
           <div className="page-editor-align" role="group" aria-label="Arrange">
             <button type="button" onClick={() => arrange("front")}>In front</button>
