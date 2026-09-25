@@ -1,7 +1,15 @@
 import fs from "fs/promises";
 import path from "path";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+import * as pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs";
 import { createCanvas } from "@napi-rs/canvas";
+
+declare global {
+  // PDF.js fake worker on Node reads this instead of loading ./pdf.worker.mjs from dist/.
+  var pdfjsWorker: typeof pdfWorker | undefined;
+}
+
+globalThis.pdfjsWorker = pdfWorker;
 import { detectStoryLayout } from "../client/src/flipbook/layout.js";
 import { imagesDir, pdfsDir, uniqueFileName } from "./paths";
 import { imageUrl, pdfUrl } from "./media";
