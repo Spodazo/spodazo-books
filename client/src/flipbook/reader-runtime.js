@@ -241,6 +241,21 @@ function shrinkStory(p){
   if(!keep)p.classList.remove('current');
   if(!keep)p.style.visibility='';
 }
+function applyMobilePortraitLayout(){
+  if(!mobile)return;
+  pages.forEach(function(p){
+    if(!p.classList.contains('laid-out'))return;
+    if(p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile'))return;
+    var imgs=p.querySelectorAll('.el-image');
+    var i;
+    for(i=0;i<imgs.length;i++){
+      var img=imgs[i];
+      if(img.getAttribute('data-size')==='small')continue;
+      img.style.setProperty('object-fit','contain','important');
+      img.style.setProperty('object-position','center center','important');
+    }
+  });
+}
 function rebuild(){
   if(busy)return;
   var source=pages[index]?pages[index].getAttribute('data-source'):null;
@@ -267,6 +282,7 @@ function rebuild(){
     if(template)splitStory(p,template,isNaN(src)?i:src);
   });
   pages.forEach(shrinkStory);
+  applyMobilePortraitLayout();
   if(source){
     index=Math.max(0,pages.findIndex(function(p){return p.getAttribute('data-source')===source;}));
     if(index<0)index=0;

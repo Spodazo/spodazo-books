@@ -979,7 +979,7 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
     display:flex!important;
     flex-direction:column;
     align-items:stretch;
-    padding:8px max(18px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))!important;
+    padding:8px max(16px,env(safe-area-inset-left),env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom))!important;
     overflow:hidden;
     width:100%;
     height:100%;
@@ -993,7 +993,7 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
     width:100%!important;
     max-width:100%!important;
     height:auto!important;
-    max-height:none!important;
+    max-height:min(62vh,86vw)!important;
     flex:0 0 auto;
     object-fit:contain!important;
     object-position:center center!important;
@@ -1081,6 +1081,78 @@ html:not(.mobile) .page.laid-out:not(.title-page):not(.end-page)>.el-text p:last
     width:auto;
     padding:0;
   }
+}
+
+/* Mirror portrait restack whenever JS marks the document mobile (matches reader-runtime). */
+html.mobile main{
+  box-sizing:border-box;
+  width:100%;
+  max-width:100%;
+  overflow-x:clip;
+}
+html.mobile .page.laid-out>.el,
+html.mobile .leaf-copy.laid-out>.el{
+  position:relative!important;
+  inset:auto!important;
+  left:auto!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:auto!important;
+  width:auto!important;
+  height:auto!important;
+  max-width:100%;
+  max-height:none!important;
+  transform:none!important;
+  margin-left:0!important;
+  margin-right:0!important;
+}
+html.mobile .page.laid-out:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile),
+html.mobile .leaf-copy.laid-out:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile){
+  display:flex!important;
+  flex-direction:column;
+  align-items:stretch;
+  padding:8px max(16px,env(safe-area-inset-left),env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom))!important;
+  overflow:hidden;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  box-sizing:border-box;
+}
+html.mobile .page.laid-out:not(.title-page):not(.end-page)>.el-image,
+html.mobile .leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-image{
+  width:100%!important;
+  max-width:100%!important;
+  height:auto!important;
+  max-height:min(62vh,86vw)!important;
+  flex:0 0 auto;
+  object-fit:contain!important;
+  object-position:center center!important;
+  border:1px solid var(--title-outline,#285e45);
+  border-radius:12px;
+  margin:0 0 22px;
+  order:1;
+  box-sizing:border-box;
+}
+html.mobile .page.laid-out:not(.title-page):not(.end-page)>.el-text,
+html.mobile .leaf-copy.laid-out:not(.title-page):not(.end-page)>.el-text{
+  width:100%!important;
+  max-width:100%!important;
+  height:auto;
+  flex:1 1 0;
+  min-height:0;
+  overflow:hidden;
+  justify-content:flex-start;
+  padding:12px 16px 16px;
+  order:2;
+  box-sizing:border-box;
+}
+html.mobile .page.laid-out>.el-image[data-size="small"],
+html.mobile .leaf-copy.laid-out>.el-image[data-size="small"]{
+  display:none!important;
+}
+html.mobile .page.front-cover .front-cover-leaf{
+  box-sizing:border-box;
+  padding:max(8px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
 }
 
 html,body{

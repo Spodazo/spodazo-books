@@ -571,25 +571,30 @@ export default function PageEditorPage() {
 
   function removePage() {
     const current = bookRef.current;
-    if (!current || screen?.kind !== "page") return;
-    const pageId = screen.pageId;
+    const target = screenRef.current;
+    if (!current || target?.kind !== "page") return;
+    const pageId = target.pageId;
     const pages = current.pages.filter((page) => page.id !== pageId);
     if (pages.length === current.pages.length) {
       setError("That page could not be found.");
       return;
     }
     const nextBook = syncBookFromLayouts({ ...current, pages });
-    if (visibleStoryPages(nextBook).length < 1) {
+    const nextStoryPages = visibleStoryPages(nextBook);
+    if (nextStoryPages.length < 1) {
       setError("Keep at least one story page.");
       return;
     }
+    const deletedOrd = visibleStoryPages(current).findIndex((page) => page.id === pageId);
     pushUndoSnapshot();
     bookRef.current = nextBook;
     setBook(nextBook);
     setSelectedId("");
     setEditingId("");
-    const lastStoryIndex = 2 + visibleStoryPages(nextBook).length;
-    setIndex((prev) => Math.max(0, Math.min(prev - 1, lastStoryIndex)));
+    const storyScreenStart = 3;
+    const nextOrd = deletedOrd >= 0 ? Math.min(deletedOrd, nextStoryPages.length - 1) : 0;
+    setIndex(storyScreenStart + nextOrd);
+    setStatus("Page deleted");
     void saveBookNow(nextBook);
   }
 
@@ -890,6 +895,13 @@ export default function PageEditorPage() {
           type="button"
           disabled={screen.kind !== "page" || !canDeleteStoryPage(book, screen.pageId)}
           onClick={removePage}
+          title={
+            screen.kind !== "page"
+              ? "Use Next until the toolbar shows Page 1, Page 2, … (not Cover, Title, or The end)."
+              : !canDeleteStoryPage(book, screen.pageId)
+                ? "Keep at least one story page in the book."
+                : "Remove this story page from the book"
+          }
         >
           Delete page
         </button>
