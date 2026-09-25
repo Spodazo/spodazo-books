@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { BookPage } from "@shared/types";
-import { facsimileSpreadCount, storyPagesHtml } from "./story-pages-html";
+import { facsimileSpreadCount, isImportedPdfFacsimileBook, storyPagesHtml } from "./story-pages-html";
 
 function facsimilePage(n: number): BookPage {
   const asset = `page-${String(n).padStart(3, "0")}.jpg`;
@@ -34,6 +34,16 @@ const stubDeps = {
   pageFill: () => "#efdda6",
   storyBody: (p: string[]) => p,
 };
+
+test("isImportedPdfFacsimileBook detects server PDF imports", () => {
+  const pages = [1, 2].map(facsimilePage);
+  assert.equal(isImportedPdfFacsimileBook({ pdf: "book.pdf" }, pages), true);
+  assert.equal(isImportedPdfFacsimileBook({ pdf: "" }, pages), false);
+  assert.equal(
+    isImportedPdfFacsimileBook({ pdf: "book.pdf" }, [{ ...facsimilePage(1), kind: "story", imageAsset: "art.webp", fullPageAsset: "art.webp" }]),
+    false,
+  );
+});
 
 test("facsimileSpreadCount pairs PDF pages two per spread", () => {
   const pages = [1, 2, 3, 4].map(facsimilePage);

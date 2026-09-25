@@ -7,7 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
-import {storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
+import {isImportedPdfFacsimileBook,storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
   const cover = book.coverUrl || book.pages?.[0]?.imageUrl || book.pages?.[0]?.fullPageUrl || '';
@@ -184,9 +184,12 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const paperAttr=texture?` data-paper="${texture}"`:'';
   const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}');--paper-w:${textureMeta.w}px;--paper-h:${textureMeta.h}px${edgeUrl?`;--paper-edge:url('${edgeUrl}')`:''}`:'';
   const oneLeaf=book.pageTemplate==='one-up';
+  const pdfFacsimile=isImportedPdfFacsimileBook(book,storyPages);
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
   const storyDeps={esc,safeURL,baseUrl,book,skipCover,oneLeaf,hasLayout,laidOutPage:(label,layout,zones)=>laidOutPage(label,layout,book,baseUrl,zones),pageFill,storyBody};
-  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+buildStoryPagesHtml(storyPages,storyDeps)+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
+  const titleBlock=pdfFacsimile?'':titlePageHtml(book,baseUrl,libraryUrl,!cover);
+  const endBlock=pdfFacsimile?'':endPageHtml(book,baseUrl,credits,copyright,logoUrl);
+  const articles=cover+titleBlock+buildStoryPagesHtml(storyPages,storyDeps)+endBlock;
   const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
   const templateAttr=oneLeaf?' data-page-template="one-up"':'';

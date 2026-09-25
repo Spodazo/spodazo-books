@@ -1,6 +1,11 @@
 import { isOneLeafPdfPage } from "@shared/page-layout";
 import type { Book, BookPage } from "@shared/types";
 
+/** Server-imported PDF: every story page is a facsimile JPEG and the book has a PDF asset. */
+export function isImportedPdfFacsimileBook(book: Pick<Book, "pdf">, storyPages: BookPage[]): boolean {
+  return Boolean(String(book.pdf || "").trim()) && storyPages.length > 0 && storyPages.every((p) => p.kind === "facsimile" && isOneLeafPdfPage(p));
+}
+
 export type StoryPageHtmlDeps = {
   esc: (value: string) => string;
   safeURL: (url: string, baseUrl: string) => string;
