@@ -33,6 +33,8 @@ export type PageElement = {
 export type PageLayout = {
   elements: PageElement[];
   background?: string;
+  /** Upright flipbook: cover leaf is shorter so the turn-phone note fits under the book. */
+  portraitRole?: "cover" | "leaf";
 };
 
 export type BookPage = {

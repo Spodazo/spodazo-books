@@ -180,9 +180,11 @@ export function duplicateElement(element: PageElement, z: number, offset = 3): P
 export function normalizeLayout(raw?: Partial<PageLayout> | PageElement[] | null): PageLayout {
   const record = Array.isArray(raw) ? { elements: raw } : raw || {};
   const elements = Array.isArray(record.elements) ? record.elements : [];
+  const portraitRole = record.portraitRole === "cover" || record.portraitRole === "leaf" ? record.portraitRole : undefined;
   return {
     elements: elements.map((item, index) => normalizeElement(item, index)),
     background: normalizeColor(record.background, ""),
+    ...(portraitRole ? { portraitRole } : {}),
   };
 }
 

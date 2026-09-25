@@ -31,7 +31,7 @@ test("portraitLeafBox turns each half of a spread into its own page", () => {
   assert.deepEqual(portraitLeafBox({ x: 0, y: 0, w: 100, h: 100 }, "left"), { x: 0, y: 0, w: 100, h: 100 });
 });
 
-test("derivePortraitPages gives the picture and the wording their own upright pages", () => {
+test("derivePortraitPages starts with the cover then splits story spreads into leaves", () => {
   const book = ensureBookLayouts({
     id: "book-1",
     slug: "lantern",
@@ -61,7 +61,8 @@ test("derivePortraitPages gives the picture and the wording their own upright pa
     pages: [story()],
   } as Book);
   const pages = derivePortraitPages(book);
-  const picture = pages.find((page) => page.elements.some((item) => item.type === "image" && item.w >= 90));
+  assert.equal(pages[0]?.portraitRole, "cover");
+  const picture = pages.find((page) => page.portraitRole === "leaf" && page.elements.some((item) => item.type === "image" && item.w >= 90));
   const wording = pages.find((page) => page.elements.some((item) => item.type === "text" && item.text === "The fox ran."));
   assert.ok(picture);
   assert.ok(wording);

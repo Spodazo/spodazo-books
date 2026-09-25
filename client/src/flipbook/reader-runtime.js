@@ -232,7 +232,7 @@ function splitLaidOutLeaves(){
   var next=[],i,p,left,right;
   for(i=0;i<pages.length;i++){
     p=pages[i];
-    if(!p.classList.contains('laid-out')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('phone-leaf')){
+    if(!p.classList.contains('laid-out')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('phone-leaf')||p.classList.contains('portrait-saved')){
       next.push(p);
       continue;
     }

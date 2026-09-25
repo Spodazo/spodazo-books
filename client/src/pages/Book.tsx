@@ -3,11 +3,9 @@ import { Link, useLocation, useRoute } from "wouter";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
-import UprightPdfReader from "../components/UprightPdfReader";
 import { fetchBook } from "../lib/api";
 import { clearBookOpen, openingSince } from "../lib/bookOpen";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
-import { isUprightPhone, PORTRAIT_QUERY } from "../lib/phoneViewport";
 import type { PlayerSetup, PublicBook } from "@shared/types";
 import { mountReader } from "../flipbook/reader.js";
 
@@ -16,20 +14,14 @@ export default function BookPage() {
   const [, setLocation] = useLocation();
   const slug = params?.slug || "";
   const hostRef = useRef<HTMLDivElement>(null);
-  const readerRef = useRef<{ frame: HTMLIFrameElement; destroy: () => void } | null>(null);
-  const sawPdfRef = useRef(false);
   const [error, setError] = useState("");
   const [book, setBook] = useState<PublicBook | null>(null);
   const [setup, setSetup] = useState<PlayerSetup>(readCachedSetup() || DEFAULT_PLAYER_SETUP);
-  const [upright, setUpright] = useState(() => isUprightPhone());
-  const [pdfWanted, setPdfWanted] = useState(() => isUprightPhone());
 
   useEffect(() => {
     let cancelled = false;
     setError("");
     setBook(null);
-    setPdfWanted(isUprightPhone());
-    sawPdfRef.current = false;
     fetchBook(slug)
       .then((next) => {
         if (!cancelled) setBook(next);
@@ -46,17 +38,6 @@ export default function BookPage() {
   }, [slug]);
 
   useEffect(() => {
-    const sync = () => setUpright(isUprightPhone());
-    const portrait = window.matchMedia(PORTRAIT_QUERY);
-    portrait.addEventListener("change", sync);
-    window.addEventListener("orientationchange", sync);
-    return () => {
-      portrait.removeEventListener("change", sync);
-      window.removeEventListener("orientationchange", sync);
-    };
-  }, []);
-
-  useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.origin && event.origin !== "null" && event.origin !== window.location.origin) return;
       if (event.data?.type !== "spodazo-close-book") return;
@@ -67,67 +48,35 @@ export default function BookPage() {
   }, [setLocation]);
 
   useEffect(() => {
-    if (upright) setPdfWanted(true);
-  }, [upright]);
-
-  const showPdf = Boolean(book) && upright && pdfWanted;
-
-  useEffect(() => {
-    if (showPdf) {
-      sawPdfRef.current = true;
-      clearBookOpen();
-    }
-  }, [showPdf]);
-
-  useEffect(() => {
-    return () => {
-      readerRef.current?.destroy();
-      readerRef.current = null;
-    };
-  }, [book]);
-
-  useEffect(() => {
     const host = hostRef.current;
-    if (!host || !book || showPdf) return;
-    if (readerRef.current) {
-      host.style.opacity = "1";
-      return;
-    }
+    if (!host || !book) return;
     const fromHome = openingSince() > 0;
-    const fromPdf = sawPdfRef.current;
-    host.style.opacity = fromHome && !fromPdf ? "0" : fromPdf ? "0" : "1";
+    host.style.opacity = fromHome ? "0" : "1";
     const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
       libraryUrl: "/",
-      fadeOpen: !fromHome || fromPdf,
+      fadeOpen: !fromHome,
       baseUrl: location.href,
       credits: setup.credits,
       copyright: setup.copyright,
       logoUrl: setup.logoUrl,
+      alwaysLandscape: false,
     });
-    readerRef.current = handle;
     const reveal = () => {
       const started = openingSince();
       const left = started ? Math.max(700, 1800 - (performance.now() - started)) : 1800;
-      host.style.transition = `opacity ${fromHome && !fromPdf ? left : 750}ms ease`;
+      host.style.transition = `opacity ${fromHome ? left : 1800}ms ease`;
       host.style.opacity = "1";
-      window.setTimeout(clearBookOpen, fromHome && !fromPdf ? left : 0);
+      window.setTimeout(clearBookOpen, fromHome ? left : 0);
     };
-    if (fromPdf) {
-      requestAnimationFrame(() => {
-        host.style.transition = "opacity .75s ease";
-        host.style.opacity = "1";
-      });
-      clearBookOpen();
-    } else if (fromHome) {
+    if (fromHome) {
       if (handle.frame.contentDocument?.readyState === "complete") reveal();
       else handle.frame.addEventListener("load", reveal, { once: true });
-    } else {
-      clearBookOpen();
     }
     return () => {
       handle.frame.removeEventListener("load", reveal);
+      handle.destroy();
     };
-  }, [book, showPdf, setup.credits, setup.copyright, setup.logoUrl]);
+  }, [book, setup.credits, setup.copyright, setup.logoUrl]);
 
   if (error) {
     return (
@@ -140,14 +89,5 @@ export default function BookPage() {
     );
   }
 
-  return (
-    <>
-      <div id="reader" ref={hostRef} className="reader-host" hidden={showPdf} />
-      {book && pdfWanted ? (
-        <div hidden={!showPdf}>
-          <UprightPdfReader book={book} />
-        </div>
-      ) : null}
-    </>
-  );
+  return <div id="reader" ref={hostRef} className="reader-host" style={{ opacity: 0 }} />;
 }

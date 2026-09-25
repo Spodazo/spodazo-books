@@ -6,6 +6,7 @@ import {normalizePaperTexture, paperTexture, paperTextureUrl} from '@shared/pape
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
+import {savedPortraitInnerPages} from '@shared/portrait-pages';
 import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
 
 function coverSrc(book, baseUrl) {
@@ -157,7 +158,7 @@ function frontCoverHtml(book, baseUrl, libraryUrl) {
   const layout = book.coverLayout;
   const fill = pageFill(layout, book);
   const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
-  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Tap the cover to open"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
+  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Please turn your phone for our flipbook version"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
@@ -171,7 +172,7 @@ function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
-export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright='',logoUrl='',fadeOpen=false,alwaysLandscape=true}={}) {
+export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright='',logoUrl='',fadeOpen=false,alwaysLandscape=false}={}) {
   if(!book.pages?.length)throw new Error('This book has no pages.');
   const palette=paletteById(book.color);
   const preload=coverSrc(book,baseUrl);
@@ -187,7 +188,12 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const paperAttr=texture?` data-paper="${texture}"`:'';
   const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}');--paper-w:${textureMeta.w}px;--paper-h:${textureMeta.h}px${edgeUrl?`;--paper-edge:url('${edgeUrl}')`:''}`:'';
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
-  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
+  const portraitInner=savedPortraitInnerPages(book);
+  const portraitSaved=portraitInner&&portraitInner.length?portraitInner.map((layout,i)=>{
+    const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
+    return laidOutPage(`Page ${i+1}`,layout,book,baseUrl,zones,' phone-leaf portrait-saved').replace('<article','<article data-source="portrait"');
+  }).join(''):'';
+  const flipbookInner=titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
     const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
     if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;
@@ -198,6 +204,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background-color:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
+  const articles=cover+(portraitSaved||flipbookInner);
   const bootMobile=`(function(){try{var root=document.documentElement;var always=${alwaysLandscape?'true':'false'};var phone=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches;var portrait=matchMedia('(orientation:portrait)').matches;if(always)root.classList.add('always-landscape');if(always&&phone){root.classList.add('cover-opened');if(portrait)root.classList.add('awaiting-turn');}else if(always&&${cover?'false':'true'})root.classList.add('cover-opened');var m=phone&&portrait&&!always;root.classList.toggle('mobile',m);root.classList.toggle('phone-spread',always&&phone&&!portrait||(!m&&matchMedia('(orientation:landscape) and (max-height:700px)').matches));if(!phone&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
   const htmlClass=[fadeOpen?'opening':'',isWillow(book)?'willow':'',alwaysLandscape?'always-landscape':''].filter(Boolean).join(' ');

@@ -22,7 +22,14 @@ import {
   ensureBookLayouts,
 } from "@shared/page-layout";
 import { PAPER_TEXTURES, paperSurfaceStyle, paperSwatchStyle } from "@shared/paper";
-import { PORTRAIT_PAGE_RATIO, derivePortraitPages } from "@shared/portrait-pages";
+import {
+  PORTRAIT_COVER_HINT_TEXT,
+  PORTRAIT_PAGE_RATIO,
+  derivePortraitPages,
+  portraitCoverLeafHeight,
+  portraitPageKind,
+  portraitPhoneViewportHeight,
+} from "@shared/portrait-pages";
 import { characterUrlFor } from "@shared/reader-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook, TextAlign } from "@shared/types";
@@ -131,7 +138,7 @@ export default function PortraitEditorPage() {
   const [selectedId, setSelectedId] = useState("");
   const [editingId, setEditingId] = useState("");
   const [status, setStatus] = useState("Saved");
-  const [pageBox, setPageBox] = useState({ width: 180, height: 225 });
+  const [pageBox, setPageBox] = useState({ width: 180, phoneHeight: 390 });
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceId = useRef("");
   const saveTimer = useRef<number>();
@@ -171,12 +178,12 @@ export default function PortraitEditorPage() {
       const availH = Math.max(180, stage.clientHeight - padY - 36);
       const gap = 16;
       let width = (availW - gap * (WINDOW - 1)) / WINDOW;
-      let height = width / PORTRAIT_PAGE_RATIO;
-      if (height > availH) {
-        height = availH;
-        width = height * PORTRAIT_PAGE_RATIO;
+      let phoneHeight = portraitPhoneViewportHeight(width);
+      if (phoneHeight > availH) {
+        phoneHeight = availH;
+        width = phoneHeight * PORTRAIT_PAGE_RATIO;
       }
-      setPageBox({ width, height });
+      setPageBox({ width, phoneHeight });
     };
     fit();
     const observer = new ResizeObserver(fit);
@@ -213,12 +220,21 @@ export default function PortraitEditorPage() {
     };
   }, [slug, setLocation]);
 
+  function coverLayoutFromPortrait(pages: PageLayout[]) {
+    const index = pages.findIndex((layout, at) => portraitPageKind(layout, at) === "cover");
+    if (index < 0) return null;
+    const cover = pages[index];
+    return { elements: cover.elements, background: cover.background || "" };
+  }
+
   function queueSave(next: PublicBook) {
     setStatus("Saving…");
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
+      const coverLayout = coverLayoutFromPortrait(next.portraitPages || []);
       void updateBook(next.id, {
         portraitPages: next.portraitPages,
+        ...(coverLayout ? { coverLayout } : {}),
         pageBackground: next.pageBackground,
         pageTexture: next.pageTexture,
         spreadBackground: next.spreadBackground,
@@ -517,7 +533,7 @@ export default function PortraitEditorPage() {
         <button type="button" onClick={addPage}>Add page</button>
         <button type="button" disabled={pages.length < 2} onClick={removePage}>Delete page</button>
         <button type="button" disabled={!selected} onClick={removeElement}>Delete item</button>
-        <span className="hint">Drag an item onto another page. A phone shows these pages upright, with room under the book for the flipbook note.</span>
+        <span className="hint">Each page matches an upright phone flipbook screen. The cover is shorter so the flipbook note fits underneath.</span>
         {selected?.element.type === "image" ? (
           <>
             <button type="button" className={imageObjectFit(selected.element) === "cover" ? "active" : ""} onClick={() => patchSelected({ fit: "cover" })}>Fill frame</button>
@@ -626,12 +642,19 @@ export default function PortraitEditorPage() {
           {visible.map((layout, offset) => {
             const index = windowStart + offset;
             const pageFillColor = pageFill(layout.background, book.pageBackground);
+            const isCover = portraitPageKind(layout, index) === "cover";
+            const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+            const sheetHeight = isCover ? portraitCoverLeafHeight(pageBox.width, rootFont) : pageBox.phoneHeight;
             return (
               <figure key={index} className={`portrait-slot${index === focusIndex ? " active" : ""}`}>
                 <div
+                  className={`portrait-phone-frame${isCover ? " cover" : ""}`}
+                  style={{ width: pageBox.width, height: pageBox.phoneHeight }}
+                >
+                <div
                   ref={(node) => { pageRefs.current[index] = node; }}
                   className="page-editor-page portrait-sheet"
-                  style={{ ...paperSurfaceStyle(pageFillColor, book.pageTexture), width: pageBox.width, height: pageBox.height }}
+                  style={{ ...paperSurfaceStyle(pageFillColor, book.pageTexture), width: pageBox.width, height: sheetHeight }}
                   onMouseDown={() => { setSelectedId(""); setEditingId(""); setFocus(index); }}
                 >
                   {layout.elements.slice().sort((a, b) => a.z - b.z).map((element) => (
@@ -694,7 +717,9 @@ export default function PortraitEditorPage() {
                     </div>
                   ))}
                 </div>
-                <figcaption>Page {index + 1}</figcaption>
+                {isCover ? <p className="portrait-phone-hint">{PORTRAIT_COVER_HINT_TEXT}</p> : null}
+                </div>
+                <figcaption>{isCover ? "Cover" : `Page ${index + 1}`}</figcaption>
               </figure>
             );
           })}

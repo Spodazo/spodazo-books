@@ -2,8 +2,37 @@ import { clampPercent, hasLayout, normalizeElement, normalizeLayout, remapSpread
 import { visibleStoryPages } from "./reader-pages";
 import type { Book, PageElement, PageLayout } from "./types";
 
-/** Width / height of one upright phone page. Same shape as a single book leaf. */
-export const PORTRAIT_PAGE_RATIO = 0.8;
+/** Width / height of a full-screen upright phone page in the flipbook (390×844 reference). */
+export const PORTRAIT_PAGE_RATIO = 390 / 844;
+
+/** Space under the cover leaf for the flipbook note (matches reader.css). */
+export const PORTRAIT_COVER_HINT_REM = 4.75;
+
+export const PORTRAIT_COVER_HINT_TEXT = "Please turn your phone for our flipbook version";
+
+export function isWillowBook(book: Pick<Book, "slug" | "title">): boolean {
+  return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
+}
+
+export function portraitCoverHintPx(rootFontSizePx = 16): number {
+  return PORTRAIT_COVER_HINT_REM * rootFontSizePx;
+}
+
+/** Full phone viewport height for a given content width. */
+export function portraitPhoneViewportHeight(width: number): number {
+  return width / PORTRAIT_PAGE_RATIO;
+}
+
+/** Cover leaf height inside the phone viewport (flipbook cover page). */
+export function portraitCoverLeafHeight(width: number, rootFontSizePx = 16): number {
+  return Math.max(120, portraitPhoneViewportHeight(width) - portraitCoverHintPx(rootFontSizePx));
+}
+
+export function portraitPageKind(layout: PageLayout, index: number): "cover" | "leaf" {
+  if (layout.portraitRole === "cover") return "cover";
+  if (layout.portraitRole === "leaf") return "leaf";
+  return index === 0 ? "cover" : "leaf";
+}
 
 function containBox(box: { x: number; y: number; w: number; h: number }) {
   let { x, y, w, h } = box;
@@ -53,13 +82,29 @@ function splitSpread(layout: PageLayout, key: string): PageLayout[] {
   const pages: PageLayout[] = [];
   (["left", "right"] as const).forEach((side) => {
     const elements = leafElements(layout, side, key);
-    if (elements.length) pages.push({ elements, background: layout.background || "" });
+    if (elements.length) pages.push({ elements, background: layout.background || "", portraitRole: "leaf" });
   });
   return pages;
 }
 
-/** Starting upright pages, split from the flipbook so each phone page is one leaf. */
+function spreadToPortraitPages(layout: PageLayout, key: string, willow: boolean): PageLayout[] {
+  if (willow) {
+    return [{ elements: layout.elements.map((el, index) => normalizeElement(el, index)), background: layout.background || "", portraitRole: "leaf" }];
+  }
+  return splitSpread(layout, key);
+}
+
+/** Starting upright pages in the same order as the portrait flipbook (cover, then leaves). */
 export function derivePortraitPages(book: Book): PageLayout[] {
+  const willow = isWillowBook(book);
+  const pages: PageLayout[] = [];
+  if (hasLayout(book.coverLayout)) {
+    pages.push({
+      elements: book.coverLayout.elements.map((el, index) => normalizeElement(el, index)),
+      background: book.coverLayout.background || "",
+      portraitRole: "cover",
+    });
+  }
   const sources: Array<{ key: string; layout: PageLayout }> = [];
   if (hasLayout(book.titleLayout)) sources.push({ key: "title", layout: book.titleLayout });
   visibleStoryPages(book).forEach((page, index) => {
@@ -71,11 +116,22 @@ export function derivePortraitPages(book: Book): PageLayout[] {
     }
   });
   if (hasLayout(book.endLayout)) sources.push({ key: "end", layout: book.endLayout });
-  const pages = sources.flatMap((source) => splitSpread(source.layout, source.key));
-  return pages.length ? pages : [{ elements: [], background: "" }];
+  sources.forEach((source) => {
+    pages.push(...spreadToPortraitPages(source.layout, source.key, willow));
+  });
+  return pages.length ? pages : [{ elements: [], background: "", portraitRole: "leaf" }];
 }
 
-/** Saved portrait pages win. Until then, the phone uses the split flipbook. */
+/** Inner portrait pages saved for mobile (everything after the cover). */
+export function savedPortraitInnerPages(book: Book): PageLayout[] | null {
+  if (!Array.isArray(book.portraitPages) || !book.portraitPages.length) return null;
+  const normalized = book.portraitPages.map((layout) => normalizeLayout(layout));
+  const coverAt = normalized.findIndex((layout, index) => portraitPageKind(layout, index) === "cover");
+  if (coverAt >= 0) return normalized.slice(coverAt + 1);
+  return normalized;
+}
+
+/** Saved portrait pages win. Until then, derive from the flipbook. */
 export function portraitPagesFor(book: Book): PageLayout[] {
   if (Array.isArray(book.portraitPages)) return book.portraitPages.map((layout) => normalizeLayout(layout));
   return derivePortraitPages(book);

@@ -1371,6 +1371,37 @@ html:not(.mobile) .page.front-cover .reader-close{
 .mobile .front-cover-leaf{
   inset:0;
 }
+.mobile .page.front-cover{
+  background:#322616!important;
+}
+.mobile .page.front-cover .front-cover-leaf{
+  top:0;
+  right:0;
+  left:0;
+  bottom:auto;
+  width:auto;
+  height:calc(100% - 4.75rem - env(safe-area-inset-bottom));
+}
+.mobile .page.front-cover .hint{
+  position:absolute!important;
+  left:16px!important;
+  right:16px!important;
+  top:auto!important;
+  bottom:max(12px, env(safe-area-inset-bottom))!important;
+  transform:none!important;
+  width:auto;
+  max-width:none;
+  margin:0;
+  padding:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#f3e2b8!important;
+  -webkit-text-fill-color:#f3e2b8!important;
+  font:600 15px/1.35 Story,Georgia,serif!important;
+  letter-spacing:.03em;
+  text-align:center;
+}
 .page.front-cover .zone[data-dir="1"]{
   left:25%;
   width:50%;
