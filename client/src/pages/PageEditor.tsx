@@ -30,6 +30,7 @@ import {
   panImageFocus,
   publishedLabel,
   syncBookFromLayouts,
+  titlePageEnabled,
 } from "@shared/page-layout";
 import { PAPER_TEXTURES, paperSurfaceStyle, paperSwatchStyle } from "@shared/paper";
 import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
@@ -81,8 +82,9 @@ function canDeleteStoryPage(book: PublicBook, pageId: string): boolean {
   return visibleStoryPages({ ...book, pages: remaining }).length >= 1;
 }
 
-/** Cover, back cover, and title screens before the first story page. */
-const STORY_SCREEN_START = 3;
+function storyScreenStart(book: PublicBook): number {
+  return 2 + (titlePageEnabled(book) ? 1 : 0);
+}
 
 function screenLabel(screen: Screen, storyPages: { id: string }[]): string {
   if (screen.kind === "cover") return "Cover";
@@ -93,19 +95,21 @@ function screenLabel(screen: Screen, storyPages: { id: string }[]): string {
   return ord >= 0 ? `Page ${ord + 1}` : "Story page";
 }
 
-function storyScreenIndex(storyOrdinal: number): number {
-  return STORY_SCREEN_START + storyOrdinal;
+function storyScreenIndex(book: PublicBook, storyOrdinal: number): number {
+  return storyScreenStart(book) + storyOrdinal;
 }
 
 function screensForBook(book: PublicBook): Screen[] {
   const storyPages = visibleStoryPages(book);
-  return [
-    { kind: "cover" },
-    { kind: "back" },
-    { kind: "title" },
-    ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })),
-    { kind: "end" },
-  ];
+  const prefix: Screen[] = [{ kind: "cover" }, { kind: "back" }];
+  if (titlePageEnabled(book)) prefix.push({ kind: "title" });
+  return [...prefix, ...storyPages.map((page) => ({ kind: "page" as const, pageId: page.id })), { kind: "end" }];
+}
+
+function canDeleteCurrentScreen(book: PublicBook, screen: Screen): boolean {
+  if (screen.kind === "title") return titlePageEnabled(book);
+  if (screen.kind === "page") return canDeleteStoryPage(book, screen.pageId);
+  return false;
 }
 
 function screenAtIndex(book: PublicBook, screenIndex: number): Screen | undefined {
@@ -350,7 +354,7 @@ export default function PageEditorPage() {
         if (cancelled) return;
         const loaded = ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) });
         setBook(loaded);
-        setIndex(visibleStoryPages(loaded).length ? STORY_SCREEN_START : 0);
+        setIndex(titlePageEnabled(loaded) ? 2 : (visibleStoryPages(loaded).length ? storyScreenStart(loaded) : 0));
         setCredits(setup.credits);
         setCopyright(setup.copyright);
         setLogoUrl(setup.logoUrl);
@@ -399,6 +403,7 @@ export default function PageEditorPage() {
       coverLayout: synced.coverLayout,
       backCoverLayout: synced.backCoverLayout,
       endLayout: synced.endLayout,
+      showTitlePage: synced.showTitlePage !== false,
     };
   }
 
@@ -604,7 +609,7 @@ export default function PageEditorPage() {
     const pages = [...current.pages, page];
     persist({ ...current, pages });
     const nextStory = visibleStoryPages({ ...current, pages });
-    setIndex(storyScreenIndex(Math.max(0, nextStory.length - 1)));
+    setIndex(storyScreenIndex(current, Math.max(0, nextStory.length - 1)));
     setSelectedId(page.elements[0]?.id || "");
   }
 
@@ -612,12 +617,26 @@ export default function PageEditorPage() {
     const current = bookRef.current;
     if (!current) return;
     const target = screenAtIndex(current, indexRef.current);
+    if (!target) return;
     const storyNow = visibleStoryPages(current);
-    if (target?.kind !== "page") {
+    if (target.kind === "title") {
+      if (!window.confirm("Remove the title page from this book? (Cover and story pages stay.)")) return;
       setError("");
-      setStatus(storyNow.length
-        ? "Use the Screen menu above and pick Page 1, Page 2, … then Delete page."
-        : "This book has no story pages to delete.");
+      const nextBook = {
+        ...current,
+        showTitlePage: false,
+        titleLayout: { elements: [], background: "" },
+      };
+      persist(nextBook, { saveNow: true });
+      setSelectedId("");
+      setEditingId("");
+      setIndex(storyNow.length ? storyScreenStart(nextBook) : 1);
+      setStatus("Title page removed");
+      return;
+    }
+    if (target.kind !== "page") {
+      setError("");
+      setStatus("Pick Title or a story page (Page 1, 2, …) in the Screen menu, then Delete page.");
       return;
     }
     const pageId = target.pageId;
@@ -639,7 +658,7 @@ export default function PageEditorPage() {
     persist({ ...current, pages }, { saveNow: true });
     setSelectedId("");
     setEditingId("");
-    setIndex(storyScreenIndex(nextOrd));
+    setIndex(storyScreenIndex(current, nextOrd));
     setStatus(`Removed ${deleteLabel}`);
   }
 
@@ -956,14 +975,16 @@ export default function PageEditorPage() {
         <button type="button" onClick={addPage}>Add page</button>
         <button
           type="button"
-          className={screen.kind !== "page" || !canDeleteStoryPage(book, screen.pageId) ? "muted-tool" : undefined}
+          className={!canDeleteCurrentScreen(book, screen) ? "muted-tool" : undefined}
           onClick={removePage}
           title={
-            screen.kind !== "page"
-              ? "Pick Page 1, 2, … in the Screen menu first (not Cover, Title, or The end)."
-              : !canDeleteStoryPage(book, screen.pageId)
-                ? "Keep at least one story page in the book."
-                : "Remove this story page from the book"
+            screen.kind === "title"
+              ? "Remove the title page from the flipbook and reader."
+              : screen.kind === "page"
+                ? (!canDeleteStoryPage(book, screen.pageId)
+                  ? "Keep at least one story page in the book."
+                  : "Remove this story page from the book.")
+                : "Open Title or a story page (Page 1, 2, …) in the Screen menu first."
           }
         >
           Delete page

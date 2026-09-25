@@ -1,4 +1,4 @@
-import { clampPercent, hasLayout, normalizeElement, normalizeLayout, remapSpreadBoxToLeaf } from "./page-layout";
+import { clampPercent, hasLayout, normalizeElement, normalizeLayout, remapSpreadBoxToLeaf, titlePageEnabled } from "./page-layout";
 import { visibleStoryPages } from "./reader-pages";
 import type { Book, PageElement, PageLayout } from "./types";
 
@@ -81,7 +81,7 @@ export function derivePortraitPages(book: Book): PageLayout[] {
       portraitRole: "cover",
     });
   }
-  if (hasLayout(book.titleLayout)) {
+  if (titlePageEnabled(book) && hasLayout(book.titleLayout)) {
     pages.push({
       elements: book.titleLayout.elements.map((el, index) => normalizeElement(el, index)),
       background: book.titleLayout.background || "",

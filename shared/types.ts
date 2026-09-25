@@ -76,6 +76,8 @@ export type Book = {
   textFont: string;
   textColor: string;
   titleLayout: PageLayout;
+  /** When false, the designed title spread is omitted from the flipbook and editor. */
+  showTitlePage?: boolean;
   coverLayout: PageLayout;
   backCoverLayout: PageLayout;
   endLayout: PageLayout;

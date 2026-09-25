@@ -55,6 +55,7 @@ export type BookInput = {
   textFont?: string;
   textColor?: string;
   titleLayout?: Book["titleLayout"];
+  showTitlePage?: boolean;
   coverLayout?: Book["coverLayout"];
   backCoverLayout?: Book["backCoverLayout"];
   endLayout?: Book["endLayout"];
@@ -215,6 +216,7 @@ function recordBook(row: {
   endLayoutJson?: string | null;
   portraitPagesJson?: string | null;
   titleLayout?: Book["titleLayout"] | null;
+  showTitlePage?: boolean | null;
   coverLayout?: Book["coverLayout"] | null;
   backCoverLayout?: Book["backCoverLayout"] | null;
   endLayout?: Book["endLayout"] | null;
@@ -245,6 +247,7 @@ function recordBook(row: {
     textFont: normalizeFont(row.textFont, DEFAULT_TEXT_FONT),
     textColor: normalizeColor(row.textColor, DEFAULT_TEXT_COLOR),
     titleLayout: row.titleLayout || parseLayoutJson(row.titleLayoutJson),
+    showTitlePage: row.showTitlePage !== false,
     coverLayout: row.coverLayout || parseLayoutJson(row.coverLayoutJson),
     backCoverLayout: row.backCoverLayout || parseLayoutJson(row.backCoverLayoutJson),
     endLayout: row.endLayout || parseLayoutJson(row.endLayoutJson),
@@ -324,6 +327,7 @@ export class JsonBookStore implements BookStore {
       textFont: normalizeFont(input.textFont, DEFAULT_TEXT_FONT),
       textColor: normalizeColor(input.textColor, DEFAULT_TEXT_COLOR),
       titleLayout: normalizeLayout(input.titleLayout),
+      showTitlePage: input.showTitlePage !== false,
       coverLayout: normalizeLayout(input.coverLayout),
       backCoverLayout: normalizeLayout(input.backCoverLayout),
       endLayout: normalizeLayout(input.endLayout),
@@ -361,6 +365,7 @@ export class JsonBookStore implements BookStore {
     if (input.textFont !== undefined) book.textFont = normalizeFont(input.textFont, DEFAULT_TEXT_FONT);
     if (input.textColor !== undefined) book.textColor = normalizeColor(input.textColor, DEFAULT_TEXT_COLOR);
     if (input.titleLayout !== undefined) book.titleLayout = normalizeLayout(input.titleLayout);
+    if (input.showTitlePage !== undefined) book.showTitlePage = input.showTitlePage !== false;
     if (input.coverLayout !== undefined) book.coverLayout = normalizeLayout(input.coverLayout);
     if (input.backCoverLayout !== undefined) book.backCoverLayout = normalizeLayout(input.backCoverLayout);
     if (input.endLayout !== undefined) book.endLayout = normalizeLayout(input.endLayout);
@@ -492,6 +497,7 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS back_cover_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS end_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS portrait_pages_json TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS show_title_page BOOLEAN NOT NULL DEFAULT true`);
     // Portrait mobile editor removed — phone reader uses flipbook layouts + upright restack.
     await this.db.execute(sql`UPDATE books SET portrait_pages_json = '' WHERE trim(portrait_pages_json) <> ''`);
   }
@@ -538,6 +544,7 @@ export class PostgresBookStore implements BookStore {
         textFont: normalizeFont(input.textFont, DEFAULT_TEXT_FONT),
         textColor: normalizeColor(input.textColor, DEFAULT_TEXT_COLOR),
         titleLayoutJson: layoutToJson(normalizeLayout(input.titleLayout)),
+        showTitlePage: input.showTitlePage !== false,
         coverLayoutJson: layoutToJson(normalizeLayout(input.coverLayout)),
         backCoverLayoutJson: layoutToJson(normalizeLayout(input.backCoverLayout)),
         endLayoutJson: layoutToJson(normalizeLayout(input.endLayout)),
@@ -570,6 +577,7 @@ export class PostgresBookStore implements BookStore {
     if (input.textFont !== undefined) patch.textFont = normalizeFont(input.textFont, DEFAULT_TEXT_FONT);
     if (input.textColor !== undefined) patch.textColor = normalizeColor(input.textColor, DEFAULT_TEXT_COLOR);
     if (input.titleLayout !== undefined) patch.titleLayoutJson = layoutToJson(normalizeLayout(input.titleLayout));
+    if (input.showTitlePage !== undefined) patch.showTitlePage = input.showTitlePage !== false;
     if (input.coverLayout !== undefined) patch.coverLayoutJson = layoutToJson(normalizeLayout(input.coverLayout));
     if (input.backCoverLayout !== undefined) patch.backCoverLayoutJson = layoutToJson(normalizeLayout(input.backCoverLayout));
     if (input.endLayout !== undefined) patch.endLayoutJson = layoutToJson(normalizeLayout(input.endLayout));

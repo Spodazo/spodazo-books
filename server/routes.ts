@@ -429,6 +429,7 @@ export function registerRoutes(app: Express): void {
         textFont: String(body.textFont || ""),
         textColor: String(body.textColor || ""),
         titleLayout: body.titleLayout,
+        showTitlePage: body.showTitlePage !== false && body.showTitlePage !== "false",
         coverLayout: body.coverLayout,
         backCoverLayout: body.backCoverLayout,
         endLayout: body.endLayout,
@@ -474,6 +475,9 @@ export function registerRoutes(app: Express): void {
         textFont: body.textFont !== undefined ? String(body.textFont) : undefined,
         textColor: body.textColor !== undefined ? String(body.textColor) : undefined,
         titleLayout: body.titleLayout !== undefined ? body.titleLayout : undefined,
+        showTitlePage: body.showTitlePage !== undefined
+          ? body.showTitlePage !== false && body.showTitlePage !== "false"
+          : undefined,
         coverLayout: body.coverLayout !== undefined ? body.coverLayout : undefined,
         backCoverLayout: body.backCoverLayout !== undefined ? body.backCoverLayout : undefined,
         endLayout: body.endLayout !== undefined ? body.endLayout : undefined,

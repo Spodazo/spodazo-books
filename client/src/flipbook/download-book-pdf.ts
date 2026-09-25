@@ -437,7 +437,9 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
   const cover = await renderLayout(book.coverLayout, book, "cover", false, undefined, paperPaint);
   const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover", "back", legal, paperPaint) : null;
   const spreads: Rendered[] = [];
-  spreads.push(await renderLayout(book.titleLayout, book, "spread", false, undefined, paperPaint));
+  if (book.showTitlePage !== false) {
+    spreads.push(await renderLayout(book.titleLayout, book, "spread", false, undefined, paperPaint));
+  }
   for (const page of visibleStoryPages(book)) {
     spreads.push(await renderLayout(page, book, "spread", false, undefined, paperPaint));
   }

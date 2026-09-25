@@ -190,8 +190,9 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const edgeUrl=textureMeta?.id==='deckle'?esc(safeURL('/paper/deckle-edge.png',baseUrl)):'';
   const paperAttr=texture?` data-paper="${texture}"`:'';
   const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}');--paper-w:${textureMeta.w}px;--paper-h:${textureMeta.h}px${edgeUrl?`;--paper-edge:url('${edgeUrl}')`:''}`:'';
+  const showTitle=book.showTitlePage!==false;
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
-  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
+  const articles=cover+(showTitle?titlePageHtml(book,baseUrl,libraryUrl,!cover):'')+storyPages.map((p,i)=>{
     const zones=spreadZones();
     if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;

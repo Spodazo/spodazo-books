@@ -231,6 +231,10 @@ export function hasLayout(layout?: PageLayout | null): boolean {
   return Boolean(layout?.elements?.length);
 }
 
+export function titlePageEnabled(book: Pick<Book, "showTitlePage">): boolean {
+  return book.showTitlePage !== false;
+}
+
 export function firstImageAsset(elements: PageElement[]): string {
   return elements.find((item) => item.type === "image" && item.imageAsset)?.imageAsset || "";
 }
@@ -438,9 +442,12 @@ export function ensureBookLayouts<T extends Book>(book: T, extras?: { coverUrl?:
     spreadBackground: normalizeColor(book.spreadBackground, DEFAULT_SPREAD_BACKGROUND),
     textFont: normalizeFont(book.textFont, DEFAULT_TEXT_FONT),
     textColor: normalizeColor(book.textColor, DEFAULT_TEXT_COLOR),
-    titleLayout: hasLayout(book.titleLayout)
-      ? normalizeLayout(book.titleLayout)
-      : defaultTitleLayout(book, coverUrl),
+    titleLayout: titlePageEnabled(book)
+      ? (hasLayout(book.titleLayout)
+        ? normalizeLayout(book.titleLayout)
+        : defaultTitleLayout(book, coverUrl))
+      : { elements: [], background: "" },
+    showTitlePage: titlePageEnabled(book),
     coverLayout: hasLayout(book.coverLayout)
       ? normalizeLayout(book.coverLayout)
       : defaultCoverLayout(book, coverUrl),
