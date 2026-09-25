@@ -120,6 +120,12 @@ export function portraitPagesFor(book: Book): PageLayout[] {
   return derivePortraitPages(book);
 }
 
+/** True when the book has saved portrait pages with at least one laid-out screen. */
+export function savedPortraitPagesReady(book: Book): boolean {
+  if (!Array.isArray(book.portraitPages) || !book.portraitPages.length) return false;
+  return book.portraitPages.some((page) => hasLayout(page));
+}
+
 /** Portrait editor: same page list as the phone flipbook; drop stale leaf-split saves. */
 export function portraitPagesForEditor(book: Book): PageLayout[] {
   const derived = derivePortraitPages(book);

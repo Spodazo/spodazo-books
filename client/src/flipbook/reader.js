@@ -7,6 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
+import {portraitFlipRole, portraitPagesFor, savedPortraitPagesReady} from '@shared/portrait-pages';
 
 function coverSrc(book, baseUrl) {
   const cover = book.coverUrl || book.pages?.[0]?.imageUrl || book.pages?.[0]?.fullPageUrl || '';
@@ -60,7 +61,10 @@ function elementFrameInk(el, book) {
 
 function bookFontFamilies(book) {
   const ids = [book?.textFont];
-  for (const layout of [book?.coverLayout, book?.titleLayout, book?.endLayout, ...(book?.pages || [])]) {
+  const layouts = savedPortraitPagesReady(book)
+    ? portraitPagesFor(book)
+    : [book?.coverLayout, book?.titleLayout, book?.endLayout, ...(book?.pages || [])];
+  for (const layout of layouts) {
     for (const el of layout?.elements || []) {
       if (el.fontFamily) ids.push(el.fontFamily);
     }
@@ -148,12 +152,54 @@ function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=false}={}
   return `${close}${hintHtml}${zones}`;
 }
 
+function coverElementsHtml(layout, book, baseUrl) {
+  return (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
+}
+
+function frontCoverFromLayout(layout, book, baseUrl, libraryUrl, { current = true } = {}) {
+  const fill = pageFill(layout, book);
+  const currentClass = current ? " current" : "";
+  return `<article class="page front-cover${currentClass}" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false})}<div class="front-cover-leaf" style="background-color:${fill}">${coverElementsHtml(layout, book, baseUrl)}</div></article>`;
+}
+
 function frontCoverHtml(book, baseUrl, libraryUrl) {
   if (!hasLayout(book.coverLayout)) return "";
-  const layout = book.coverLayout;
-  const fill = pageFill(layout, book);
-  const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
-  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
+  return frontCoverFromLayout(book.coverLayout, book, baseUrl, libraryUrl);
+}
+
+function spreadZones() {
+  return `<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
+}
+
+function articlesFromPortraitPages(book, baseUrl, libraryUrl, credits, copyright, logoUrl) {
+  const pages = portraitPagesFor(book);
+  let html = "";
+  let opened = false;
+  pages.forEach((layout, index) => {
+    const role = portraitFlipRole(layout, index);
+    if (role === "cover" && hasLayout(layout)) {
+      html += frontCoverFromLayout(layout, book, baseUrl, libraryUrl, { current: !opened });
+      opened = true;
+      return;
+    }
+    if (role === "title" && hasLayout(layout)) {
+      const current = !opened ? " current" : "";
+      html += laidOutPage("Title page", layout, book, baseUrl, readerChrome(libraryUrl, baseUrl), ` title-page${current}`).replace("<article", '<article data-source="title"');
+      opened = true;
+      return;
+    }
+    if (role === "end" && hasLayout(layout)) {
+      const extras = `${legalHtml(credits, copyright, logoUrl, baseUrl, book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
+      html += laidOutPage("The end", layout, book, baseUrl, extras, " end-page").replace("<article", '<article data-source="end"');
+      opened = true;
+      return;
+    }
+    if (role === "spread" && hasLayout(layout)) {
+      html += laidOutPage(layout.elements?.[0]?.text?.slice(0, 24) || `Page ${index + 1}`, layout, book, baseUrl, spreadZones()).replace("<article", '<article data-source="page"');
+      opened = true;
+    }
+  });
+  return html;
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
@@ -182,9 +228,10 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const edgeUrl=textureMeta?.id==='deckle'?esc(safeURL('/paper/deckle-edge.png',baseUrl)):'';
   const paperAttr=texture?` data-paper="${texture}"`:'';
   const paperStyle=textureUrl?`;--paper-texture:url('${textureUrl}');--paper-w:${textureMeta.w}px;--paper-h:${textureMeta.h}px${edgeUrl?`;--paper-edge:url('${edgeUrl}')`:''}`:'';
-  const cover=frontCoverHtml(book,baseUrl,libraryUrl);
-  const articles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
-    const zones=`<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
+  const usePortrait=savedPortraitPagesReady(book);
+  const cover=usePortrait?'':frontCoverHtml(book,baseUrl,libraryUrl);
+  const flipbookArticles=cover+titlePageHtml(book,baseUrl,libraryUrl,!cover)+storyPages.map((p,i)=>{
+    const zones=spreadZones();
     if(hasLayout(p)) return laidOutPage(p.title||`Page ${i+1}`,p,book,baseUrl,zones);
     const coverOnly=!skipCover&&i===0;
     const fallback=p.kind==='facsimile'||coverOnly;
@@ -194,7 +241,9 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
     const text=fallback?'':`<section><p>${storyBody(p.paragraphs).map(esc).join(' ')}</p></section>`;
     return `<article class="${classes}" aria-label="${esc(p.title||`Page ${i+1}`)}" style="background-color:${pageFill(p,book)}"><img src="${esc(image)}" alt="${esc(p.alt||p.title)}" style="object-position:${focal}">${text}${zones}</article>`;
   }).join('')+endPageHtml(book,baseUrl,credits,copyright,logoUrl);
-  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
+  const articles=usePortrait?articlesFromPortraitPages(book,baseUrl,libraryUrl,credits,copyright,logoUrl):flipbookArticles;
+  const hasCover=articles.includes('front-cover');
+  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${hasCover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
   return `<!doctype html><html${fadeOpen?' class="opening"':''}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }

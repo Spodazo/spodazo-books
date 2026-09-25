@@ -813,6 +813,11 @@ html:has(.upright-pdf) body {
 .portrait-mirror-visual * {
   pointer-events: none;
 }
+.portrait-editor-preview.interactive-mirror .portrait-mirror-visual .el,
+.portrait-editor-preview.interactive-mirror .portrait-mirror-visual .cover-bit {
+  pointer-events: auto;
+  cursor: pointer;
+}
 .portrait-edit-layer {
   position: absolute;
   inset: 0;
