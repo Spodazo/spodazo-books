@@ -14,12 +14,6 @@ import { mirrorElementSize } from "@shared/portrait-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 
-function mirrorClass(role: PortraitFlipRole): string {
-  if (role === "cover") return "portrait-mobile-mirror front-cover-leaf";
-  const extra = role === "title" ? " title-page" : role === "end" ? " end-page" : "";
-  return `portrait-mobile-mirror laid-out current${extra}`;
-}
-
 function elementStyle(element: PageElement, book: PublicBook): CSSProperties {
   const align = element.align === "center" || element.align === "right" ? element.align : "left";
   const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
@@ -43,98 +37,76 @@ function elementStyle(element: PageElement, book: PublicBook): CSSProperties {
   };
 }
 
-function MirrorElement({
-  element,
-  book,
-  role,
-  children,
-}: {
-  element: PageElement;
-  book: PublicBook;
-  role: PortraitFlipRole;
-  children?: ReactNode;
-}) {
-  const size = mirrorElementSize(element);
+function CoverBits({ element, book }: { element: PageElement; book: PublicBook }) {
   const style = elementStyle(element, book);
+  const size = mirrorElementSize(element);
   const meta = {
     "data-size": size,
     ...(element.role ? { "data-role": element.role } : {}),
     ...(element.id ? { "data-id": element.id } : {}),
   };
-
-  if (role === "cover") {
-    if (element.type === "shape") {
-      return (
-        <div
-          className="cover-bit cover-bit-shape"
-          style={{
-            ...style,
-            background: normalizeColor(element.color, "") || "#ffffff",
-            borderRadius: element.shape === "circle" ? "50%" : "2%",
-          }}
-          {...meta}
-        >
-          {children}
-        </div>
-      );
-    }
-    if (element.type === "image") {
-      return element.imageUrl ? (
-        <>
-          <img className="cover-bit cover-bit-image" src={element.imageUrl} alt="" style={style} {...meta} />
-          {children}
-        </>
-      ) : null;
-    }
+  if (element.type === "shape") {
     return (
-      <div className={`cover-bit cover-bit-text${frameClass(element.frame) ? ` ${frameClass(element.frame)}` : ""}`} style={style} {...meta}>
-        {frameMarkup(element.frame, element.w / element.h) ? (
-          <span className="text-frame" dangerouslySetInnerHTML={{ __html: frameMarkup(element.frame, element.w / element.h) }} />
-        ) : null}
-        <div
-          className="cover-text"
-          style={{
-            fontFamily: fontStack(element.fontFamily || book.textFont),
-            fontSize: `${element.fontSize || 4}cqh`,
-            color: normalizeColor(element.color, "") || book.textColor || DEFAULT_TEXT_COLOR,
-            textAlign: element.align || "left",
-            alignItems: alignJustify(element.align),
-          }}
-          dangerouslySetInnerHTML={{ __html: elementTextHtml(element.text || "", (s) => s) }}
-        />
-        {children}
-      </div>
+      <div
+        className="cover-bit cover-bit-shape"
+        style={{
+          ...style,
+          background: normalizeColor(element.color, "") || "#ffffff",
+          borderRadius: element.shape === "circle" ? "50%" : "2%",
+        }}
+        {...meta}
+      />
     );
   }
+  if (element.type === "image") {
+    return element.imageUrl ? <img className="cover-bit cover-bit-image" src={element.imageUrl} alt="" style={style} {...meta} /> : null;
+  }
+  return (
+    <div className={`cover-bit cover-bit-text${frameClass(element.frame) ? ` ${frameClass(element.frame)}` : ""}`} style={style} {...meta}>
+      {frameMarkup(element.frame, element.w / element.h) ? (
+        <span className="text-frame" dangerouslySetInnerHTML={{ __html: frameMarkup(element.frame, element.w / element.h) }} />
+      ) : null}
+      <div
+        className="cover-text"
+        style={{
+          fontFamily: fontStack(element.fontFamily || book.textFont),
+          fontSize: `${element.fontSize || 4}cqh`,
+          color: normalizeColor(element.color, "") || book.textColor || DEFAULT_TEXT_COLOR,
+          textAlign: element.align || "left",
+          alignItems: alignJustify(element.align),
+        }}
+        dangerouslySetInnerHTML={{ __html: elementTextHtml(element.text || "", (s) => s) }}
+      />
+    </div>
+  );
+}
 
+function LaidOutEl({ element, book }: { element: PageElement; book: PublicBook }) {
+  const style = elementStyle(element, book);
+  const size = mirrorElementSize(element);
+  const meta = {
+    "data-size": size,
+    ...(element.role ? { "data-role": element.role } : {}),
+    ...(element.id ? { "data-id": element.id } : {}),
+  };
   if (element.type === "shape") {
     return (
       <div
         className="el el-shape"
         style={{ ...style, background: normalizeColor(element.color, "") || "#ffffff", borderRadius: element.shape === "circle" ? "50%" : "2%" }}
         {...meta}
-      >
-        {children}
-      </div>
+      />
     );
   }
   if (element.type === "image") {
-    return element.imageUrl ? (
-      <>
-        <img className="el el-image" src={element.imageUrl} alt="" style={style} {...meta} />
-        {children}
-      </>
-    ) : null;
+    return element.imageUrl ? <img className="el el-image" src={element.imageUrl} alt="" style={style} {...meta} /> : null;
   }
   return (
     <div className={`el el-text${frameClass(element.frame) ? ` ${frameClass(element.frame)}` : ""}`} style={style} {...meta}>
       {frameMarkup(element.frame, element.w / element.h) ? (
         <span className="text-frame" dangerouslySetInnerHTML={{ __html: frameMarkup(element.frame, element.w / element.h) }} />
       ) : null}
-      <div
-        dangerouslySetInnerHTML={{ __html: elementTextHtml(element.text || "", (s) => s) }}
-      />
-      {children}
+      <div dangerouslySetInnerHTML={{ __html: elementTextHtml(element.text || "", (s) => s) }} />
     </div>
   );
 }
@@ -145,29 +117,39 @@ export default function PortraitMobileMirror({
   book,
   width,
   height,
-  renderElementOverlay,
+  coverOverlay,
 }: {
   layout: PageLayout;
   role: PortraitFlipRole;
   book: PublicBook;
   width: number;
   height: number;
-  renderElementOverlay?: (element: PageElement) => ReactNode;
+  coverOverlay?: ReactNode;
 }) {
   const fill = pageFill(layout.background, book.pageBackground);
   const sorted = layout.elements.slice().sort((a, b) => a.z - b.z);
+  const surface = paperSurfaceStyle(fill, book.pageTexture);
+
+  if (role === "cover") {
+    return (
+      <article className="page front-cover" style={{ ...surface, width, height, position: "relative", backgroundColor: fill }}>
+        <div className="front-cover-leaf" style={{ ...surface, backgroundColor: fill }}>
+          {sorted.map((element) => (
+            <CoverBits key={element.id} element={element} book={book} />
+          ))}
+        </div>
+        {coverOverlay}
+      </article>
+    );
+  }
+
+  const pageClass = role === "title" ? "page laid-out title-page current" : role === "end" ? "page laid-out end-page current" : "page laid-out current";
 
   return (
-    <div
-      className={mirrorClass(role)}
-      style={{ ...paperSurfaceStyle(fill, book.pageTexture), width, height, backgroundColor: fill }}
-    >
+    <article className={pageClass} style={{ ...surface, width, height, backgroundColor: fill }}>
       {sorted.map((element) => (
-        <MirrorElement key={element.id} element={element} book={book} role={role}>
-          {renderElementOverlay?.(element)}
-        </MirrorElement>
+        <LaidOutEl key={element.id} element={element} book={book} />
       ))}
-      {role === "end" ? <footer className="end-legal portrait-mirror-legal" aria-hidden="true" /> : null}
-    </div>
+    </article>
   );
 }

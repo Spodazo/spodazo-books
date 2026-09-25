@@ -21,10 +21,11 @@ import {
   ensureBookLayouts,
 } from "@shared/page-layout";
 import { PAPER_TEXTURES, paperSwatchStyle } from "@shared/paper";
+import { paletteById } from "@shared/palettes";
 import {
   PORTRAIT_PAGE_RATIO,
-  derivePortraitPages,
   portraitFlipRole,
+  portraitPagesForEditor,
   portraitPhoneViewportHeight,
 } from "@shared/portrait-pages";
 import { characterUrlFor } from "@shared/reader-pages";
@@ -151,7 +152,7 @@ export default function PortraitEditorPage() {
         const next = await fetchBook(slug);
         if (cancelled) return;
         const designed = ensureBookLayouts(next, { coverUrl: next.coverUrl, characterUrl: characterUrlFor(next) });
-        const portraitPages = Array.isArray(designed.portraitPages) ? designed.portraitPages : derivePortraitPages(designed);
+        const portraitPages = portraitPagesForEditor(designed);
         setBook({ ...designed, portraitPages });
       })
       .catch((err: Error) => {
@@ -459,8 +460,14 @@ export default function PortraitEditorPage() {
 
   const bookFont = book.textFont || DEFAULT_TEXT_FONT;
   const bookInk = book.textColor || DEFAULT_TEXT_COLOR;
+  const palette = paletteById(book.color);
   const focusLayout = pages[focusIndex] || { elements: [], background: "" };
   const fill = pageFill(focusLayout.background, book.pageBackground);
+  const previewStyle = {
+    ["--title-bg" as string]: palette.bg,
+    ["--title-ink" as string]: palette.text,
+    ["--title-outline" as string]: palette.accent,
+  };
 
   return (
     <main className="page-editor">
@@ -593,12 +600,55 @@ export default function PortraitEditorPage() {
             const flipRole = portraitFlipRole(layout, index);
             const isCover = flipRole === "cover";
             const roleLabel = isCover ? "Cover" : flipRole === "title" ? "Title" : flipRole === "end" ? "End" : `Page ${index + 1}`;
+            const coverOverlay = isCover ? (
+              <div className="portrait-cover-edit-layer" aria-hidden={false}>
+                {layout.elements.map((element) => (
+                  <div
+                    key={element.id}
+                    className={`page-editor-el portrait-cover-hit${selectedId === element.id ? " selected" : ""}`}
+                    style={{
+                      left: `${element.x}%`,
+                      top: `${element.y}%`,
+                      width: `${element.w}%`,
+                      height: `${element.h}%`,
+                      zIndex: element.z,
+                    }}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => onPointerDown(event, index, element, "move")}
+                    onDoubleClick={() => {
+                      if (element.type === "text") setEditingId(element.id);
+                    }}
+                  >
+                    {editingId === element.id && element.type === "text" ? (
+                      <textarea
+                        autoFocus
+                        value={element.text || ""}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          fontFamily: fontStack(element.fontFamily || bookFont),
+                          fontSize: `${element.fontSize || 4}cqh`,
+                          color: normalizeColor(element.color, "") || bookInk,
+                          textAlign: element.align || "left",
+                        }}
+                        onChange={(event) => place(index, index, element.id, { text: event.target.value })}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        onBlur={() => setEditingId("")}
+                      />
+                    ) : null}
+                    {selectedId === element.id ? (
+                      <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, index, element, "resize")} />
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null;
             return (
               <figure key={index} className={`portrait-slot${index === focusIndex ? " active" : ""}`}>
                 <div
                   ref={(node) => { pageRefs.current[index] = node; }}
-                  className="portrait-phone-frame"
-                  style={{ width: pageBox.width, height: pageBox.phoneHeight }}
+                  className="portrait-editor-preview mobile portrait-phone-frame"
+                  style={{ ...previewStyle, width: pageBox.width, height: pageBox.phoneHeight }}
                   onMouseDown={() => { setSelectedId(""); setEditingId(""); setFocus(index); }}
                 >
                   <PortraitMobileMirror
@@ -607,50 +657,8 @@ export default function PortraitEditorPage() {
                     book={book}
                     width={pageBox.width}
                     height={pageBox.phoneHeight}
+                    coverOverlay={coverOverlay}
                   />
-                  {isCover ? (
-                    <div className="portrait-cover-edit-layer" aria-hidden={false}>
-                      {layout.elements.map((element) => (
-                        <div
-                          key={element.id}
-                          className={`page-editor-el portrait-cover-hit${selectedId === element.id ? " selected" : ""}`}
-                          style={{
-                            left: `${element.x}%`,
-                            top: `${element.y}%`,
-                            width: `${element.w}%`,
-                            height: `${element.h}%`,
-                            zIndex: element.z,
-                          }}
-                          onMouseDown={(event) => event.stopPropagation()}
-                          onPointerDown={(event) => onPointerDown(event, index, element, "move")}
-                          onDoubleClick={() => {
-                            if (element.type === "text") setEditingId(element.id);
-                          }}
-                        >
-                          {editingId === element.id && element.type === "text" ? (
-                            <textarea
-                              autoFocus
-                              value={element.text || ""}
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                fontFamily: fontStack(element.fontFamily || bookFont),
-                                fontSize: `${element.fontSize || 4}cqh`,
-                                color: normalizeColor(element.color, "") || bookInk,
-                                textAlign: element.align || "left",
-                              }}
-                              onChange={(event) => place(index, index, element.id, { text: event.target.value })}
-                              onKeyDown={(event) => event.stopPropagation()}
-                              onBlur={() => setEditingId("")}
-                            />
-                          ) : null}
-                          {selectedId === element.id ? (
-                            <button type="button" className="page-editor-handle" aria-label="Resize" onPointerDown={(event) => onPointerDown(event, index, element, "resize")} />
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
                 <figcaption>{roleLabel}</figcaption>
               </figure>

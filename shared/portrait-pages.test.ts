@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ensureBookLayouts } from "./page-layout";
-import { derivePortraitPages, portraitLeafBox, portraitPagesFor } from "./portrait-pages";
+import { derivePortraitPages, portraitLeafBox, portraitPagesFor, portraitPagesForEditor } from "./portrait-pages";
 import type { Book, BookPage } from "./types";
 
 function storyPage(partial: Partial<BookPage> = {}): BookPage {
@@ -66,6 +66,47 @@ test("derivePortraitPages lists cover then one portrait screen per flipbook spre
   assert.ok(spreadPage);
   assert.ok((spreadPage?.elements.length || 0) > 0);
   assert.ok(spreadPage?.elements.some((item) => item.type === "text" && item.text === "The fox ran."));
+});
+
+test("portraitPagesForEditor drops stale leaf-split saves", () => {
+  const book = ensureBookLayouts({
+    id: "book-1",
+    slug: "willow",
+    title: "Willow",
+    tagline: "",
+    author: "",
+    date: "",
+    cover: "",
+    pdf: "",
+    color: "honey",
+    sortOrder: 1,
+    hidden: false,
+    published: true,
+    audience: "children",
+    pageTemplate: "one-up",
+    characterRender: "scene",
+    pageBackground: "#efdda6",
+    pageTexture: "",
+    spreadBackground: "#bd9a61",
+    textFont: "story",
+    textColor: "#203b2a",
+    titleLayout: { elements: [] },
+    coverLayout: { elements: [] },
+    backCoverLayout: { elements: [] },
+    endLayout: { elements: [] },
+    portraitPages: [
+      { elements: [], background: "", portraitRole: "leaf" },
+      { elements: [], background: "", portraitRole: "leaf" },
+      { elements: [], background: "", portraitRole: "leaf" },
+      { elements: [], background: "", portraitRole: "leaf" },
+      { elements: [], background: "", portraitRole: "leaf" },
+      { elements: [], background: "", portraitRole: "leaf" },
+    ],
+    pages: [storyPage()],
+  } as Book);
+  const pages = portraitPagesForEditor(book);
+  assert.ok(pages.length < 6);
+  assert.equal(pages[0]?.portraitRole, "cover");
 });
 
 test("portraitPagesFor keeps a saved portrait and ignores the flipbook split", () => {

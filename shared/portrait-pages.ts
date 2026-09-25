@@ -120,6 +120,22 @@ export function portraitPagesFor(book: Book): PageLayout[] {
   return derivePortraitPages(book);
 }
 
+/** Portrait editor: same page list as the phone flipbook; drop stale leaf-split saves. */
+export function portraitPagesForEditor(book: Book): PageLayout[] {
+  const derived = derivePortraitPages(book);
+  const saved = book.portraitPages;
+  if (!Array.isArray(saved) || !saved.length) return derived;
+  if (saved.length !== derived.length) return derived;
+  return derived.map((page, index) => {
+    const prior = normalizeLayout(saved[index]);
+    return {
+      portraitRole: page.portraitRole,
+      background: prior.background || page.background || "",
+      elements: prior.elements.length ? prior.elements : page.elements,
+    };
+  });
+}
+
 export function parsePortraitPages(raw?: string | null): PageLayout[] | null {
   const text = String(raw ?? "").trim();
   if (!text) return null;
