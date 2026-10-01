@@ -19,6 +19,8 @@ import {
   pageFill,
   panImageFocus,
   syncBookFromLayouts,
+  syncCoverLayoutWithArt,
+  libraryCoverLayout,
 } from "./page-layout";
 import type { Book, BookPage } from "./types";
 
@@ -312,6 +314,34 @@ test("ensureBookLayouts restores missing end art", () => {
   } as Book, { coverUrl: "/media/images/cover.webp", characterUrl: "/media/images/willow-character.webp" });
   const art = book.endLayout.elements.find((item) => item.type === "image");
   assert.equal(art?.imageUrl, "/media/images/willow-character.webp");
+});
+
+test("libraryCoverLayout uses book.cover when coverLayout art is stale", () => {
+  const layout = libraryCoverLayout({
+    title: "Rudolph",
+    tagline: "",
+    author: "",
+    cover: "custom-cover.webp",
+    coverUrl: "/media/images/custom-cover.webp?v=1",
+    coverLayout: {
+      background: "#000",
+      elements: [{
+        id: "cover-art",
+        type: "image",
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 100,
+        z: 1,
+        imageAsset: "p-01.jpg",
+        imageUrl: "/flipbooks/rudolph/pages/p-01.jpg",
+        fit: "cover",
+      }],
+    },
+  });
+  const art = layout.elements.find((el) => el.id === "cover-art");
+  assert.equal(art?.imageAsset, "custom-cover.webp");
+  assert.equal(art?.imageUrl, "/media/images/custom-cover.webp?v=1");
 });
 
 test("elementTextHtml keeps paragraph and line breaks", () => {

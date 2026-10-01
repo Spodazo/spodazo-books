@@ -84,9 +84,6 @@ export default function BookPage() {
   if (book && bundledSrc) {
     return (
       <div className="reader-host bundled-flipbook-host">
-        <Link href="/" className="library-back bundled-flipbook-back" aria-label="Back to library">
-          ← Library
-        </Link>
         <iframe className="bundled-flipbook-frame" title={book.title.replace(/\n/g, " ")} src={bundledSrc} />
       </div>
     );

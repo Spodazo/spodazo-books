@@ -10,6 +10,7 @@ import {
   normalizeColor,
   normalizeLayout,
   parseLayoutJson,
+  syncCoverLayoutWithArt,
 } from "../shared/page-layout";
 import { normalizePaperTexture } from "../shared/paper";
 import { DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, normalizeFont } from "../shared/book-fonts";
@@ -102,15 +103,22 @@ function hydratePages(pages: BookPage[]): BookPage[] {
 
 function hydrateBook(book: Book): PublicBook {
   const pages = hydratePages(book.pages);
+  const coverAsset = book.cover || pages[0]?.imageAsset || pages[0]?.fullPageAsset || "";
+  const coverUrl = imageUrl(coverAsset, HOME_CARD_WIDTH);
+  const coverLayout = syncCoverLayoutWithArt(
+    { ...book.coverLayout, elements: hydrateElements(book.coverLayout?.elements || []) },
+    coverAsset,
+    coverUrl,
+  );
   return {
     ...book,
     color: normalizePaletteId(book.color),
     pages,
-    coverUrl: imageUrl(book.cover || pages[0]?.imageAsset || pages[0]?.fullPageAsset, HOME_CARD_WIDTH),
+    coverUrl,
     pdfUrl: pdfUrl(book.pdf),
     pageCount: pages.length,
     titleLayout: { ...book.titleLayout, elements: hydrateElements(book.titleLayout.elements) },
-    coverLayout: { ...book.coverLayout, elements: hydrateElements(book.coverLayout?.elements || []) },
+    coverLayout,
     backCoverLayout: { ...book.backCoverLayout, elements: hydrateElements(book.backCoverLayout?.elements || []) },
     endLayout: { ...book.endLayout, elements: hydrateElements(book.endLayout.elements) },
   };
@@ -334,7 +342,14 @@ export class JsonBookStore implements BookStore {
     if (input.tagline !== undefined) book.tagline = input.tagline;
     if (input.author !== undefined) book.author = input.author;
     if (input.date !== undefined) book.date = input.date;
-    if (input.cover !== undefined) book.cover = input.cover;
+    if (input.cover !== undefined) {
+      book.cover = input.cover;
+      book.coverLayout = syncCoverLayoutWithArt(
+        book.coverLayout,
+        book.cover,
+        imageUrl(book.cover, HOME_CARD_WIDTH),
+      );
+    }
     if (input.pdf !== undefined) book.pdf = input.pdf;
     if (input.pages !== undefined) book.pages = input.pages.map((page, index) => normalizeBookPage(page, index));
     if (input.color !== undefined) book.color = normalizePaletteId(input.color);

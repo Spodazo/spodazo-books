@@ -286,6 +286,31 @@ function tidyBackCoverLayout(layout: PageLayout, book: Pick<Book, "title">): Pag
   };
 }
 
+/** Keep library cover art in sync when `book.cover` changes but `coverLayout` still points at an old asset. */
+export function syncCoverLayoutWithArt(
+  layout: PageLayout | undefined,
+  coverAsset: string,
+  coverUrl: string,
+): PageLayout {
+  const base = layout?.elements?.length ? { ...layout, elements: [...layout.elements] } : { elements: [], background: layout?.background || "" };
+  if (!coverAsset || !coverUrl) return base;
+  const imageEls = base.elements.filter((el) => el.type === "image");
+  base.elements = base.elements.map((el) => {
+    if (el.type !== "image") return el;
+    const isCoverArt = el.id === "cover-art" || (imageEls.length === 1 && el === imageEls[0]);
+    if (!isCoverArt || el.imageAsset === coverAsset) return el;
+    return { ...el, imageAsset: coverAsset, imageUrl: coverUrl };
+  });
+  return base;
+}
+
+export function libraryCoverLayout(
+  book: Pick<Book, "title" | "tagline" | "author" | "cover" | "coverLayout"> & { coverUrl: string },
+): PageLayout {
+  if (!hasLayout(book.coverLayout)) return defaultCoverLayout(book, book.coverUrl);
+  return syncCoverLayoutWithArt(book.coverLayout, book.cover, book.coverUrl);
+}
+
 export function defaultCoverLayout(book: Pick<Book, "title" | "tagline" | "author" | "cover">, coverUrl = ""): PageLayout {
   const elements: PageElement[] = [];
   if (book.cover || coverUrl) {

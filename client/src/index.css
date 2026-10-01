@@ -253,9 +253,6 @@ html.book-opening .reader-host {
   width: 100%;
   height: 100%;
 }
-.bundled-flipbook-back {
-  z-index: 20;
-}
 @media (min-width: 701px) {
   .reader-host {
     background: #322616;

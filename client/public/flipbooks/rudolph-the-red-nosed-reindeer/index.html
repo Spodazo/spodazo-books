@@ -105,9 +105,36 @@ body { background: var(--ground); color: #fff; }
 #book.single .arrow { display: none; }
 
 @media (prefers-reduced-motion: reduce) { #book, .arrow { transition: none; } }
+
+.flipbook-close {
+  position: fixed;
+  z-index: 20;
+  top: max(10px, env(safe-area-inset-top));
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+  color: rgba(255, 255, 255, .88);
+  font: 600 32px/1 system-ui, sans-serif;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.flipbook-close:hover, .flipbook-close:focus-visible {
+  background: rgba(255, 255, 255, .22);
+  color: #fff;
+  outline: none;
+}
+.flipbook-close.left { left: max(12px, env(safe-area-inset-left)); }
+.flipbook-close.right { right: max(12px, env(safe-area-inset-right)); left: auto; }
 </style>
 
 <div id="stage" aria-label="Rudolph the Red Nosed Reindeer flip book" role="application">
+  <a id="closeBtn" class="flipbook-close left" href="/" target="_top" aria-label="Close" hidden>×</a>
   <div id="book">
     <div class="stackWrapL"><div class="stack l" id="stackL"></div></div>
     <div class="stackWrapR"><div class="stack r" id="stackR"></div></div>
@@ -205,11 +232,24 @@ body { background: var(--ground); color: #fff; }
     return [i * u, (LAST - i) * u + u * 1.5];
   }
 
+  var closeBtn = document.getElementById('closeBtn');
+
   function updateArrows() {
     var atStart = single ? pg === 0 : idx === 0;
     var atEnd = single ? pg === TOTAL - 1 : idx === LAST;
     arrL.classList.toggle('off', atStart);
     arrR.classList.toggle('off', atEnd);
+    if (closeBtn) {
+      if (atStart) {
+        closeBtn.hidden = false;
+        closeBtn.className = 'flipbook-close left';
+      } else if (atEnd) {
+        closeBtn.hidden = false;
+        closeBtn.className = 'flipbook-close right';
+      } else {
+        closeBtn.hidden = true;
+      }
+    }
   }
 
   // paint the resting state; resolves when the images are ready

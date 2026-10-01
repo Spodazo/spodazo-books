@@ -3,9 +3,9 @@ import { Link } from "wouter";
 import AdminLoginLink from "../components/AdminLoginLink";
 import CoverFace from "../components/CoverFace";
 import { BOOK_FONTS, DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, googleFontsHref } from "@shared/book-fonts";
-import { DEFAULT_PAGE_BACKGROUND, defaultCoverLayout, hasLayout } from "@shared/page-layout";
+import { DEFAULT_PAGE_BACKGROUND, libraryCoverLayout } from "@shared/page-layout";
 import { DEFAULT_PLAYER_SETUP, groupBooksByAudience } from "@shared/seed-data";
-import type { BookListItem, PageLayout, PlayerSetup } from "@shared/types";
+import type { BookListItem, PlayerSetup } from "@shared/types";
 import { fetchBook } from "../lib/api";
 import { markBookOpen } from "../lib/bookOpen";
 import { loadHomeBooks, loadHomeSetup, readCachedBooks, readCachedSetup } from "../lib/homeCache";
@@ -61,11 +61,6 @@ export default function HomePage() {
   );
 }
 
-function coverLayoutFor(book: BookListItem): PageLayout {
-  if (hasLayout(book.coverLayout)) return book.coverLayout;
-  return defaultCoverLayout(book, book.coverUrl);
-}
-
 function LibrarySection({ books }: { books: BookListItem[] }) {
   if (!books.length) return null;
   return (
@@ -75,7 +70,7 @@ function LibrarySection({ books }: { books: BookListItem[] }) {
           <article key={book.id} className="book-card">
             <Link href={`/${book.slug}`} className="cover-link" aria-label={`Read ${book.title}`} onClick={() => { markBookOpen(); void fetchBook(book.slug); }}>
               <CoverFace
-                layout={coverLayoutFor(book)}
+                layout={libraryCoverLayout(book)}
                 background={book.pageBackground || DEFAULT_PAGE_BACKGROUND}
                 texture={book.pageTexture}
                 font={book.textFont || DEFAULT_TEXT_FONT}
