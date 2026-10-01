@@ -1,4 +1,7 @@
 /**
+ * @deprecated Prefer the bundled zip flipbook under client/public/flipbooks/rudolph-the-red-nosed-reindeer/
+ * and scripts/sync-rudolph-bundled-catalog.mjs. This PDF pipeline converted pages into the Spodazo reader.
+ *
  * Import Rudolph portrait PDF into Spodazo Books (production or local).
  *
  * Usage:

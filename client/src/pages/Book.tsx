@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useRoute } from "wouter";
+import { bundledFlipbookSrc } from "@shared/bundled-flipbooks";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
@@ -37,9 +38,11 @@ export default function BookPage() {
     };
   }, [slug]);
 
+  const bundledSrc = book ? bundledFlipbookSrc(book.slug, import.meta.env.BASE_URL) : "";
+
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || !book) return;
+    if (!host || !book || bundledSrc) return;
     const fromHome = openingSince() > 0;
     host.style.opacity = fromHome ? "0" : "1";
     const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
@@ -65,7 +68,7 @@ export default function BookPage() {
       handle.frame.removeEventListener("load", reveal);
       handle.destroy();
     };
-  }, [book, setup.credits, setup.copyright, setup.logoUrl]);
+  }, [book, bundledSrc, setup.credits, setup.copyright, setup.logoUrl]);
 
   if (error) {
     return (
@@ -75,6 +78,17 @@ export default function BookPage() {
         </Link>
         <p>{error}</p>
       </main>
+    );
+  }
+
+  if (book && bundledSrc) {
+    return (
+      <div className="reader-host bundled-flipbook-host">
+        <Link href="/" className="library-back bundled-flipbook-back" aria-label="Back to library">
+          ← Library
+        </Link>
+        <iframe className="bundled-flipbook-frame" title={book.title.replace(/\n/g, " ")} src={bundledSrc} />
+      </div>
     );
   }
 

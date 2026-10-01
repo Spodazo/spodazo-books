@@ -244,6 +244,18 @@ html.book-opening .reader-host {
   height: 100dvh;
   background: #efdda6;
 }
+.bundled-flipbook-host {
+  background: #0a0f1c;
+}
+.bundled-flipbook-frame {
+  display: block;
+  border: 0;
+  width: 100%;
+  height: 100%;
+}
+.bundled-flipbook-back {
+  z-index: 20;
+}
 @media (min-width: 701px) {
   .reader-host {
     background: #322616;

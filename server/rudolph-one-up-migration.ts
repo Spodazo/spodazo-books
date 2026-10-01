@@ -10,6 +10,8 @@ export async function ensureRudolphOneUpDisplay(store: BookStore): Promise<void>
   const book = await store.getBookBySlug(item.slug);
   if (!book) return;
 
+  if (book.pages.some((page) => String(page.imageUrl || "").includes("/flipbooks/"))) return;
+
   const elements = book.coverLayout?.elements || [];
   const hasTextOverlay = elements.some((el) => el.type === "text" || el.id === "cover-band");
   const alreadyOneUp = book.pageTemplate === "one-up";
