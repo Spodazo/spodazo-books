@@ -208,7 +208,8 @@ body {
     var wasSingle = single;
     single = decideMode(W, H);
     if (single !== wasSingle) {
-      if (single) { pg = Math.max(0, (SP[idx][1] || SP[idx][0]) - 1); }
+      // Entering single-page mode: open on the left leaf of the spread (cover is page 1, not page 2).
+      if (single) { pg = Math.max(0, SP[idx][0] - 1); }
       else { idx = Math.min(LAST, Math.floor(pg / 2)); }
     }
     var m = Math.max(12, Math.round(H * 0.03));          // slight margin top and bottom
