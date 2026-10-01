@@ -18,10 +18,15 @@
   color-scheme: dark;
 }
 html, body { height: 100%; margin: 0; overflow: hidden; }
-body { background: var(--ground); color: #fff; }
+body {
+  background: #050810 url('starry-sky.jpg') center center / cover no-repeat fixed;
+  color: #fff;
+}
 #stage {
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 45%, #18223a 0%, var(--ground) 55%, var(--ground-edge) 100%);
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(24, 34, 58, .18) 0%, rgba(10, 15, 28, .28) 55%, rgba(3, 5, 11, .42) 100%),
+    url('starry-sky.jpg') center center / cover no-repeat;
   overflow: hidden;
   touch-action: none;
   user-select: none; -webkit-user-select: none;

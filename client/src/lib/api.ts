@@ -202,3 +202,12 @@ export function deleteBook(id: string): Promise<void> {
     .then((res) => parse(res))
     .then(() => undefined);
 }
+
+export function reorderBooks(bookIds: string[]): Promise<BookListItem[]> {
+  return fetch("/api/admin/reorder-books", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ bookIds }),
+  }).then((res) => parse<BookListItem[]>(res));
+}

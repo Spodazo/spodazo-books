@@ -245,7 +245,7 @@ html.book-opening .reader-host {
   background: #efdda6;
 }
 .bundled-flipbook-host {
-  background: #0a0f1c;
+  background: #050810;
 }
 .bundled-flipbook-frame {
   display: block;
@@ -356,6 +356,18 @@ html.book-opening .reader-host {
 .curator-fields dt { color: var(--muted); font-size: 12px; }
 .curator-fields dd { margin: 0; }
 .album-cover-row { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
+.album-cover-order {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.album-cover-order .ghost {
+  min-width: 36px;
+  padding: 4px 10px;
+  font-size: 16px;
+  line-height: 1;
+}
 .album-cover-tile {
   width: 140px;
   height: 180px;

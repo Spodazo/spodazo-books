@@ -16,6 +16,7 @@ import {
   fetchCurator,
   fetchPlayerSetup,
   recoverCuratorPassword,
+  reorderBooks,
   updateBook,
   updateCurator,
   updatePlayerSetup,
@@ -23,7 +24,7 @@ import {
   verifyCuratorPassword,
 } from "../lib/api";
 import { ensureBookLayouts } from "@shared/page-layout";
-import { writeCachedSetup } from "../lib/homeCache";
+import { writeCachedBooks, writeCachedSetup } from "../lib/homeCache";
 import { applyPalette } from "../lib/palette";
 import { applySiteIcons } from "../lib/siteIcons";
 import { downloadBookPdf, type BookPdfKind } from "../flipbook/download-book-pdf";
@@ -58,6 +59,25 @@ export default function AdminPage() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [reorderBusy, setReorderBusy] = useState(false);
+
+  async function moveBook(index: number, delta: -1 | 1) {
+    const target = index + delta;
+    if (target < 0 || target >= books.length || reorderBusy) return;
+    setReorderBusy(true);
+    setError("");
+    try {
+      const next = books.slice();
+      [next[index], next[target]] = [next[target], next[index]];
+      const saved = await reorderBooks(next.map((book) => book.id));
+      setBooks(saved);
+      writeCachedBooks(saved);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reorder books");
+    } finally {
+      setReorderBusy(false);
+    }
+  }
 
   async function refresh() {
     const list = await fetchBooks();
@@ -206,8 +226,11 @@ export default function AdminPage() {
             <button type="button" className="ghost" onClick={() => setImportOpen(true)}>Add book from PDF</button>
           </div>
         </div>
+        {books.length > 1 ? (
+          <p className="hint">Use the arrows to set library order (left to right on the home page).</p>
+        ) : null}
         <div className="album-cover-row">
-          {books.map((book) => (
+          {books.map((book, index) => (
             <div key={book.id} className="album-cover-item">
               <button
                 type="button"
@@ -217,6 +240,28 @@ export default function AdminPage() {
                 {book.coverUrl ? <img src={book.coverUrl} alt="" /> : <span className="album-cover-empty" />}
                 {book.hidden ? <span className="hidden-badge">Hidden</span> : null}
               </button>
+              {books.length > 1 ? (
+                <div className="album-cover-order">
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={index === 0 || reorderBusy}
+                    aria-label={`Move ${book.title} earlier`}
+                    onClick={() => void moveBook(index, -1)}
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={index === books.length - 1 || reorderBusy}
+                    aria-label={`Move ${book.title} later`}
+                    onClick={() => void moveBook(index, 1)}
+                  >
+                    →
+                  </button>
+                </div>
+              ) : null}
               <p>{book.title}</p>
               <p className="hint">{book.audience === "adults" ? "Adults" : "Children"}</p>
             </div>
