@@ -431,18 +431,21 @@ function closeOntoCover(old,next,done){
     done(layer);
   }
 }
+var leavePending=false;
 function leaveLibrary(e){
   var a=e.target.closest&&e.target.closest('a.reader-close');
   if(!a)return false;
   e.preventDefault();
+  if(leavePending)return true;
+  leavePending=true;
   var href=a.getAttribute('href')||'/';
   var topWin=window.top||window;
   try{
-    var url=new URL(href,topWin.location.href);
-    topWin.history.pushState(null,'',url.pathname+url.search+url.hash);
+    topWin.postMessage({type:'spodazo-book-close',href:href},topWin.location.origin);
   }catch(err){
     topWin.location.href=href;
   }
+  window.setTimeout(function(){leavePending=false;},1200);
   return true;
 }
 function show(n,ms,after){

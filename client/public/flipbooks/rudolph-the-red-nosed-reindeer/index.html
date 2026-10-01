@@ -238,6 +238,16 @@ body {
   }
 
   var closeBtn = document.getElementById('closeBtn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      try {
+        window.top.postMessage({ type: 'spodazo-book-close', href: '/' }, window.top.location.origin);
+      } catch (err) {
+        window.top.location.href = '/';
+      }
+    });
+  }
 
   function updateArrows() {
     var atStart = single ? pg === 0 : idx === 0;

@@ -115,14 +115,29 @@ button, input, select, textarea { font: inherit; }
   padding: 48px 24px 32px;
   display: flex;
   flex-direction: column;
-  transition: opacity 1.8s ease;
+  transition: opacity 0.85s ease;
 }
-html.book-opening .library {
+html.book-opening .library,
+html.library-enter .library {
   opacity: 0;
   pointer-events: none;
 }
 html.book-opening .reader-host {
   background: transparent;
+}
+html.book-opening {
+  background: #322616;
+}
+html.book-closing {
+  background: #050810;
+}
+html.library-enter {
+  background: var(--bg);
+}
+html.book-closing .reader-host,
+html.book-closing .bundled-flipbook-host {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 .library-head {
   border-bottom: 1px solid var(--border);
@@ -243,6 +258,7 @@ html.book-opening .reader-host {
   width: 100%;
   height: 100dvh;
   background: #efdda6;
+  transition: opacity 0.85s ease;
 }
 .bundled-flipbook-host {
   background: #050810;
