@@ -68,27 +68,56 @@ function LibrarySection({ books }: { books: BookListItem[] }) {
     <section className="library-section">
       <div className="library-grid">
         {books.map((book) => (
-          <article key={book.id} className="book-card">
-            <Link
-              href={`/${book.slug}`}
-              className="cover-link"
-              aria-label={`Read ${book.title}`}
-              onClick={() => {
-                markBookOpen({ bundled: isBundledFlipbookSlug(book.slug) });
-                void fetchBook(book.slug);
-              }}
-            >
-              <CoverFace
-                layout={libraryCoverLayout(book)}
-                background={book.pageBackground || DEFAULT_PAGE_BACKGROUND}
-                texture={book.pageTexture}
-                font={book.textFont || DEFAULT_TEXT_FONT}
-                ink={book.textColor || DEFAULT_TEXT_COLOR}
-              />
-            </Link>
-          </article>
+          <LibraryBookCard key={book.id} book={book} />
         ))}
       </div>
     </section>
+  );
+}
+
+function useLibraryCoverZoomEnabled() {
+  const [enabled, setEnabled] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 701px)").matches : false,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 701px)");
+    const sync = () => setEnabled(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return enabled;
+}
+
+function LibraryBookCard({ book }: { book: BookListItem }) {
+  const zoomEnabled = useLibraryCoverZoomEnabled();
+  const [zoomed, setZoomed] = useState(false);
+
+  return (
+    <article
+      className={`book-card${zoomed ? " is-cover-zoomed" : ""}`}
+      onMouseEnter={zoomEnabled ? () => setZoomed(true) : undefined}
+      onMouseLeave={zoomEnabled ? () => setZoomed(false) : undefined}
+    >
+      <Link
+        href={`/${book.slug}`}
+        className="cover-link"
+        aria-label={`Read ${book.title}`}
+        onFocus={zoomEnabled ? () => setZoomed(true) : undefined}
+        onBlur={zoomEnabled ? () => setZoomed(false) : undefined}
+        onClick={() => {
+          markBookOpen({ bundled: isBundledFlipbookSlug(book.slug) });
+          void fetchBook(book.slug);
+        }}
+      >
+        <CoverFace
+          layout={libraryCoverLayout(book)}
+          background={book.pageBackground || DEFAULT_PAGE_BACKGROUND}
+          texture={book.pageTexture}
+          font={book.textFont || DEFAULT_TEXT_FONT}
+          ink={book.textColor || DEFAULT_TEXT_COLOR}
+        />
+      </Link>
+    </article>
   );
 }
