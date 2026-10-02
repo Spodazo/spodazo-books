@@ -28,3 +28,21 @@ export function onBookOpenChange(fn: () => void) {
     listeners.delete(fn);
   };
 }
+
+/** Opacity fade for the reader shell after the flipbook has laid out (ms). */
+export function readerRevealMs(): number {
+  if (typeof window === "undefined") return 500;
+  const mobile =
+    window.matchMedia("(max-width: 700px), (pointer: coarse) and (max-width: 1100px)").matches &&
+    window.matchMedia("(orientation: portrait)").matches;
+  return mobile ? 280 : 450;
+}
+
+/** Library fade when leaving home for a book (ms). */
+export function libraryOpenFadeMs(): number {
+  if (typeof window === "undefined") return 450;
+  const mobile =
+    window.matchMedia("(max-width: 700px), (pointer: coarse) and (max-width: 1100px)").matches &&
+    window.matchMedia("(orientation: portrait)").matches;
+  return mobile ? 280 : 450;
+}

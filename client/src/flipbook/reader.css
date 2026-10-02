@@ -1084,6 +1084,12 @@ main{
 html.opening main>.page{
   visibility:hidden!important;
 }
+html.booting main>.page,html.booting .page-curl{
+  visibility:hidden!important;
+}
+html.booting main{
+  background:var(--spread,#bd9a61);
+}
 .flip-layer{
   position:absolute;
   inset:0;

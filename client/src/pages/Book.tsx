@@ -4,7 +4,7 @@ import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
 import { fetchBook, invalidateBookCache } from "../lib/api";
-import { clearBookOpen, openingSince } from "../lib/bookOpen";
+import { clearBookOpen, openingSince, readerRevealMs } from "../lib/bookOpen";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
 import type { PlayerSetup, PublicBook } from "@shared/types";
 import { mountReader } from "../flipbook/reader.js";
@@ -40,29 +40,40 @@ export default function BookPage() {
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !book) return;
-    const fromHome = openingSince() > 0;
-    host.style.opacity = fromHome ? "0" : "1";
+    host.style.opacity = "0";
     const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
       libraryUrl: "/",
-      fadeOpen: !fromHome,
+      fadeOpen: false,
       baseUrl: location.href,
       credits: setup.credits,
       copyright: setup.copyright,
       logoUrl: setup.logoUrl,
     });
+    let revealed = false;
     const reveal = () => {
-      const started = openingSince();
-      const left = started ? Math.max(700, 1800 - (performance.now() - started)) : 1800;
-      host.style.transition = `opacity ${fromHome ? left : 1800}ms ease`;
-      host.style.opacity = "1";
-      window.setTimeout(clearBookOpen, fromHome ? left : 0);
+      if (revealed) return;
+      revealed = true;
+      const ms = readerRevealMs();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          host.style.transition = `opacity ${ms}ms ease`;
+          host.style.opacity = "1";
+          window.setTimeout(clearBookOpen, ms + 40);
+        });
+      });
     };
-    if (fromHome) {
-      if (handle.frame.contentDocument?.readyState === "complete") reveal();
-      else handle.frame.addEventListener("load", reveal, { once: true });
-    }
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== handle.frame.contentWindow) return;
+      if (event.data?.type === "spodazo-reader-ready") reveal();
+    };
+    window.addEventListener("message", onMessage);
+    const fallback = window.setTimeout(reveal, 2200);
+    handle.frame.addEventListener("load", () => {
+      /* Layout + images finish inside the iframe; ready is signaled via postMessage. */
+    });
     return () => {
-      handle.frame.removeEventListener("load", reveal);
+      window.clearTimeout(fallback);
+      window.removeEventListener("message", onMessage);
       handle.destroy();
     };
   }, [book, setup.credits, setup.copyright, setup.logoUrl]);
