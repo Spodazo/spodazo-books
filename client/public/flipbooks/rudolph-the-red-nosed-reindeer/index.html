@@ -139,7 +139,7 @@ body {
 </style>
 
 <div id="stage" aria-label="Rudolph the Red Nosed Reindeer flip book" role="application">
-  <a id="closeBtn" class="flipbook-close left" href="/" target="_top" aria-label="Close" hidden>×</a>
+  <a id="closeBtn" class="flipbook-close left" href="/" target="_top" aria-label="Close">×</a>
   <div id="book">
     <div class="stackWrapL"><div class="stack l" id="stackL"></div></div>
     <div class="stackWrapR"><div class="stack r" id="stackR"></div></div>
@@ -256,15 +256,8 @@ body {
     arrL.classList.toggle('off', atStart);
     arrR.classList.toggle('off', atEnd);
     if (closeBtn) {
-      if (atStart) {
-        closeBtn.hidden = false;
-        closeBtn.className = 'flipbook-close left';
-      } else if (atEnd) {
-        closeBtn.hidden = false;
-        closeBtn.className = 'flipbook-close right';
-      } else {
-        closeBtn.hidden = true;
-      }
+      closeBtn.hidden = false;
+      closeBtn.className = atEnd && !single ? 'flipbook-close right' : 'flipbook-close left';
     }
   }
 
@@ -419,6 +412,7 @@ body {
   stage.addEventListener('pointerdown', function (e) { sx = e.clientX; sy = e.clientY; sp = e.pointerType; });
   stage.addEventListener('pointerup', function (e) {
     if (sp === null) return;
+    if (e.target.closest && e.target.closest('.flipbook-close')) { sp = null; return; }
     var dx = e.clientX - sx, dy = e.clientY - sy, type = sp; sp = null;
     var ax = Math.abs(dx), ay = Math.abs(dy);
     if (ax > 40 && ax > ay * 1.2) { go(dx < 0 ? 1 : -1); return; }
