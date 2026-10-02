@@ -5,9 +5,10 @@ function emit() {
   listeners.forEach((fn) => fn());
 }
 
-export function markBookOpen() {
+export function markBookOpen(options?: { bundled?: boolean }) {
   started = performance.now();
   document.documentElement.classList.add("book-opening");
+  document.documentElement.classList.toggle("book-opening-bundled", Boolean(options?.bundled));
   emit();
 }
 
@@ -18,7 +19,7 @@ export function openingSince() {
 export function clearBookOpen() {
   if (!started) return;
   started = 0;
-  document.documentElement.classList.remove("book-opening");
+  document.documentElement.classList.remove("book-opening", "book-opening-bundled");
   emit();
 }
 

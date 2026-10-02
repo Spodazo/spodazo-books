@@ -1095,6 +1095,12 @@ main{
 html.opening main>.page{
   visibility:hidden!important;
 }
+html.booting main>.page{
+  visibility:hidden!important;
+}
+html.booting body{
+  background:var(--page-paper,#efdda6);
+}
 .flip-layer{
   position:absolute;
   inset:0;

@@ -1,28 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { bundledFlipbookSrc } from "@shared/bundled-flipbooks";
+import { bundledFlipbookSrc, isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
 import { fetchBook, invalidateBookCache } from "../lib/api";
-import { clearBookOpen, openingSince } from "../lib/bookOpen";
-import { beginBookClose, BOOK_SHELL_FADE_MS, isBookCloseMessage, resetBookTransition } from "../lib/bookTransition";
+import { beginBookClose, isBookCloseMessage, resetBookTransition } from "../lib/bookTransition";
+import { clearBookOpen } from "../lib/bookOpen";
+import { attachReaderReveal } from "../lib/readerReveal";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
 import type { PlayerSetup, PublicBook } from "@shared/types";
 import { mountReader } from "../flipbook/reader.js";
-
-function revealHost(host: HTMLElement, fromHome: boolean) {
-  host.style.opacity = "0";
-  const reveal = () => {
-    const started = openingSince();
-    const elapsed = started ? performance.now() - started : 0;
-    const duration = fromHome ? Math.max(500, BOOK_SHELL_FADE_MS - elapsed) : BOOK_SHELL_FADE_MS;
-    host.style.transition = `opacity ${duration}ms ease`;
-    host.style.opacity = "1";
-    window.setTimeout(clearBookOpen, fromHome ? duration : 0);
-  };
-  return reveal;
-}
 
 export default function BookPage() {
   const [, params] = useRoute("/:slug");
@@ -56,6 +44,15 @@ export default function BookPage() {
   }, [closeToLibrary]);
 
   useEffect(() => {
+    if (slug && isBundledFlipbookSlug(slug)) {
+      document.documentElement.classList.add("book-opening-bundled");
+    }
+    return () => {
+      document.documentElement.classList.remove("book-opening-bundled");
+    };
+  }, [slug]);
+
+  useEffect(() => {
     let cancelled = false;
     setError("");
     setBook(null);
@@ -80,24 +77,18 @@ export default function BookPage() {
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !book || bundledSrc) return;
-    const fromHome = openingSince() > 0;
-    const reveal = revealHost(host, fromHome);
+    const fromHome = Boolean(document.documentElement.classList.contains("book-opening"));
     const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
       libraryUrl: "/",
-      fadeOpen: !fromHome,
+      fadeOpen: false,
       baseUrl: location.href,
       credits: setup.credits,
       copyright: setup.copyright,
       logoUrl: setup.logoUrl,
     });
-    if (fromHome) {
-      if (handle.frame.contentDocument?.readyState === "complete") reveal();
-      else handle.frame.addEventListener("load", reveal, { once: true });
-    } else {
-      host.style.opacity = "1";
-    }
+    const detach = attachReaderReveal(host, handle.frame, fromHome);
     return () => {
-      handle.frame.removeEventListener("load", reveal);
+      detach();
       handle.destroy();
     };
   }, [book, bundledSrc, setup.credits, setup.copyright, setup.logoUrl]);
@@ -105,15 +96,10 @@ export default function BookPage() {
   useEffect(() => {
     const host = bundledHostRef.current;
     if (!host || !book || !bundledSrc) return;
-    const fromHome = openingSince() > 0;
-    const reveal = revealHost(host, fromHome);
+    const fromHome = Boolean(document.documentElement.classList.contains("book-opening"));
     const frame = host.querySelector("iframe");
-    if (!frame) {
-      reveal();
-      return;
-    }
-    if ((frame as HTMLIFrameElement).contentDocument?.readyState === "complete") reveal();
-    else frame.addEventListener("load", reveal, { once: true });
+    if (!frame || !(frame instanceof HTMLIFrameElement)) return;
+    return attachReaderReveal(host, frame, fromHome);
   }, [book, bundledSrc]);
 
   if (error) {

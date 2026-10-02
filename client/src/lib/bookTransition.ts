@@ -1,4 +1,4 @@
-export const BOOK_SHELL_FADE_MS = 850;
+export const BOOK_SHELL_FADE_MS = 420;
 
 let closing = false;
 

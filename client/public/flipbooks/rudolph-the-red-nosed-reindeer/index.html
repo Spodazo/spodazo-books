@@ -32,9 +32,9 @@ body {
   user-select: none; -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-#book { position: absolute; opacity: 0; transition: opacity .6s ease; }
+#book { position: absolute; opacity: 0; }
 #book.ready { opacity: 1; }
-#book.fading { transition-duration: .35s; opacity: 0; }
+#book.fading { transition: opacity .35s ease; opacity: 0; }
 .slot, .leaf, .face { position: absolute; top: 0; height: 100%; }
 .slot { width: 50%; }
 .slot.L { left: 0; }
@@ -48,7 +48,7 @@ body {
 #book.single .face.front { left: 0; width: 100%; }
 #book.single .face.back { display: none; }
 .page { position: absolute; inset: 0; background: var(--paper); overflow: hidden; }
-.page img { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; -webkit-user-drag: none; }
+.page img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; pointer-events: none; -webkit-user-drag: none; }
 .page.empty { visibility: hidden; }
 .page.blank img, .page.again img { display: none; }
 .page.again { background: var(--again); }
@@ -449,8 +449,18 @@ body {
       var im = new Image(); im.onload = im.onerror = function () { res(); }; im.src = s;
     });
   }
+  function signalReaderReady() {
+    try {
+      if (window.top && window.top !== window) {
+        window.top.postMessage({ type: 'spodazo-reader-ready' }, window.top.location.origin);
+      }
+    } catch (e) {}
+  }
   Promise.race([Promise.all([load(1), load(2), load(3)]), new Promise(function (r) { setTimeout(r, 4000); })]).then(function () {
     book.classList.add('ready');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(signalReaderReady);
+    });
     var n = 4;
     (function next() { if (n > IMAGES) return; load(n++).then(next); })();
   });
