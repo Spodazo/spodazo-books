@@ -186,12 +186,6 @@ html.book-closing .bundled-flipbook-host {
   margin: 0;
   padding: 0;
 }
-@media (hover: hover) and (min-width: 701px) {
-  .book-card:has(.cover-link:hover),
-  .book-card:has(.cover-link:focus-visible) {
-    z-index: 8;
-  }
-}
 .cover-link {
   display: block;
   color: inherit;
@@ -202,12 +196,20 @@ html.book-closing .bundled-flipbook-host {
   box-shadow: 0 10px 28px var(--shadow);
   transform-origin: center center;
 }
-@media (hover: hover) and (min-width: 701px) {
+@media (min-width: 701px) {
+  .library-grid {
+    overflow: visible;
+  }
+  .library-section {
+    overflow: visible;
+  }
   .cover-link {
     transition: transform 0.24s ease, box-shadow 0.24s ease;
   }
-  .cover-link:hover,
-  .cover-link:focus-visible {
+  .book-card.is-cover-zoomed {
+    z-index: 8;
+  }
+  .book-card.is-cover-zoomed .cover-link {
     transform: scale(1.2);
     box-shadow: 0 18px 42px var(--shadow);
   }
@@ -215,10 +217,6 @@ html.book-closing .bundled-flipbook-host {
 @media (prefers-reduced-motion: reduce) {
   .cover-link {
     transition: none;
-  }
-  .cover-link:hover,
-  .cover-link:focus-visible {
-    transform: none;
   }
 }
 .cover-face {
