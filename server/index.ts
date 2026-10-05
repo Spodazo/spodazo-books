@@ -7,6 +7,7 @@ import { htmlWithSiteIcons } from "./htmlIcons";
 import { prepareFaviconSet, warmHomeCardImages } from "./media";
 import { ensureDataDirs, syncBundledMedia } from "./paths";
 import { ensureSessionTable, sessionMiddleware } from "./session";
+import { ensureBeThouMyVisionCatalog } from "./be-thou-my-vision-catalog";
 import { ensureRudolphOneUpDisplay } from "./rudolph-one-up-migration";
 import { getStore } from "./storage";
 
@@ -35,6 +36,11 @@ async function start() {
     await ensureRudolphOneUpDisplay(store);
   } catch (err) {
     console.error("[catalog] Rudolph one-up migration failed:", err);
+  }
+  try {
+    await ensureBeThouMyVisionCatalog(store);
+  } catch (err) {
+    console.error("[catalog] Be Thou My Vision catalog bootstrap failed:", err);
   }
   try {
     const setup = await (await getStore()).getPlayerSetup();
