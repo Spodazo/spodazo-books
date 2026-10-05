@@ -50,11 +50,6 @@ body { background: var(--ground); color: #fff; }
 .hot-again { left: 36%; width: 28%; top: 40.3%; height: 5.2%; }
 .hot-close { left: 40.5%; width: 19%; top: 46.9%; height: 5.2%; }
 .leaf .hot { display: none !important; }
-#reopen { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 20; display: none;
-  font-family: var(--display); font-weight: 400; font-size: 16px; letter-spacing: .04em; color: var(--gold);
-  background: transparent; border: 0; padding: 12px 18px; cursor: pointer;
-  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .28em; text-decoration-color: rgba(241,194,125,.55); }
-#reopen.show { display: block; }
 .slot:not(.hide) .page:not(.empty) { box-shadow: 0 18px 50px rgba(var(--ink-shadow), .45), 0 4px 14px rgba(var(--ink-shadow), .35); }
 .face .page { box-shadow: none; }
 .slot.hide { display: none; }
@@ -103,10 +98,35 @@ body { background: var(--ground); color: #fff; }
 .arrow.off { opacity: 0; }
 #book.single .arrow { display: none; }
 @media (prefers-reduced-motion: reduce) { #book, .arrow { transition: none; } }
+
+.flipbook-close {
+  position: fixed;
+  z-index: 20;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+  color: rgba(255, 255, 255, .88);
+  font: 600 32px/1 system-ui, sans-serif;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.flipbook-close:hover, .flipbook-close:focus-visible {
+  background: rgba(255, 255, 255, .22);
+  color: #fff;
+  outline: none;
+}
 </style>
 
 <div id="stage" aria-label="Be Thou My Vision Songbook flip book" role="application">
-  <button id="reopen" type="button">Open book</button>
+  <a id="closeBtn" class="flipbook-close" href="/" target="_top" aria-label="Close">×</a>
   <div id="book">
     <div class="stackWrapL"><div class="stack l" id="stackL"></div></div>
     <div class="stackWrapR"><div class="stack r" id="stackR"></div></div>
@@ -136,7 +156,22 @@ body { background: var(--ground); color: #fff; }
   var arrL = document.getElementById('arrL'), arrR = document.getElementById('arrR');
 
   // The back cover already prints "Read Again" and "Close"; invisible hotspots sit exactly over those words.
-  var closedBtn = document.getElementById('reopen');
+  var closeBtn = document.getElementById('closeBtn');
+  function exitToLibrary() {
+    try {
+      if (window.top && window.top !== window) {
+        window.top.postMessage({ type: 'spodazo-book-close', href: '/' }, window.top.location.origin);
+        return;
+      }
+    } catch (e) {}
+    window.top.location.href = '/';
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      exitToLibrary();
+    });
+  }
   [slotL, slotR].forEach(function (host) {
     var p = host.querySelector('.page');
     [['again', 'Read Again'], ['close', 'Close']].forEach(function (d) {
@@ -351,18 +386,8 @@ body { background: var(--ground); color: #fff; }
   function atLastPage() { return single ? pg === TOTAL - 1 : idx === LAST; }
 
   function closeBook() {
-    if (busy) return;
-    busy = true;
-    try { window.close(); } catch (e) {}   // only works if the page was opened by a script; otherwise the book closes here
-    book.classList.add('fading');
-    setTimeout(function () { closedBtn.classList.add('show'); }, 380);
+    exitToLibrary();
   }
-  ['pointerdown', 'pointerup'].forEach(function (ev) { closedBtn.addEventListener(ev, function (e) { e.stopPropagation(); }); });
-  closedBtn.addEventListener('click', function () {
-    closedBtn.classList.remove('show');
-    idx = 0; pg = 0;
-    applyState().then(function () { hideLeaf(); book.classList.remove('fading'); busy = false; });
-  });
 
   function restart() {
     if (busy) return;
@@ -383,6 +408,7 @@ body { background: var(--ground); color: #fff; }
   stage.addEventListener('pointerdown', function (e) { sx = e.clientX; sy = e.clientY; sp = e.pointerType; });
   stage.addEventListener('pointerup', function (e) {
     if (sp === null) return;
+    if (e.target.closest && e.target.closest('.flipbook-close')) { sp = null; return; }
     var dx = e.clientX - sx, dy = e.clientY - sy, type = sp; sp = null;
     var ax = Math.abs(dx), ay = Math.abs(dy);
     if (ax > 40 && ax > ay * 1.2) { go(dx < 0 ? 1 : -1); return; }
@@ -407,8 +433,18 @@ body { background: var(--ground); color: #fff; }
       var im = new Image(); im.onload = im.onerror = function () { res(); }; im.src = s;
     });
   }
+  function signalReaderReady() {
+    try {
+      if (window.top && window.top !== window) {
+        window.top.postMessage({ type: 'spodazo-reader-ready' }, window.top.location.origin);
+      }
+    } catch (e) {}
+  }
   Promise.race([Promise.all([load(1), load(2), load(3)]), new Promise(function (r) { setTimeout(r, 4000); })]).then(function () {
     book.classList.add('ready');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(signalReaderReady);
+    });
     var n = 4;
     (function next() { if (n > IMAGES) return; load(n++).then(next); })();
   });
