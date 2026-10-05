@@ -427,7 +427,9 @@ function ImportBookForm({
                   ? "Willows-Big-Forest-Adventure"
                   : /rudolph/i.test(imported.book.title)
                     ? "Rudolph-The-Red-Nosed-Reindeer"
-                    : undefined,
+                    : /be thou my vision/i.test(imported.book.title)
+                      ? "Be-Thou-My-Vision"
+                      : undefined,
                 pdfUrl: imported.book.pdfUrl,
                 coverUrl: imported.book.pages[0]?.imageUrl,
                 pageTemplate: "one-up",
