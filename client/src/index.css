@@ -222,7 +222,8 @@ html.book-closing .bundled-flipbook-host {
 .cover-face {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  /* A4 portrait (210 × 297 mm) — matches printed book page proportions */
+  aspect-ratio: 210 / 297;
   overflow: hidden;
   container-type: size;
   background: var(--portrait);
