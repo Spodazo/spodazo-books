@@ -48,9 +48,11 @@ body { background: var(--ground); color: #fff; }
 /* invisible link areas laid over the words printed on the back cover */
 .hot { display: none; position: absolute; z-index: 3; margin: 0; padding: 0; border: 0; border-radius: .6em; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; }
 .page.link .hot { display: block; }
+.page.songs .hot-song { display: block; }
 .hot:hover, .hot:focus-visible { background: rgba(255,255,255,.10); outline: none; }
 .hot-again { left: 36%; width: 28%; top: 40.3%; height: 5.2%; }
 .hot-close { left: 40.5%; width: 19%; top: 46.9%; height: 5.2%; }
+.hot-song { left: 4%; width: 46%; height: 2.55%; }
 .leaf .hot { display: none !important; }
 .slot:not(.hide) .page:not(.empty) { box-shadow: 0 18px 50px rgba(var(--ink-shadow), .45), 0 4px 14px rgba(var(--ink-shadow), .35); }
 .face .page { box-shadow: none; }
@@ -186,6 +188,61 @@ body { background: var(--ground); color: #fff; }
 
   var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0;
 
+  // Forward page (picture 3): invisible taps over the printed song list jump to each song.
+  var SONG_NAV = [
+    { page: 4, top: 53.6, label: '01 Be Thou My Vision' },
+    { page: 6, top: 56.8, label: '02 House of Many Mansions' },
+    { page: 7, top: 60.0, label: "03 Horsemen's Praise" },
+    { page: 8, top: 63.2, label: '04 Planted by the Stream' },
+    { page: 10, top: 66.4, label: '05 Garment of Praise' },
+    { page: 11, top: 69.6, label: '06 Grounded in Love' },
+    { page: 12, top: 72.8, label: '07 Firm Foundation' },
+    { page: 14, top: 76.0, label: '08 Grace for Grace' },
+    { page: 15, top: 79.2, label: '09 Friend of Sinners' },
+    { page: 16, top: 82.4, label: '10 All is Well' }
+  ];
+
+  function spreadIndexForPage(n) {
+    for (var i = 0; i <= LAST; i++) {
+      if (SP[i][0] === n || SP[i][1] === n) return i;
+    }
+    return 0;
+  }
+
+  function goToPageNumber(n) {
+    if (busy || !n || n < 1 || n > IMAGES) return;
+    resetViewZoom();
+    hideLeaf();
+    if (single) {
+      pg = n - 1;
+      applyState();
+      return;
+    }
+    idx = spreadIndexForPage(n);
+    applyState();
+  }
+
+  function mountSongHots(page) {
+    if (page.getAttribute('data-song-hots') === '1') return;
+    page.setAttribute('data-song-hots', '1');
+    SONG_NAV.forEach(function (song) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'hot hot-song';
+      b.style.top = song.top + '%';
+      b.setAttribute('aria-label', song.label);
+      ['pointerdown', 'pointerup'].forEach(function (ev) {
+        b.addEventListener(ev, function (e) { e.stopPropagation(); });
+      });
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        goToPageNumber(song.page);
+      });
+      page.appendChild(b);
+    });
+  }
+
   function src(n) {
     if (!n || n > IMAGES) return '';
     return 'pages/p-' + (n < 10 ? '0' : '') + n + '.jpg';
@@ -194,10 +251,14 @@ body { background: var(--ground); color: #fff; }
   // returns a promise that resolves once the page image is decoded and ready to paint
   function setPage(host, n, blankPaper) {
     var p = pageEl(host), img = p.querySelector('img');
-    p.classList.remove('empty', 'blank', 'again', 'link');
+    p.classList.remove('empty', 'blank', 'again', 'link', 'songs');
     if (n === TOTAL) {
       if (n > IMAGES) { img.removeAttribute('src'); p.classList.add('again'); return Promise.resolve(); }   // extra link page
       p.classList.add('link');   // link laid over the closing picture
+    }
+    if (n === 3) {
+      p.classList.add('songs');
+      mountSongHots(p);
     }
     if (!n) { img.removeAttribute('src'); p.classList.add(blankPaper ? 'blank' : 'empty'); return Promise.resolve(); }
     var s = src(n);
