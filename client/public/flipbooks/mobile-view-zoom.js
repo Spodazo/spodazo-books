@@ -1,0 +1,259 @@
+/**
+ * Pinch/pan for bundled flipbooks (single-page / mobile mode).
+ * - Double-tap resets zoom
+ * - Pinch back to 1× clears pan
+ * - Horizontal swipe while zoomed turns the page (resets view first)
+ * - Pan is clamped so the page cannot drift irrecoverably off-screen
+ */
+(function (global) {
+  function attachFlipbookMobileZoom(opts) {
+    var stage = opts.stage;
+    var book = opts.book;
+    var isSingle = opts.isSingle;
+    var layoutSize = opts.layoutSize;
+    var onTurn = opts.onTurn;
+    var ignoreTarget = opts.ignoreTarget || function () { return false; };
+
+    var viewScale = 1;
+    var viewPanX = 0;
+    var viewPanY = 0;
+    var touchPts = new Map();
+    var pinchRefDist = 0;
+    var pinchRefScale = 1;
+    var gesturePinch = false;
+    var gesturePan = false;
+    var panPending = false;
+    var panStartX = 0;
+    var panStartY = 0;
+    var panRefX = 0;
+    var panRefY = 0;
+    var lastZoomTap = 0;
+    var lastZoomTapX = 0;
+    var lastZoomTapY = 0;
+    var sx = 0;
+    var sy = 0;
+    var sp = null;
+    var PAN_SLOP = 12;
+
+    function clampZoom(n) {
+      return Math.max(1, Math.min(4, n));
+    }
+
+    function bookFootprint() {
+      var size = layoutSize();
+      var bw = size.spread ? size.pw * 2 : size.pw;
+      return { bw: bw, ph: size.ph };
+    }
+
+    function clampViewPan() {
+      var dim = bookFootprint();
+      var maxX = Math.max(0, (dim.bw * viewScale - dim.bw) * 0.5 + dim.bw * 0.12);
+      var maxY = Math.max(0, (dim.ph * viewScale - dim.ph) * 0.5 + dim.ph * 0.12);
+      viewPanX = Math.max(-maxX, Math.min(maxX, viewPanX));
+      viewPanY = Math.max(-maxY, Math.min(maxY, viewPanY));
+    }
+
+    function applyViewZoom() {
+      if (viewScale <= 1.001) {
+        viewScale = 1;
+        viewPanX = 0;
+        viewPanY = 0;
+        gesturePan = false;
+        panPending = false;
+        book.style.transform = "";
+        return;
+      }
+      clampViewPan();
+      book.style.transform = "translate(" + viewPanX + "px," + viewPanY + "px) scale(" + viewScale + ")";
+    }
+
+    function reset() {
+      viewScale = 1;
+      viewPanX = 0;
+      viewPanY = 0;
+      gesturePinch = false;
+      gesturePan = false;
+      panPending = false;
+      lastZoomTap = 0;
+      applyViewZoom();
+    }
+
+    function finishViewGesture() {
+      if (viewScale <= 1.05) reset();
+      else applyViewZoom();
+    }
+
+    function tryDoubleTapReset(x, y) {
+      if (!isSingle() || viewScale <= 1) return false;
+      var now = Date.now();
+      if (now - lastZoomTap < 350 && Math.hypot(x - lastZoomTapX, y - lastZoomTapY) < 32) {
+        reset();
+        return true;
+      }
+      lastZoomTap = now;
+      lastZoomTapX = x;
+      lastZoomTapY = y;
+      return false;
+    }
+
+    function touchPointList() {
+      var out = [];
+      touchPts.forEach(function (p) {
+        out.push(p);
+      });
+      return out;
+    }
+
+    function touchDist(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function releaseTouchPointer(e) {
+      touchPts.delete(e.pointerId);
+      if (touchPts.size < 2) gesturePinch = false;
+      if (!touchPts.size && !panPending) gesturePan = false;
+      try {
+        stage.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    }
+
+    stage.addEventListener("pointerdown", function (e) {
+      if (ignoreTarget(e.target)) return;
+      touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try {
+        stage.setPointerCapture(e.pointerId);
+      } catch (err) {}
+      if (isSingle() && touchPts.size === 2) {
+        gesturePinch = true;
+        panPending = false;
+        sp = null;
+        var pair = touchPointList();
+        pinchRefDist = touchDist(pair[0], pair[1]);
+        pinchRefScale = viewScale;
+        return;
+      }
+      if (isSingle() && viewScale > 1 && touchPts.size === 1) {
+        panPending = true;
+        gesturePan = false;
+        sp = null;
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        panRefX = viewPanX;
+        panRefY = viewPanY;
+        return;
+      }
+      sx = e.clientX;
+      sy = e.clientY;
+      sp = e.pointerType;
+    });
+
+    stage.addEventListener("pointermove", function (e) {
+      if (!touchPts.has(e.pointerId)) return;
+      touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (isSingle() && gesturePinch && touchPts.size >= 2) {
+        var pts = touchPointList();
+        if (pts.length >= 2 && pinchRefDist > 0) {
+          viewScale = clampZoom(pinchRefScale * (touchDist(pts[0], pts[1]) / pinchRefDist));
+          applyViewZoom();
+        }
+        return;
+      }
+      if (isSingle() && panPending && touchPts.size === 1 && viewScale > 1) {
+        var dx = e.clientX - panStartX;
+        var dy = e.clientY - panStartY;
+        if (!gesturePan) {
+          if (Math.hypot(dx, dy) < PAN_SLOP) return;
+          if (Math.abs(dx) > Math.abs(dy) * 1.35 && Math.abs(dx) > PAN_SLOP) {
+            panPending = false;
+            sx = panStartX;
+            sy = panStartY;
+            sp = "touch";
+            return;
+          }
+          gesturePan = true;
+        }
+        viewPanX = panRefX + dx;
+        viewPanY = panRefY + dy;
+        applyViewZoom();
+      }
+    });
+
+    stage.addEventListener("pointerup", function (e) {
+      if (ignoreTarget(e.target)) {
+        sp = null;
+        releaseTouchPointer(e);
+        return;
+      }
+      var dxEnd = e.clientX - panStartX;
+      var dyEnd = e.clientY - panStartY;
+      var wasPinch = gesturePinch;
+      var wasPan = gesturePan;
+      var hadPanPending = panPending;
+
+      if (gesturePinch || gesturePan || panPending) {
+        if (
+          isSingle() &&
+          viewScale > 1 &&
+          (wasPan || hadPanPending) &&
+          Math.abs(dxEnd) > 45 &&
+          Math.abs(dxEnd) > Math.abs(dyEnd) * 1.2
+        ) {
+          releaseTouchPointer(e);
+          sp = null;
+          panPending = false;
+          gesturePan = false;
+          onTurn(dxEnd < 0 ? 1 : -1);
+          return;
+        }
+        if (
+          isSingle() &&
+          viewScale > 1 &&
+          !wasPan &&
+          !wasPinch &&
+          hadPanPending &&
+          Math.hypot(dxEnd, dyEnd) < 12
+        ) {
+          if (tryDoubleTapReset(e.clientX, e.clientY)) {
+            releaseTouchPointer(e);
+            sp = null;
+            panPending = false;
+            return;
+          }
+        }
+        releaseTouchPointer(e);
+        sp = null;
+        panPending = false;
+        gesturePan = false;
+        finishViewGesture();
+        return;
+      }
+
+      releaseTouchPointer(e);
+      if (sp === null) return;
+      var dx = e.clientX - sx;
+      var dy = e.clientY - sy;
+      var type = sp;
+      sp = null;
+      var ax = Math.abs(dx);
+      var ay = Math.abs(dy);
+      if (ax > 40 && ax > ay * 1.2) {
+        onTurn(dx < 0 ? 1 : -1);
+        return;
+      }
+      if (ax < 10 && ay < 10 && opts.onTap) {
+        opts.onTap(e, type);
+      }
+    });
+
+    stage.addEventListener("pointercancel", function (e) {
+      releaseTouchPointer(e);
+      sp = null;
+      panPending = false;
+      finishViewGesture();
+    });
+
+    return { reset: reset };
+  }
+
+  global.attachFlipbookMobileZoom = attachFlipbookMobileZoom;
+})(typeof window !== "undefined" ? window : this);
