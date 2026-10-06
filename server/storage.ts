@@ -41,6 +41,7 @@ export type BookInput = {
   date?: string;
   cover?: string;
   pdf?: string;
+  bundledFlipbookDir?: string;
   pages?: BookPage[];
   color?: string;
   sortOrder?: number;
@@ -112,6 +113,7 @@ function hydrateBook(book: Book): PublicBook {
   );
   return {
     ...book,
+    bundledFlipbookDir: book.bundledFlipbookDir || "",
     color: normalizePaletteId(book.color),
     pages,
     coverUrl,
@@ -187,6 +189,7 @@ function recordBook(row: {
   date?: string | null;
   cover?: string | null;
   pdf?: string | null;
+  bundledFlipbookDir?: string | null;
   pagesJson?: string | null;
   pages?: BookPage[];
   color?: string | null;
@@ -221,6 +224,7 @@ function recordBook(row: {
     date: row.date || "",
     cover: row.cover || "",
     pdf: row.pdf || "",
+    bundledFlipbookDir: row.bundledFlipbookDir || "",
     pages: row.pages || parsePagesJson(row.pagesJson),
     color: row.color || "honey",
     sortOrder: row.sortOrder || 0,
@@ -308,6 +312,7 @@ export class JsonBookStore implements BookStore {
       date: input.date || "",
       cover: input.cover || pages[0]?.imageAsset || "",
       pdf: input.pdf || "",
+      bundledFlipbookDir: input.bundledFlipbookDir || "",
       pages,
       color: normalizePaletteId(input.color),
       sortOrder: input.sortOrder ?? catalog.books.length + 1,
@@ -351,6 +356,7 @@ export class JsonBookStore implements BookStore {
       );
     }
     if (input.pdf !== undefined) book.pdf = input.pdf;
+    if (input.bundledFlipbookDir !== undefined) book.bundledFlipbookDir = input.bundledFlipbookDir;
     if (input.pages !== undefined) book.pages = input.pages.map((page, index) => normalizeBookPage(page, index));
     if (input.color !== undefined) book.color = normalizePaletteId(input.color);
     if (input.sortOrder !== undefined) book.sortOrder = input.sortOrder;
@@ -492,6 +498,7 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS cover_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS back_cover_layout_json TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS end_layout_json TEXT NOT NULL DEFAULT ''`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS bundled_flipbook_dir TEXT NOT NULL DEFAULT ''`);
   }
 
   async listBooks(): Promise<BookListItem[]> {
@@ -528,6 +535,7 @@ export class PostgresBookStore implements BookStore {
         date: input.date || "",
         cover: input.cover || pages[0]?.imageAsset || "",
         pdf: input.pdf || "",
+        bundledFlipbookDir: input.bundledFlipbookDir || "",
         pagesJson: pagesToJson(pages),
         color: normalizePaletteId(input.color),
         sortOrder: input.sortOrder ?? 0,
@@ -559,6 +567,7 @@ export class PostgresBookStore implements BookStore {
     if (input.date !== undefined) patch.date = input.date;
     if (input.cover !== undefined) patch.cover = input.cover;
     if (input.pdf !== undefined) patch.pdf = input.pdf;
+    if (input.bundledFlipbookDir !== undefined) patch.bundledFlipbookDir = input.bundledFlipbookDir;
     if (input.pages !== undefined) patch.pagesJson = pagesToJson(input.pages.map((page, index) => normalizeBookPage(page, index)));
     if (input.color !== undefined) patch.color = normalizePaletteId(input.color);
     if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;

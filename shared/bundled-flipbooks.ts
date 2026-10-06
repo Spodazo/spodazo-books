@@ -25,6 +25,21 @@ export function bundledFlipbookSrc(slug: string, baseUrl = "/"): string {
   return `${flipbookRoot(baseUrl)}flipbooks/${bundle.dir}/index.html`;
 }
 
+export function runtimeBundledFlipbookSrc(dir: string, baseUrl = "/"): string {
+  const name = String(dir || "").replace(/[^a-zA-Z0-9._-]/g, "");
+  if (!name) return "";
+  return `${flipbookRoot(baseUrl)}media/bundled-flipbooks/${name}/index.html`;
+}
+
+export function bundledFlipbookSrcForBook(
+  book: { slug?: string; bundledFlipbookDir?: string },
+  baseUrl = "/",
+): string {
+  const staticSrc = bundledFlipbookSrc(String(book.slug || ""), baseUrl);
+  if (staticSrc) return staticSrc;
+  return runtimeBundledFlipbookSrc(book.bundledFlipbookDir || "", baseUrl);
+}
+
 export function bundledFlipbookCoverUrl(slug: string, baseUrl = "/"): string {
   const bundle = bundledFlipbook(slug);
   if (!bundle) return "";

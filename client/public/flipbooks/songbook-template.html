@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
-<title>Be Thou My Vision Songbook</title>
+<title>%%TITLE%%</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500&display=swap">
@@ -129,7 +129,7 @@ body { background: var(--ground); color: #fff; }
 }
 </style>
 
-<div id="stage" aria-label="Be Thou My Vision Songbook flip book" role="application">
+<div id="stage" aria-label="%%TITLE%% flip book" role="application">
   <a id="closeBtn" class="flipbook-close" href="/" target="_top" aria-label="Close">×</a>
   <div id="book">
     <div class="stackWrapL"><div class="stack l" id="stackL"></div></div>
@@ -145,13 +145,14 @@ body { background: var(--ground); color: #fff; }
   </div>
 </div>
 
-<script src="../mobile-view-zoom.js"></script>
+<script src="%%ZOOM_SRC%%"></script>
 <script>
 (function () {
   /* CONFIG */
-  var IMAGES = 18, TOTAL = 18, RATIO = 842.16 / 595.44;   // TOTAL = IMAGES (link over last picture) or IMAGES+1 (extra link page)
-  var SP = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11],[12,13],[14,15],[16,17],[18,0]];   // [left, right] per spread, 0 = no page. e.g. [[1,2],[3,4],[5,6]]
+  var IMAGES = %%IMAGES%%, TOTAL = %%TOTAL%%, RATIO = %%RATIO%%;
+  var SP = %%SP%%;
   var LAST = SP.length - 1;
+  var SONG_LIST_PAGE = %%SONG_LIST_PAGE%%;
 
   var stage = document.getElementById('stage'), book = document.getElementById('book');
   var slotL = document.getElementById('slotL'), slotR = document.getElementById('slotR');
@@ -189,19 +190,8 @@ body { background: var(--ground); color: #fff; }
 
   var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, jumpPage = 0, turnGen = 0, turnAnims = [];
 
-  // Forward page (picture 3): invisible taps over the printed song list jump to each song.
-  var SONG_NAV = [
-    { page: 4, top: 53.3, label: '01 Be Thou My Vision' },
-    { page: 6, top: 55.5, label: '02 House of Many Mansions' },
-    { page: 7, top: 57.7, label: "03 Horsemen's Praise" },
-    { page: 8, top: 60.0, label: '04 Planted by the Stream' },
-    { page: 10, top: 62.2, label: '05 Garment of Praise' },
-    { page: 11, top: 64.4, label: '06 Grounded in Love' },
-    { page: 12, top: 66.6, label: '07 Firm Foundation' },
-    { page: 14, top: 68.8, label: '08 Grace for Grace' },
-    { page: 15, top: 71.1, label: '09 Friend of Sinners' },
-    { page: 16, top: 73.3, label: '10 All is Well' }
-  ];
+  // Forward/contents page: invisible taps over the printed song list jump to each song.
+  var SONG_NAV = %%SONG_NAV%%;
 
   function spreadIndexForPage(n) {
     for (var i = 0; i <= LAST; i++) {
@@ -283,7 +273,7 @@ body { background: var(--ground); color: #fff; }
       if (n > IMAGES) { img.removeAttribute('src'); p.classList.add('again'); return Promise.resolve(); }   // extra link page
       p.classList.add('link');   // link laid over the closing picture
     }
-    if (n === 3) {
+    if (SONG_LIST_PAGE && n === SONG_LIST_PAGE) {
       p.classList.add('songs');
       mountSongHots(p);
     }

@@ -1,8 +1,8 @@
-import type { Express, NextFunction, Request, Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
-import { slugify, uniqueSlug } from "../shared/seed-data";
+import { uniqueSlug } from "../shared/seed-data";
 import type { BookPage, PlayerSetup } from "../shared/types";
 import { loginAdmin, logoutAdmin, requireAdmin } from "./auth";
 import { curatorPasswordMatches, curatorRecoveryError, hashPassword, MIN_PASSWORD_LENGTH } from "./password";
@@ -23,7 +23,7 @@ import {
   shouldConvertImageUpload,
   warmHomeCardImages,
 } from "./media";
-import { imagesDir, pdfsDir, uniqueFileName } from "./paths";
+import { imagesDir, pdfsDir, uniqueFileName, bundledFlipbooksDir } from "./paths";
 import { getStore } from "./storage";
 import {
   generateAiImage,
@@ -33,6 +33,13 @@ import {
   parseOutlineRequest,
 } from "./ai-book";
 import { importPdfOnServer } from "./pdf-import";
+import {
+  catalogPagesForBundle,
+  prepareBundledDraft,
+  publishBundledDraft,
+  safeBundleDirName,
+  updateDraftSongNav,
+} from "./bundled-flipbook";
 
 function isPdfUpload(file: { fieldname: string; mimetype: string; originalname: string }): boolean {
   return file.fieldname === "pdf" || file.mimetype === "application/pdf" || /\.pdf$/i.test(file.originalname);
@@ -408,6 +415,71 @@ export function registerRoutes(app: Express): void {
     }
   });
 
+  app.post("/api/admin/bundled-flipbook/prepare", requireAdmin, upload.single("file"), async (req, res) => {
+    const file = req.file;
+    if (!file || !isPdfUpload(file)) {
+      res.status(400).json({ error: "Choose a PDF file." });
+      return;
+    }
+    try {
+      const draft = await prepareBundledDraft(file.path, file.originalname);
+      res.json(draft);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Could not build flipbook from PDF" });
+    }
+  });
+
+  app.patch("/api/admin/bundled-flipbook/:draftId", requireAdmin, async (req, res) => {
+    try {
+      const meta = updateDraftSongNav(String(req.params.draftId), req.body?.songNav, req.body?.title);
+      res.json({
+        ...meta,
+        previewUrl: `/media/bundled-flipbooks/${safeBundleDirName(String(req.params.draftId))}/index.html?t=${Date.now()}`,
+      });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Could not update song links" });
+    }
+  });
+
+  app.post("/api/admin/bundled-flipbook/publish", requireAdmin, async (req, res) => {
+    try {
+      const store = await getStore();
+      const body = req.body || {};
+      const title = String(body.title || "").trim();
+      if (!title) {
+        res.status(400).json({ error: "Title is required" });
+        return;
+      }
+      const used = new Set((await store.listBooks()).map((book) => book.slug));
+      const requested = String(body.slug || "").trim();
+      const slug = requested && !used.has(requested) ? requested : uniqueSlug(requested || title, used);
+      const published = await publishBundledDraft({
+        draftId: String(body.draftId || ""),
+        dir: String(body.dir || slug),
+        title,
+        songNav: body.songNav,
+      });
+      const book = await store.createBook({
+        title,
+        slug,
+        tagline: String(body.tagline || ""),
+        author: String(body.author || ""),
+        date: String(body.date || ""),
+        cover: published.coverAsset,
+        pdf: "",
+        bundledFlipbookDir: published.dir,
+        pages: catalogPagesForBundle(published.dir, published.pageCount),
+        hidden: body.hidden === true || body.hidden === "true",
+        published: body.published !== "false" && body.published !== false,
+        audience: String(body.audience || "adults"),
+        pageTemplate: "one-up",
+      });
+      res.json({ book, previewUrl: `/media/bundled-flipbooks/${published.dir}/index.html` });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Could not publish flipbook" });
+    }
+  });
+
   app.post("/api/admin/books", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 }, { name: "pdf", maxCount: 1 }]), async (req, res) => {
     try {
       const store = await getStore();
@@ -430,6 +502,7 @@ export function registerRoutes(app: Express): void {
         date: String(body.date || ""),
         cover: files?.cover?.[0]?.filename || filenameFromUrl(body.coverUrl || "") || pages[0]?.imageAsset,
         pdf: files?.pdf?.[0]?.filename || filenameFromUrl(body.pdfUrl || ""),
+        bundledFlipbookDir: body.bundledFlipbookDir ? String(body.bundledFlipbookDir) : "",
         pages,
         color: String(body.color || ""),
         hidden: body.hidden === true || body.hidden === "true",
@@ -475,6 +548,7 @@ export function registerRoutes(app: Express): void {
         date: body.date !== undefined ? String(body.date) : undefined,
         cover: files?.cover?.[0]?.filename || (body.coverUrl ? filenameFromUrl(body.coverUrl) : undefined),
         pdf: files?.pdf?.[0]?.filename || (body.pdfUrl ? filenameFromUrl(body.pdfUrl) : undefined),
+        bundledFlipbookDir: body.bundledFlipbookDir !== undefined ? String(body.bundledFlipbookDir) : undefined,
         pages,
         color: body.color !== undefined ? String(body.color) : undefined,
         hidden: body.hidden !== undefined ? body.hidden === true || body.hidden === "true" : undefined,
@@ -539,4 +613,18 @@ export function registerRoutes(app: Express): void {
     res.setHeader("Content-Disposition", `attachment; filename="${path.basename(full)}"`);
     res.sendFile(path.resolve(full));
   });
+
+  app.use(
+    "/media/bundled-flipbooks",
+    express.static(bundledFlipbooksDir(), {
+      index: false,
+      setHeaders(res, filePath) {
+        if (filePath.endsWith(".html") || filePath.endsWith(".json")) {
+          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=86400");
+        }
+      },
+    }),
+  );
 }

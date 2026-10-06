@@ -2,12 +2,16 @@ import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "r
 import { PALETTES, paletteById } from "@shared/palettes";
 import { DEFAULT_CURATOR, DEFAULT_PLAYER_SETUP, publicCurator } from "@shared/seed-data";
 import type { BookListItem, BookPage, Curator, PlayerSetup, PublicBook } from "@shared/types";
+import { applyUniformSongSpacing, type SongNav } from "@shared/song-nav";
 import {
   adminLogin,
   adminLogout,
   adminMe,
   createBook,
   importPdfOnServer,
+  prepareBundledFlipbook,
+  publishBundledFlipbook,
+  updateBundledFlipbookDraft,
   deleteBook,
   generateAiImage,
   generateAiOutline,
@@ -284,7 +288,7 @@ export default function AdminPage() {
       ) : null}
 
       {importOpen ? (
-        <AdminDialog title="Add book from PDF" onClose={() => setImportOpen(false)}>
+        <AdminDialog title="Add book from PDF" wide onClose={() => setImportOpen(false)}>
           <ImportBookForm
             onSaved={async (book) => {
               setImportOpen(false);
@@ -319,14 +323,27 @@ function ImportBookForm({
   onSaved: (book: PublicBook) => Promise<void>;
   onCancel: () => void;
 }) {
+  const [mode, setMode] = useState<"reader" | "songbook">("reader");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [imported, setImported] = useState<Imported | null>(null);
+  const [draft, setDraft] = useState<{
+    draftId: string;
+    title: string;
+    tagline: string;
+    author: string;
+    date: string;
+    pageCount: number;
+    previewUrl: string;
+    songNav: SongNav;
+  } | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [busy, setBusy] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
+  const songNavTimer = useRef<number>(0);
 
   useEffect(() => () => imported?.dispose(), [imported]);
+  useEffect(() => () => window.clearTimeout(songNavTimer.current), []);
 
   async function load(file: File) {
     controllerRef.current?.abort();
@@ -338,9 +355,29 @@ function ImportBookForm({
     try {
       if (controller.signal.aborted) throw new DOMException("Import cancelled", "AbortError");
       setStatus("Uploading PDF to the server…");
+      if (mode === "songbook") {
+        const result = await prepareBundledFlipbook(file);
+        if (controller.signal.aborted) throw new DOMException("Import cancelled", "AbortError");
+        setImported(null);
+        setDraft({
+          draftId: result.draftId,
+          title: result.title,
+          tagline: "",
+          author: "",
+          date: "",
+          pageCount: result.pageCount,
+          previewUrl: result.previewUrl,
+          songNav: result.songNav.entries.length
+            ? result.songNav
+            : { songListPage: 3, entries: [] },
+        });
+        setStatus(`${result.pageCount} pages ready. Add song links, then save.`);
+        return;
+      }
       const result = await importPdfOnServer(file);
       if (controller.signal.aborted) throw new DOMException("Import cancelled", "AbortError");
       imported?.dispose();
+      setDraft(null);
       setImported({
         book: {
           ...result.book,
@@ -360,16 +397,150 @@ function ImportBookForm({
     }
   }
 
+  function scheduleSongNavSync(next: NonNullable<typeof draft>) {
+    window.clearTimeout(songNavTimer.current);
+    songNavTimer.current = window.setTimeout(() => {
+      void updateBundledFlipbookDraft(next.draftId, { songNav: next.songNav, title: next.title })
+        .then((updated) => {
+          setDraft((current) => current && current.draftId === next.draftId
+            ? { ...current, previewUrl: updated.previewUrl }
+            : current);
+        })
+        .catch((err: Error) => setError(err.message));
+    }, 400);
+  }
+
+  function patchDraft(patch: Partial<NonNullable<typeof draft>>) {
+    setDraft((current) => {
+      if (!current) return current;
+      const next = { ...current, ...patch };
+      if (patch.songNav || patch.title !== undefined) scheduleSongNavSync(next);
+      return next;
+    });
+  }
+
   const page = imported?.book.pages[pageIndex];
 
   return (
     <div>
+      <label>Flipbook type</label>
+      <select
+        value={mode}
+        disabled={busy}
+        onChange={(event) => {
+          setMode(event.target.value as "reader" | "songbook");
+          setImported(null);
+          setDraft(null);
+          setStatus("");
+        }}
+      >
+        <option value="reader">Spodazo reader (story / illustration pages)</option>
+        <option value="songbook">Bundled songbook (Be Thou style, with song links)</option>
+      </select>
       <label>PDF file</label>
       <input type="file" accept="application/pdf,.pdf" disabled={busy} onChange={(event) => {
         const file = event.currentTarget.files?.[0];
         if (file) void load(file);
       }} />
-      <p className="hint">{status || "Each PDF page becomes one leaf of the flip book. Import runs on the server so Safari and dock icons work reliably."}</p>
+      <p className="hint">{status || (mode === "songbook"
+        ? "Each PDF page becomes a leaf in the same flip engine as Be Thou My Vision. Song list taps need page numbers and vertical positions."
+        : "Each PDF page becomes one leaf of the flip book. Import runs on the server so Safari and dock icons work reliably.")}</p>
+      {draft ? (
+        <>
+          <label>Book title</label>
+          <input value={draft.title} onChange={(event) => patchDraft({ title: event.target.value })} />
+          <label>Subtitle</label>
+          <input value={draft.tagline} onChange={(event) => patchDraft({ tagline: event.target.value })} />
+          <label>Author</label>
+          <input value={draft.author} onChange={(event) => patchDraft({ author: event.target.value })} />
+          <label>Date</label>
+          <input value={draft.date} onChange={(event) => patchDraft({ date: event.target.value })} />
+          <label>Song list page (Forward / contents)</label>
+          <input
+            type="number"
+            min={0}
+            max={draft.pageCount}
+            value={draft.songNav.songListPage}
+            onChange={(event) => patchDraft({
+              songNav: { ...draft.songNav, songListPage: Number(event.target.value) || 0 },
+            })}
+          />
+          <p className="hint">{draft.pageCount} pages. `top` is percent from the top of that page (Be Thou starts at 53.6, step 3.2).</p>
+          <div className="song-nav-head">
+            <strong>Song links</strong>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => patchDraft({
+                songNav: { ...draft.songNav, entries: applyUniformSongSpacing(draft.songNav.entries) },
+              })}
+            >
+              Apply uniform spacing
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => patchDraft({
+                songNav: {
+                  ...draft.songNav,
+                  entries: [...draft.songNav.entries, { page: 1, top: 50, label: "New song" }],
+                },
+              })}
+            >
+              Add song
+            </button>
+          </div>
+          <div className="song-nav-table">
+            {draft.songNav.entries.map((entry, index) => (
+              <div className="song-nav-row" key={index}>
+                <input
+                  aria-label="Song label"
+                  value={entry.label}
+                  onChange={(event) => {
+                    const entries = draft.songNav.entries.slice();
+                    entries[index] = { ...entry, label: event.target.value };
+                    patchDraft({ songNav: { ...draft.songNav, entries } });
+                  }}
+                />
+                <input
+                  type="number"
+                  aria-label="Target page"
+                  min={1}
+                  max={draft.pageCount}
+                  value={entry.page}
+                  onChange={(event) => {
+                    const entries = draft.songNav.entries.slice();
+                    entries[index] = { ...entry, page: Number(event.target.value) || 1 };
+                    patchDraft({ songNav: { ...draft.songNav, entries } });
+                  }}
+                />
+                <input
+                  type="number"
+                  aria-label="Top percent"
+                  step={0.1}
+                  value={entry.top}
+                  onChange={(event) => {
+                    const entries = draft.songNav.entries.slice();
+                    entries[index] = { ...entry, top: Number(event.target.value) || 0 };
+                    patchDraft({ songNav: { ...draft.songNav, entries } });
+                  }}
+                />
+                <button
+                  type="button"
+                  className="ghost"
+                  aria-label="Remove song"
+                  onClick={() => patchDraft({
+                    songNav: { ...draft.songNav, entries: draft.songNav.entries.filter((_, i) => i !== index) },
+                  })}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+          <iframe className="songbook-preview" title="Songbook preview" src={draft.previewUrl} />
+        </>
+      ) : null}
       {imported && page ? (
         <>
           <label>Book title</label>
@@ -412,12 +583,27 @@ function ImportBookForm({
       <div className="form-actions">
         <button
           type="button"
-          disabled={!imported || busy}
+          disabled={(!imported && !draft) || busy}
           onClick={async () => {
-            if (!imported) return;
             setBusy(true);
             setError("");
             try {
+              if (draft) {
+                const result = await publishBundledFlipbook({
+                  draftId: draft.draftId,
+                  title: draft.title,
+                  tagline: draft.tagline,
+                  author: draft.author,
+                  date: draft.date,
+                  songNav: draft.songNav,
+                  audience: "adults",
+                  published: true,
+                  hidden: false,
+                });
+                await onSaved(result.book);
+                return;
+              }
+              if (!imported) return;
               const saved = await createBook({
                 title: imported.book.title,
                 tagline: imported.book.tagline,
@@ -1203,7 +1389,7 @@ function PlayerSetupForm({
   );
 }
 
-function AdminDialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+function AdminDialog({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -1219,7 +1405,7 @@ function AdminDialog({ title, onClose, children }: { title: string; onClose: () 
   }, [onClose]);
   return (
     <div className="admin-dialog-backdrop" onClick={onClose} role="presentation">
-      <div ref={panelRef} className="admin-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()}>
+      <div ref={panelRef} className={wide ? "admin-dialog admin-dialog-wide" : "admin-dialog"} role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()}>
         <div className="admin-dialog-head">
           <h3>{title}</h3>
           <button type="button" className="ghost" onClick={onClose} aria-label="Close">Close</button>

@@ -472,6 +472,23 @@ html.book-closing .bundled-flipbook-host {
   border-radius: 16px;
   padding: 20px;
 }
+.admin-dialog-wide { width: min(1080px, 100%); }
+.song-nav-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; }
+.song-nav-row {
+  display: grid;
+  grid-template-columns: 1fr 72px 72px auto;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.songbook-preview {
+  display: block;
+  width: 100%;
+  height: min(520px, 55vh);
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #021b3f;
+}
 .admin-dialog-head { display: flex; justify-content: space-between; align-items: center; }
 .ai-character-row {
   display: grid;

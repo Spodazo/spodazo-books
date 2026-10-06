@@ -13,6 +13,10 @@ export function pdfsDir(): string {
   return path.join(dataDir(), "pdfs");
 }
 
+export function bundledFlipbooksDir(): string {
+  return path.join(dataDir(), "bundled-flipbooks");
+}
+
 export function faviconDir(): string {
   return path.join(dataDir(), "favicons");
 }
@@ -22,7 +26,7 @@ export function catalogPath(): string {
 }
 
 export function ensureDataDirs(): void {
-  for (const dir of [dataDir(), imagesDir(), pdfsDir(), faviconDir()]) {
+  for (const dir of [dataDir(), imagesDir(), pdfsDir(), faviconDir(), bundledFlipbooksDir()]) {
     fs.mkdirSync(dir, { recursive: true });
   }
 }

@@ -129,6 +129,44 @@ export function importPdfOnServer(file: File): Promise<ServerPdfImport> {
   );
 }
 
+export type BundledFlipbookDraft = {
+  draftId: string;
+  title: string;
+  pageCount: number;
+  ratio: number;
+  previewUrl: string;
+  songNav: { songListPage: number; entries: Array<{ page: number; top: number; label: string }> };
+};
+
+export function prepareBundledFlipbook(file: File): Promise<BundledFlipbookDraft> {
+  const data = new FormData();
+  data.append("file", file, file.name);
+  return fetch("/api/admin/bundled-flipbook/prepare", { method: "POST", body: data, credentials: "same-origin" }).then(
+    (res) => parse<BundledFlipbookDraft>(res),
+  );
+}
+
+export function updateBundledFlipbookDraft(
+  draftId: string,
+  body: { songNav: BundledFlipbookDraft["songNav"]; title?: string },
+): Promise<BundledFlipbookDraft & { previewUrl: string }> {
+  return fetch(`/api/admin/bundled-flipbook/${encodeURIComponent(draftId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(body),
+  }).then((res) => parse<BundledFlipbookDraft & { previewUrl: string }>(res));
+}
+
+export function publishBundledFlipbook(body: Record<string, unknown>): Promise<{ book: PublicBook; previewUrl: string }> {
+  return fetch("/api/admin/bundled-flipbook/publish", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(body),
+  }).then((res) => parse<{ book: PublicBook; previewUrl: string }>(res));
+}
+
 export function uploadBookAsset(blob: Blob, filename: string): Promise<{ url: string; filename: string }> {
   const data = new FormData();
   data.append("file", blob, filename);

@@ -13,6 +13,7 @@
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "test": "tsx --test server/*.test.ts shared/*.test.ts client/src/lib/*.test.ts client/src/flipbook/story-pages-html.test.ts",
+    "flipbook:from-pdf": "tsx scripts/build-bundled-flipbook-from-pdf.ts",
     "db:push": "drizzle-kit push",
     "postinstall": "node scripts/copy-pdfjs-assets.mjs"
   },
