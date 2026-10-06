@@ -5,8 +5,48 @@
  * - While zoomed: one-finger drag pans (all directions); double-tap or pinch to 1× resets
  * - Page turns via swipe only at 1× zoom
  * - Pan is clamped to the scaled page bounds
+ * - Double-tap a left/right edge (not zoomed) jumps to start/end
  */
 (function (global) {
+  var EDGE_FRAC = 0.18;
+  var EDGE_MIN = 56;
+  var DOUBLE_MS = 350;
+  var ARROW_MS = 400;
+
+  function edgeJumpSide(x, width) {
+    var band = Math.max(EDGE_MIN, width * EDGE_FRAC);
+    if (x <= band) return -1;
+    if (x >= width - band) return 1;
+    return 0;
+  }
+
+  function wireFlipArrows(arrL, arrR, handlers) {
+    var timer = 0;
+    function bind(el, dir) {
+      if (!el) return;
+      el.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (el.classList.contains("off")) return;
+        if (e.detail >= 2) {
+          clearTimeout(timer);
+          timer = 0;
+          if (dir < 0) handlers.start();
+          else handlers.end();
+          return;
+        }
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          timer = 0;
+          if (el.classList.contains("off")) return;
+          handlers.turn(dir);
+        }, ARROW_MS);
+      });
+    }
+    bind(arrL, -1);
+    bind(arrR, 1);
+  }
+
   function attachFlipbookMobileZoom(opts) {
     var stage = opts.stage;
     var book = opts.book;
@@ -31,6 +71,9 @@
     var lastZoomTap = 0;
     var lastZoomTapX = 0;
     var lastZoomTapY = 0;
+    var lastEdgeTap = 0;
+    var lastEdgeSide = 0;
+    var edgeTimer = 0;
     var sx = 0;
     var sy = 0;
     var sp = null;
@@ -221,8 +264,30 @@
         onTurn(dx < 0 ? 1 : -1);
         return;
       }
-      if (ax < 10 && ay < 10 && opts.onTap) {
-        opts.onTap(e, type);
+      if (ax < 10 && ay < 10) {
+        var stageBox = stage.getBoundingClientRect();
+        var side = edgeJumpSide(e.clientX - stageBox.left, stageBox.width);
+        var now = Date.now();
+        if (isSingle() && viewScale <= 1 && side && opts.onJump) {
+          if (side === lastEdgeSide && now - lastEdgeTap > 0 && now - lastEdgeTap <= DOUBLE_MS) {
+            clearTimeout(edgeTimer);
+            edgeTimer = 0;
+            lastEdgeTap = 0;
+            lastEdgeSide = 0;
+            opts.onJump(side);
+            return;
+          }
+          lastEdgeTap = now;
+          lastEdgeSide = side;
+          clearTimeout(edgeTimer);
+          var tap = { clientX: e.clientX, clientY: e.clientY, pointerType: type };
+          edgeTimer = setTimeout(function () {
+            edgeTimer = 0;
+            if (opts.onTap) opts.onTap(tap, type);
+          }, DOUBLE_MS);
+          return;
+        }
+        if (opts.onTap) opts.onTap(e, type);
       }
     });
 
@@ -237,4 +302,5 @@
   }
 
   global.attachFlipbookMobileZoom = attachFlipbookMobileZoom;
+  global.wireFlipArrows = wireFlipArrows;
 })(typeof window !== "undefined" ? window : this);
