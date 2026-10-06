@@ -42,6 +42,57 @@ function titleFromFilename(name: string): string {
   return (name || "New book").replace(/\.pdf$/i, "").replace(/[-_]/g, " ");
 }
 
+export type RenderedPdfJpeg = {
+  index: number;
+  jpeg: Buffer;
+  width: number;
+  height: number;
+};
+
+export async function renderPdfToJpegs(
+  pdfPath: string,
+  originalName = "",
+  onProgress?: (page: number, total: number) => void,
+): Promise<{ title: string; pages: RenderedPdfJpeg[] }> {
+  const stat = await fs.stat(pdfPath);
+  if (stat.size > MAX_BYTES) throw new Error("PDF exceeds the 80 MB import limit.");
+  const bytes = new Uint8Array(await fs.readFile(pdfPath));
+  const header = new TextDecoder().decode(bytes.slice(0, 1024));
+  if (!header.includes("%PDF-")) throw new Error("This file is not a PDF.");
+
+  const doc = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, isEvalSupported: false }).promise;
+  try {
+    if (doc.numPages > MAX_PAGES) throw new Error(`Maximum ${MAX_PAGES} pages per book.`);
+    const pages: RenderedPdfJpeg[] = [];
+    for (let i = 1; i <= doc.numPages; i += 1) {
+      onProgress?.(i, doc.numPages);
+      const page = await doc.getPage(i);
+      const base = page.getViewport({ scale: 1 });
+      const scale = Math.min(1800 / Math.max(base.width, base.height), Math.sqrt(4_000_000 / (base.width * base.height)));
+      const viewport = page.getViewport({ scale });
+      const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({
+        canvasContext: ctx as unknown as CanvasRenderingContext2D,
+        canvas: canvas as unknown as HTMLCanvasElement,
+        viewport,
+      }).promise;
+      pages.push({
+        index: i,
+        jpeg: canvas.toBuffer("image/jpeg", 91),
+        width: canvas.width,
+        height: canvas.height,
+      });
+      page.cleanup();
+    }
+    return { title: titleFromFilename(originalName || path.basename(pdfPath)), pages };
+  } finally {
+    await doc.cleanup();
+  }
+}
+
 export async function importPdfOnServer(
   pdfPath: string,
   originalName: string,

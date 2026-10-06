@@ -22,10 +22,22 @@ Opens on port 3001. Catalog is stored in `.books-data/catalog.json` until `DATAB
 1. Open `/admin`
 2. Sign in with `ADMIN_PASSWORD`
 3. Site Setup: logo, favicon, app name, colors
-4. Add a book from PDF, or **Create AI book** from a prompt
+4. Add a book from PDF, or **Create AI book** from a prompt. For a Be Thou–style songbook with clickable song links, choose **Bundled songbook** after picking the PDF, then fill the song list (target page + `top` % on the Forward page).
 5. For AI books: choose Children or Adults, optionally upload photos or caricatures, review the wording, then save (starts hidden)
 
 Willow-style PDFs (art left, story text right) become illustration + overlay. Other layouts flip as full pages.
+
+To build a bundled songbook from a PDF on the command line (same engine as Be Thou My Vision):
+
+```bash
+npx tsx scripts/build-bundled-flipbook-from-pdf.ts \
+  --pdf path/to/Be-Thou-My-Vision-Songbook.pdf \
+  --out client/public/flipbooks/my-songbook \
+  --song-nav client/public/flipbooks/be-thou-my-vision/song-nav.json \
+  --title "My Songbook"
+```
+
+Then register the slug in `shared/bundled-flipbooks.ts` if the book should ship in git. Admin **Bundled songbook** publish writes to `.books-data/bundled-flipbooks/` instead (no git commit required).
 
 AI books need `OPENAI_API_KEY`. GPT writes the story; GPT Image draws caricatures and pages. GPT Image often requires OpenAI organization verification. Optional: `OPENAI_STORY_MODEL`, `OPENAI_IMAGE_MODEL`, `OPENAI_IMAGE_QUALITY`.
 

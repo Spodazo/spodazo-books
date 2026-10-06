@@ -61,6 +61,8 @@ export type Book = {
   date: string;
   cover: string;
   pdf: string;
+  /** Runtime (Admin-published) bundled songbook directory under `.books-data/bundled-flipbooks`. */
+  bundledFlipbookDir?: string;
   color: string;
   sortOrder: number;
   hidden: boolean;

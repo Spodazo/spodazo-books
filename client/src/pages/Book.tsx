@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { bundledFlipbookSrc, isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
+import { bundledFlipbookSrcForBook, isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
@@ -44,13 +44,13 @@ export default function BookPage() {
   }, [closeToLibrary]);
 
   useEffect(() => {
-    if (slug && isBundledFlipbookSlug(slug)) {
+    if (slug && (isBundledFlipbookSlug(slug) || book?.bundledFlipbookDir)) {
       document.documentElement.classList.add("book-opening-bundled");
     }
     return () => {
       document.documentElement.classList.remove("book-opening-bundled");
     };
-  }, [slug]);
+  }, [slug, book?.bundledFlipbookDir]);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +72,7 @@ export default function BookPage() {
     };
   }, [slug]);
 
-  const bundledSrc = book ? bundledFlipbookSrc(book.slug, import.meta.env.BASE_URL) : "";
+  const bundledSrc = book ? bundledFlipbookSrcForBook(book, import.meta.env.BASE_URL) : "";
 
   useEffect(() => {
     const host = hostRef.current;

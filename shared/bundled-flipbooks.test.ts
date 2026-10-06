@@ -4,6 +4,7 @@ import {
   bundledFlipbookCoverUrl,
   bundledFlipbookPages,
   bundledFlipbookSrc,
+  bundledFlipbookSrcForBook,
   rudolphFlipbookPages,
 } from "./bundled-flipbooks";
 
@@ -32,4 +33,15 @@ test("Be Thou My Vision uses the bundled static flipbook", () => {
   assert.equal(pages.length, 18);
   assert.equal(pages[0].imageUrl, "/flipbooks/be-thou-my-vision/pages/p-01.jpg");
   assert.equal(pages[17].imageUrl, "/flipbooks/be-thou-my-vision/pages/p-18.jpg");
+});
+
+test("runtime bundled books use the media path", () => {
+  assert.equal(
+    bundledFlipbookSrcForBook({ slug: "new-songbook", bundledFlipbookDir: "new-songbook" }, "/"),
+    "/media/bundled-flipbooks/new-songbook/index.html",
+  );
+  assert.equal(
+    bundledFlipbookSrcForBook({ slug: "Be-Thou-My-Vision", bundledFlipbookDir: "ignored" }, "/"),
+    "/flipbooks/be-thou-my-vision/index.html",
+  );
 });

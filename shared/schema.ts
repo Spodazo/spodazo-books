@@ -9,6 +9,7 @@ export const books = pgTable("books", {
   date: text("book_date").notNull().default(""),
   cover: text("cover").notNull().default(""),
   pdf: text("pdf").notNull().default(""),
+  bundledFlipbookDir: text("bundled_flipbook_dir").notNull().default(""),
   pagesJson: text("pages_json").notNull().default("[]"),
   color: text("color").notNull().default("honey"),
   sortOrder: integer("sort_order").notNull().default(0),
