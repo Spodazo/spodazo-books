@@ -25,7 +25,7 @@ Opens on port 3001. Catalog is stored in `.books-data/catalog.json` until `DATAB
 4. Add a book from PDF, or **Create AI book** from a prompt
 5. For AI books: choose Children or Adults, optionally upload photos or caricatures, review the wording, then save (starts hidden)
 
-Willow-style PDFs (art left, story text right) become illustration + overlay. Other layouts flip as full pages.
+A PDF upload becomes a flip book with the same turns, arrows, mobile pinch-zoom, keyboard, and Read again as Be Thou My Vision. Each PDF page is one leaf. Song lists and contents pages in the PDF become tappable jumps.
 
 AI books need `OPENAI_API_KEY`. GPT writes the story; GPT Image draws caricatures and pages. GPT Image often requires OpenAI organization verification. Optional: `OPENAI_STORY_MODEL`, `OPENAI_IMAGE_MODEL`, `OPENAI_IMAGE_QUALITY`.
 

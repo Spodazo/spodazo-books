@@ -7,6 +7,7 @@ import { DEFAULT_PAGE_BACKGROUND, libraryCoverLayout } from "@shared/page-layout
 import { DEFAULT_PLAYER_SETUP, groupBooksByAudience } from "@shared/seed-data";
 import type { BookListItem, PlayerSetup } from "@shared/types";
 import { isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
+import { isFacsimileFlipbookListItem } from "@shared/facsimile-flipbook";
 import { fetchBook } from "../lib/api";
 import { markBookOpen } from "../lib/bookOpen";
 import { loadHomeBooks, loadHomeSetup, readCachedBooks, readCachedSetup } from "../lib/homeCache";
@@ -106,7 +107,7 @@ function LibraryBookCard({ book }: { book: BookListItem }) {
         onFocus={zoomEnabled ? () => setZoomed(true) : undefined}
         onBlur={zoomEnabled ? () => setZoomed(false) : undefined}
         onClick={() => {
-          markBookOpen({ bundled: isBundledFlipbookSlug(book.slug) });
+          markBookOpen({ bundled: isBundledFlipbookSlug(book.slug) || isFacsimileFlipbookListItem(book) });
           void fetchBook(book.slug);
         }}
       >

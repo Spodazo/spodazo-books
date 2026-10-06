@@ -11,7 +11,8 @@ declare global {
 
 globalThis.pdfjsWorker = pdfWorker;
 import { detectStoryLayout } from "../client/src/flipbook/layout.js";
-import { imagesDir, pdfsDir, uniqueFileName } from "./paths";
+import { detectPdfIndexLinks, type PdfIndexPageInput, type PageJumpLink } from "../shared/pdf-index-links";
+import { imagesDir, uniqueFileName } from "./paths";
 import { imageUrl, pdfUrl } from "./media";
 
 const MAX_PAGES = 100;
@@ -29,6 +30,7 @@ export type ImportedPdfPage = {
   fullPageUrl: string;
   position: "bottom";
   focalPoint: string;
+  links?: PageJumpLink[];
 };
 
 export type ImportedPdfBook = {
@@ -40,6 +42,63 @@ export type ImportedPdfBook = {
 
 function titleFromFilename(name: string): string {
   return (name || "New book").replace(/\.pdf$/i, "").replace(/[-_]/g, " ");
+}
+
+async function destPageNumber(doc: { getDestination: (name: string) => Promise<unknown>; getPageIndex: (ref: unknown) => Promise<number> }, dest: unknown): Promise<number> {
+  if (!dest) return 0;
+  let explicit = dest;
+  if (typeof dest === "string") {
+    try {
+      explicit = await doc.getDestination(dest);
+    } catch {
+      return 0;
+    }
+  }
+  if (!Array.isArray(explicit) || !explicit[0]) return 0;
+  try {
+    return (await doc.getPageIndex(explicit[0])) + 1;
+  } catch {
+    return 0;
+  }
+}
+
+async function readLinkAnnotations(
+  doc: { getDestination: (name: string) => Promise<unknown>; getPageIndex: (ref: unknown) => Promise<number> },
+  page: { getAnnotations: () => Promise<unknown[]> },
+  viewport: { width: number; height: number; convertToViewportRectangle?: (rect: number[]) => number[] },
+): Promise<PdfIndexPageInput["annotations"]> {
+  const anns = await page.getAnnotations();
+  const links: NonNullable<PdfIndexPageInput["annotations"]> = [];
+  for (const raw of anns) {
+    const ann = raw as {
+      subtype?: string;
+      dest?: unknown;
+      url?: string;
+      title?: string;
+      contents?: string;
+      rect?: number[];
+    };
+    if (String(ann.subtype || "") !== "Link") continue;
+    const dest = await destPageNumber(doc, ann.dest);
+    if (!dest || dest < 1) continue;
+    const pdfRect = Array.isArray(ann.rect) ? ann.rect : [0, 0, 0, 0];
+    const rect = viewport.convertToViewportRectangle
+      ? viewport.convertToViewportRectangle(pdfRect)
+      : [pdfRect[0], viewport.height - pdfRect[3], pdfRect[2], viewport.height - pdfRect[1]];
+    const leftPx = Math.min(rect[0], rect[2]);
+    const topPx = Math.min(rect[1], rect[3]);
+    const widthPx = Math.abs(rect[2] - rect[0]);
+    const heightPx = Math.abs(rect[3] - rect[1]);
+    links.push({
+      destPage: dest,
+      left: (leftPx / viewport.width) * 100,
+      top: (topPx / viewport.height) * 100,
+      width: (widthPx / viewport.width) * 100,
+      height: (heightPx / viewport.height) * 100,
+      label: String(ann.title || ann.contents || "").trim(),
+    });
+  }
+  return links;
 }
 
 export async function importPdfOnServer(
@@ -57,6 +116,7 @@ export async function importPdfOnServer(
   try {
     if (doc.numPages > MAX_PAGES) throw new Error(`Maximum ${MAX_PAGES} pages per book.`);
     const pages: ImportedPdfPage[] = [];
+    const indexPages: PdfIndexPageInput[] = [];
     await fs.mkdir(imagesDir(), { recursive: true });
 
     for (let i = 1; i <= doc.numPages; i += 1) {
@@ -71,6 +131,14 @@ export async function importPdfOnServer(
           const m = pdfjs.Util.transform(base.transform, text.transform);
           return { text: text.str, x: m[4], y: m[5], size: Math.hypot(m[2], m[3]) };
         });
+      const annotations = await readLinkAnnotations(doc, page, base);
+      indexPages.push({
+        sourcePage: i,
+        width: base.width,
+        height: base.height,
+        items,
+        annotations,
+      });
       const layout = detectStoryLayout(items, base.width, base.height, "auto");
       const scale = Math.min(1800 / Math.max(base.width, base.height), Math.sqrt(4_000_000 / (base.width * base.height)));
       const viewport = page.getViewport({ scale });
@@ -101,6 +169,12 @@ export async function importPdfOnServer(
         focalPoint: "50% 50%",
       });
       page.cleanup();
+    }
+
+    const indexLinks = detectPdfIndexLinks(indexPages, titleFromFilename(originalName));
+    for (const page of pages) {
+      const links = indexLinks.get(page.sourcePage);
+      if (links?.length) page.links = links;
     }
 
     const pdfAsset = path.basename(pdfPath);

@@ -18,10 +18,12 @@ test("parsePagesJson keeps story fields", () => {
         fullPageAsset: "page-001.jpg",
         position: "top",
         focalPoint: "25% 50%",
+        links: [{ page: 4, label: "Be Thou My Vision", top: 31.5, left: 22, width: 56, height: 3.1 }],
       },
     ]),
   );
   assert.equal(pages[0].title, "Hello");
+  assert.equal(pages[0].links?.[0]?.page, 4);
   assert.deepEqual(pages[0].paragraphs, ["One", "Two"]);
   assert.equal(pages[0].position, "top");
 });

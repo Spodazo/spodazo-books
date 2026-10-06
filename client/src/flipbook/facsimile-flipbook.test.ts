@@ -1,0 +1,27 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+test("uploaded PDF flipbook engine has the Be Thou My Vision controls", async () => {
+  const engine = await readFile(new URL("./facsimile-flipbook-engine.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("./facsimile-flipbook.css", import.meta.url), "utf8");
+  const mount = await readFile(new URL("./facsimile-flipbook.js", import.meta.url), "utf8");
+  assert.match(engine, /function goToStart/);
+  assert.match(engine, /function goToEnd/);
+  assert.match(engine, /function restart/);
+  assert.match(engine, /attachFlipbookMobileZoom/);
+  assert.match(engine, /wireFlipArrows\(arrL, arrR/);
+  assert.match(engine, /spodazo-book-close/);
+  assert.match(engine, /spodazo-reader-ready/);
+  assert.match(engine, /Read again/);
+  assert.match(engine, /function goToPageNumber/);
+  assert.match(engine, /function mountIndexHots/);
+  assert.match(engine, /hot-index/);
+  assert.match(css, /\.flipbook-close/);
+  assert.match(css, /\.arrow/);
+  assert.match(css, /\.page\.index \.hot/);
+  assert.match(mount, /createFacsimileFlipbookDocument/);
+  assert.match(mount, /mountFacsimileFlipbook/);
+  assert.match(mount, /pageLinks/);
+  assert.match(mount, /\/flipbooks\/mobile-view-zoom\.js/);
+});

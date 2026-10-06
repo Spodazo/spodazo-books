@@ -1,4 +1,5 @@
 import { normalizeColor, normalizeLayout } from "./page-layout";
+import { normalizePageJumpLinks } from "./pdf-index-links";
 import { DEFAULT_PALETTE_ID, normalizePaletteId } from "./palettes";
 import type { BookAudience, BookPage, CharacterRender, Curator, CuratorRecord, PageTemplate, PlayerSetup } from "./types";
 
@@ -127,6 +128,7 @@ export function normalizeBookPage(raw: Partial<BookPage>, index: number): BookPa
     alt: raw.alt ? String(raw.alt) : undefined,
     elements: normalizeLayout({ elements: raw.elements || [] }).elements,
     background: normalizeColor(raw.background, ""),
+    links: normalizePageJumpLinks(raw.links),
   };
 }
 
@@ -153,6 +155,7 @@ export function pagesToJson(pages: BookPage[]): string {
       position: page.position,
       focalPoint: page.focalPoint,
       alt: page.alt,
+      links: page.links?.length ? page.links : undefined,
       elements: normalizeLayout({ elements: page.elements }).elements.map((item) => ({
         id: item.id,
         type: item.type,

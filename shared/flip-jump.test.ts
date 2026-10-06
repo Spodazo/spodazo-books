@@ -27,6 +27,7 @@ test("bundled flipbooks jump on double-click arrows and mobile edges", async () 
   for (const file of [
     "../client/public/flipbooks/be-thou-my-vision/index.html",
     "../client/public/flipbooks/rudolph-the-red-nosed-reindeer/index.html",
+    "../client/src/flipbook/facsimile-flipbook-engine.js",
   ]) {
     const html = await readFile(new URL(file, import.meta.url), "utf8");
     assert.match(html, /function goToStart/);
@@ -34,6 +35,16 @@ test("bundled flipbooks jump on double-click arrows and mobile edges", async () 
     assert.match(html, /wireFlipArrows\(arrL, arrR/);
     assert.match(html, /onJump:/);
   }
+});
+
+test("uploaded PDF flipbooks mount contents taps from pageLinks", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const engine = await readFile(new URL("../client/src/flipbook/facsimile-flipbook-engine.js", import.meta.url), "utf8");
+  assert.match(engine, /PAGE_LINKS/);
+  assert.match(engine, /function goToPageNumber/);
+  assert.match(engine, /function mountIndexHots/);
+  assert.match(engine, /hot-index/);
+  assert.match(engine, /closest\("\.hot"\)/);
 });
 
 test("Be Thou song list taps live on the contents page", async () => {

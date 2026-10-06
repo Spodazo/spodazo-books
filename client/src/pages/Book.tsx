@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { bundledFlipbookSrc, isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
+import { shouldUseFacsimileFlipbook } from "@shared/facsimile-flipbook";
 import { ensureBookLayouts } from "@shared/page-layout";
 import { characterUrlFor } from "@shared/reader-pages";
 import { DEFAULT_PLAYER_SETUP } from "@shared/seed-data";
@@ -10,6 +11,7 @@ import { clearBookOpen } from "../lib/bookOpen";
 import { attachReaderReveal } from "../lib/readerReveal";
 import { loadHomeSetup, readCachedSetup } from "../lib/homeCache";
 import type { PlayerSetup, PublicBook } from "@shared/types";
+import { mountFacsimileFlipbook } from "../flipbook/facsimile-flipbook.js";
 import { mountReader } from "../flipbook/reader.js";
 
 export default function BookPage() {
@@ -44,13 +46,13 @@ export default function BookPage() {
   }, [closeToLibrary]);
 
   useEffect(() => {
-    if (slug && isBundledFlipbookSlug(slug)) {
+    if (slug && (isBundledFlipbookSlug(slug) || (book && shouldUseFacsimileFlipbook(book)))) {
       document.documentElement.classList.add("book-opening-bundled");
     }
     return () => {
       document.documentElement.classList.remove("book-opening-bundled");
     };
-  }, [slug]);
+  }, [slug, book]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,14 +80,16 @@ export default function BookPage() {
     const host = hostRef.current;
     if (!host || !book || bundledSrc) return;
     const fromHome = Boolean(document.documentElement.classList.contains("book-opening"));
-    const handle = mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
-      libraryUrl: "/",
-      fadeOpen: false,
-      baseUrl: location.href,
-      credits: setup.credits,
-      copyright: setup.copyright,
-      logoUrl: setup.logoUrl,
-    });
+    const handle = shouldUseFacsimileFlipbook(book)
+      ? mountFacsimileFlipbook(host, book, { libraryUrl: "/", baseUrl: location.href })
+      : mountReader(host, ensureBookLayouts(book, { coverUrl: book.coverUrl, characterUrl: characterUrlFor(book) }), {
+        libraryUrl: "/",
+        fadeOpen: false,
+        baseUrl: location.href,
+        credits: setup.credits,
+        copyright: setup.copyright,
+        logoUrl: setup.logoUrl,
+      });
     const detach = attachReaderReveal(host, handle.frame, fromHome);
     return () => {
       detach();
