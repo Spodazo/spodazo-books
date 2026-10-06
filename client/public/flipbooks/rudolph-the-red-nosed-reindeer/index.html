@@ -154,6 +154,7 @@ body {
   </div>
 </div>
 
+<script src="../mobile-view-zoom.js"></script>
 <script>
 (function () {
   var IMAGES = 20, TOTAL = 20, RATIO = 705.12 / 450;
@@ -409,95 +410,22 @@ body {
     }, 380);
   }
 
-  // Mobile pinch-zoom (single-page mode): two fingers scale the book; one finger pans while zoomed.
-  var viewScale = 1, viewPanX = 0, viewPanY = 0;
-  var touchPts = new Map();
-  var pinchRefDist = 0, pinchRefScale = 1;
-  var gesturePinch = false, gesturePan = false;
-  var panStartX = 0, panStartY = 0, panRefX = 0, panRefY = 0;
-  function clampZoom(n) { return Math.max(1, Math.min(4, n)); }
-  function applyViewZoom() {
-    if (viewScale <= 1.001 && Math.abs(viewPanX) < 0.5 && Math.abs(viewPanY) < 0.5) {
-      book.style.transform = '';
-      return;
-    }
-    book.style.transform = 'translate(' + viewPanX + 'px,' + viewPanY + 'px) scale(' + viewScale + ')';
-  }
+  var mobileZoomCtl = null;
   function resetViewZoom() {
-    viewScale = 1; viewPanX = 0; viewPanY = 0;
-    gesturePinch = false; gesturePan = false;
-    applyViewZoom();
+    if (mobileZoomCtl) mobileZoomCtl.reset();
   }
-  function touchPointList() {
-    var out = [];
-    touchPts.forEach(function (p) { out.push(p); });
-    return out;
-  }
-  function touchDist(a, b) {
-    return Math.hypot(a.x - b.x, a.y - b.y);
-  }
-  function releaseTouchPointer(e) {
-    touchPts.delete(e.pointerId);
-    if (touchPts.size < 2) gesturePinch = false;
-    if (!touchPts.size) gesturePan = false;
-    try { stage.releasePointerCapture(e.pointerId); } catch (err) {}
-  }
-
-  // input: click left/right of the spine (mouse), swipe (touch), drag (mouse), arrow keys
-  var sx = 0, sy = 0, sp = null;
-  stage.addEventListener('pointerdown', function (e) {
-    if (e.target.closest && e.target.closest('.flipbook-close')) return;
-    touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
-    if (single && touchPts.size === 2) {
-      gesturePinch = true;
-      sp = null;
-      var pair = touchPointList();
-      pinchRefDist = touchDist(pair[0], pair[1]);
-      pinchRefScale = viewScale;
-      return;
-    }
-    if (single && viewScale > 1 && touchPts.size === 1) {
-      gesturePan = true;
-      sp = null;
-      panStartX = e.clientX; panStartY = e.clientY;
-      panRefX = viewPanX; panRefY = viewPanY;
-      return;
-    }
-    sx = e.clientX; sy = e.clientY; sp = e.pointerType;
-  });
-  stage.addEventListener('pointermove', function (e) {
-    if (!touchPts.has(e.pointerId)) return;
-    touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (single && gesturePinch && touchPts.size >= 2) {
-      var pts = touchPointList();
-      if (pts.length >= 2 && pinchRefDist > 0) {
-        viewScale = clampZoom(pinchRefScale * (touchDist(pts[0], pts[1]) / pinchRefDist));
-        applyViewZoom();
-      }
-      return;
-    }
-    if (single && gesturePan && touchPts.size === 1 && viewScale > 1) {
-      viewPanX = panRefX + (e.clientX - panStartX);
-      viewPanY = panRefY + (e.clientY - panStartY);
-      applyViewZoom();
-    }
-  });
-  stage.addEventListener('pointerup', function (e) {
-    if (e.target.closest && e.target.closest('.flipbook-close')) { sp = null; releaseTouchPointer(e); return; }
-    if (gesturePinch || gesturePan) {
-      releaseTouchPointer(e);
-      sp = null;
-      return;
-    }
-    releaseTouchPointer(e);
-    if (sp === null) return;
-    if (single && viewScale > 1) { sp = null; return; }
-    var dx = e.clientX - sx, dy = e.clientY - sy, type = sp; sp = null;
-    var ax = Math.abs(dx), ay = Math.abs(dy);
-    if (ax > 40 && ax > ay * 1.2) { go(dx < 0 ? 1 : -1); return; }
-    if (ax < 10 && ay < 10) {
-      var r = stage.getBoundingClientRect(), onRight = e.clientX - r.left >= r.width / 2;
+  mobileZoomCtl = attachFlipbookMobileZoom({
+    stage: stage,
+    book: book,
+    isSingle: function () { return single; },
+    layoutSize: function () { return { pw: pw, ph: ph, spread: !single }; },
+    onTurn: function (dir) { go(dir); },
+    ignoreTarget: function (el) {
+      return el.closest && el.closest('.flipbook-close');
+    },
+    onTap: function (e, type) {
+      var r = stage.getBoundingClientRect();
+      var onRight = e.clientX - r.left >= r.width / 2;
       if (type === 'touch') {
         if (atLastPage()) restart();
       } else if (atLastPage() && (single || onRight)) {
@@ -506,10 +434,6 @@ body {
         go(onRight ? 1 : -1);
       }
     }
-  });
-  stage.addEventListener('pointercancel', function (e) {
-    releaseTouchPointer(e);
-    sp = null;
   });
   window.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowRight' || e.key === 'PageDown') { if (atLastPage()) restart(); else go(1); }
