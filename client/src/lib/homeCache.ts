@@ -37,7 +37,7 @@ export function readCachedBooks(): BookListItem[] {
 
 export function writeCachedBooks(books: BookListItem[]) {
   try {
-    storage()?.setItem(HOME_BOOKS_KEY, JSON.stringify(books));
+    storage()?.setItem(HOME_BOOKS_KEY, JSON.stringify(sortBooksByAdminOrder(books)));
   } catch {
     /* private mode */
   }
