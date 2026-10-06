@@ -112,20 +112,38 @@
     Array.prototype.slice.call(page.querySelectorAll(".hot-index")).forEach(function (el) { el.remove(); });
   }
 
+  function imageContentBox(page) {
+    var img = page.querySelector("img");
+    var pw = page.clientWidth || 1;
+    var ph = page.clientHeight || 1;
+    if (!img || !img.naturalWidth || !img.naturalHeight) {
+      return { top: 0, left: 0, width: 100, height: 100 };
+    }
+    var ir = img.naturalWidth / img.naturalHeight;
+    var pr = pw / ph;
+    if (ir > pr) {
+      var h = ((pw / ir) / ph) * 100;
+      return { top: (100 - h) / 2, left: 0, width: 100, height: h };
+    }
+    var w = ((ph * ir) / pw) * 100;
+    return { top: 0, left: (100 - w) / 2, width: w, height: 100 };
+  }
+
   function mountIndexHots(page, n) {
     var links = linksFor(n);
     clearIndexHots(page);
     if (!links.length) return;
     page.classList.add("index");
     page.setAttribute("data-index-hots", String(n));
+    var box = imageContentBox(page);
     links.forEach(function (link) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "hot hot-index";
-      b.style.top = Number(link.top) + "%";
-      b.style.left = Number(link.left) + "%";
-      b.style.width = Number(link.width) + "%";
-      b.style.height = Number(link.height) + "%";
+      b.style.top = (box.top + Number(link.top) * box.height / 100) + "%";
+      b.style.left = (box.left + Number(link.left) * box.width / 100) + "%";
+      b.style.width = (Number(link.width) * box.width / 100) + "%";
+      b.style.height = (Number(link.height) * box.height / 100) + "%";
       b.setAttribute("aria-label", link.label || ("Go to page " + link.page));
       function activate(e) {
         e.stopPropagation();
@@ -160,7 +178,9 @@
     }
     var s = src(n);
     if (img.getAttribute("src") !== s) img.setAttribute("src", s);
-    return img.decode ? img.decode().catch(function () {}) : Promise.resolve();
+    return (img.decode ? img.decode().catch(function () {}) : Promise.resolve()).then(function () {
+      if (n && linksFor(n).length) mountIndexHots(p, n);
+    });
   }
 
   function warm(n) {
