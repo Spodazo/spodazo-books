@@ -36,6 +36,19 @@ test("bundled flipbooks jump on double-click arrows and mobile edges", async () 
   }
 });
 
+test("Be Thou song list taps live on the contents page", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const html = await readFile(
+    new URL("../client/public/flipbooks/be-thou-my-vision/index.html", import.meta.url),
+    "utf8",
+  );
+  assert.match(html, /if \(n === 2\) \{\s*p\.classList\.add\('songs'\)/);
+  assert.match(html, /label: '01 Be Thou My Vision'/);
+  assert.match(html, /label: '10 All is Well'/);
+  assert.match(html, /page: 4, top: 31\.53/);
+  assert.equal([...html.matchAll(/label: ['"]/g)].length, 10);
+});
+
 test("in-app reader jumps on double-click zones and mobile edge taps", async () => {
   const { readFile } = await import("node:fs/promises");
   const runtime = await readFile(new URL("../client/src/flipbook/reader-runtime.js", import.meta.url), "utf8");
