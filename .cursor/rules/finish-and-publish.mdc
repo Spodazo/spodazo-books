@@ -1,0 +1,12 @@
+---
+description: Finish the full job, then ask the user to publish
+alwaysApply: true
+---
+
+# Finish the job, then ask to publish
+
+Complete the full job (implement, test, commit, push, PR). Railway deploys from `main` — a feature branch is not live.
+
+Then ask the user to publish. Their shortcut is `pp`.
+
+When they say `pp`: commit if needed, push, and merge the PR into `main` so Railway deploys. Do not ask for extra confirmation.
