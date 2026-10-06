@@ -2,8 +2,9 @@
  * Pinch/pan for bundled flipbooks (single-page / mobile mode).
  * - Double-tap resets zoom
  * - Pinch back to 1× clears pan
- * - Horizontal swipe while zoomed turns the page (resets view first)
- * - Pan is clamped so the page cannot drift irrecoverably off-screen
+ * - While zoomed: one-finger drag pans (all directions); double-tap or pinch to 1× resets
+ * - Page turns via swipe only at 1× zoom
+ * - Pan is clamped to the scaled page bounds
  */
 (function (global) {
   function attachFlipbookMobileZoom(opts) {
@@ -47,8 +48,9 @@
 
     function clampViewPan() {
       var dim = bookFootprint();
-      var maxX = Math.max(0, (dim.bw * viewScale - dim.bw) * 0.5 + dim.bw * 0.12);
-      var maxY = Math.max(0, (dim.ph * viewScale - dim.ph) * 0.5 + dim.ph * 0.12);
+      var extra = Math.max(0, viewScale - 1);
+      var maxX = dim.bw * extra * 0.52;
+      var maxY = dim.ph * extra * 0.52;
       viewPanX = Math.max(-maxX, Math.min(maxX, viewPanX));
       viewPanY = Math.max(-maxY, Math.min(maxY, viewPanY));
     }
@@ -163,13 +165,6 @@
         var dy = e.clientY - panStartY;
         if (!gesturePan) {
           if (Math.hypot(dx, dy) < PAN_SLOP) return;
-          if (Math.abs(dx) > Math.abs(dy) * 1.35 && Math.abs(dx) > PAN_SLOP) {
-            panPending = false;
-            sx = panStartX;
-            sy = panStartY;
-            sp = "touch";
-            return;
-          }
           gesturePan = true;
         }
         viewPanX = panRefX + dx;
@@ -191,20 +186,6 @@
       var hadPanPending = panPending;
 
       if (gesturePinch || gesturePan || panPending) {
-        if (
-          isSingle() &&
-          viewScale > 1 &&
-          (wasPan || hadPanPending) &&
-          Math.abs(dxEnd) > 45 &&
-          Math.abs(dxEnd) > Math.abs(dyEnd) * 1.2
-        ) {
-          releaseTouchPointer(e);
-          sp = null;
-          panPending = false;
-          gesturePan = false;
-          onTurn(dxEnd < 0 ? 1 : -1);
-          return;
-        }
         if (
           isSingle() &&
           viewScale > 1 &&
@@ -236,7 +217,7 @@
       sp = null;
       var ax = Math.abs(dx);
       var ay = Math.abs(dy);
-      if (ax > 40 && ax > ay * 1.2) {
+      if (ax > 40 && ax > ay * 1.2 && (!isSingle() || viewScale <= 1)) {
         onTurn(dx < 0 ? 1 : -1);
         return;
       }
