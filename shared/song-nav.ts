@@ -12,6 +12,10 @@ export type SongNav = {
 /** Be Thou Forward list: first row and gap between printed titles. */
 export const SONG_NAV_FIRST_TOP = 53.3;
 export const SONG_NAV_STEP = 2.22;
+/** Cover long titles such as "House of Many Mansions" (~62% across). */
+export const SONG_HOT_LEFT = 7;
+export const SONG_HOT_WIDTH = 56;
+export const SONG_HOT_LAST_HEIGHT = 2.4;
 
 export const BE_THOU_SONG_NAV: SongNav = {
   songListPage: 3,
@@ -57,6 +61,34 @@ export function defaultSpreads(imageCount: number): number[][] {
     i += 2;
   }
   return spreads;
+}
+
+/** Hit box from this title down to the next, so the list has no dead gaps. */
+export function songHotspotBand(
+  entries: SongNavEntry[],
+  index: number,
+): { top: number; height: number } {
+  const song = entries[index];
+  if (!song) return { top: 0, height: 0 };
+  const next = entries[index + 1];
+  const bottom = next ? next.top : song.top + SONG_HOT_LAST_HEIGHT;
+  return { top: song.top, height: Math.max(0.8, Math.round((bottom - song.top) * 10) / 10) };
+}
+
+/**
+ * Open a song with that page on the left. If the next leaf is another song,
+ * leave the right side empty so the previous/next title is not the first thing seen.
+ */
+export function songJumpPair(
+  page: number,
+  imageCount: number,
+  songStartPages: number[],
+): [number, number] {
+  const n = Math.floor(Number(page) || 0);
+  if (n < 1) return [0, 0];
+  const right = n + 1;
+  if (right > imageCount || songStartPages.includes(right)) return [n, 0];
+  return [n, right];
 }
 
 export function parseSongNav(raw: unknown): SongNav {

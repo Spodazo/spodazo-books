@@ -46,13 +46,13 @@ body { background: var(--ground); color: #fff; }
 .page.blank img, .page.again img { display: none; }
 .page.again { background: var(--again); }
 /* invisible link areas laid over the words printed on the back cover */
-.hot { display: none; position: absolute; z-index: 3; margin: 0; padding: 0; border: 0; border-radius: .6em; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.hot { display: none; position: absolute; z-index: 3; margin: 0; padding: 0; border: 0; border-radius: .6em; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
 .page.link .hot { display: block; }
 .page.songs .hot-song { display: block; }
 .hot:hover, .hot:focus-visible { background: rgba(255,255,255,.10); outline: none; }
 .hot-again { left: 36%; width: 28%; top: 40.3%; height: 5.2%; }
 .hot-close { left: 40.5%; width: 19%; top: 46.9%; height: 5.2%; }
-.hot-song { left: 4%; width: 46%; height: 2.15%; }
+.hot-song { left: 7%; width: 56%; }
 .leaf .hot { display: none !important; }
 .slot:not(.hide) .page:not(.empty) { box-shadow: 0 18px 50px rgba(var(--ink-shadow), .45), 0 4px 14px rgba(var(--ink-shadow), .35); }
 .face .page { box-shadow: none; }
@@ -187,7 +187,7 @@ body { background: var(--ground); color: #fff; }
     });
   });
 
-  var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0;
+  var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, jumpPage = 0, turnGen = 0, turnAnims = [];
 
   // Forward page (picture 3): invisible taps over the printed song list jump to each song.
   var SONG_NAV = [
@@ -210,15 +210,33 @@ body { background: var(--ground); color: #fff; }
     return 0;
   }
 
+  function isSongStart(n) {
+    for (var i = 0; i < SONG_NAV.length; i++) if (SONG_NAV[i].page === n) return true;
+    return false;
+  }
+
+  function songPagePair(n) {
+    var right = n + 1;
+    if (right > IMAGES || isSongStart(right)) return [n, 0];
+    return [n, right];
+  }
+
+  function abortTurn() {
+    turnGen++;
+    turnAnims.forEach(function (x) { try { x.cancel(); } catch (e) {} });
+    turnAnims = [];
+    hideLeaf();
+    stackL.style.transition = stackR.style.transition = '';
+    busy = false;
+  }
+
   function goToPageNumber(n) {
-    if (busy || !n || n < 1 || n > IMAGES) return;
+    if (!n || n < 1 || n > IMAGES) return;
+    abortTurn();
     resetViewZoom();
     hideLeaf();
-    if (single) {
-      pg = n - 1;
-      applyState();
-      return;
-    }
+    jumpPage = n;
+    pg = n - 1;
     idx = spreadIndexForPage(n);
     applyState();
   }
@@ -226,19 +244,27 @@ body { background: var(--ground); color: #fff; }
   function mountSongHots(page) {
     if (page.getAttribute('data-song-hots') === '1') return;
     page.setAttribute('data-song-hots', '1');
-    SONG_NAV.forEach(function (song) {
+    SONG_NAV.forEach(function (song, i) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'hot hot-song';
-      b.style.top = song.top + '%';
+      var next = SONG_NAV[i + 1];
+      var top = song.top;
+      var bot = next ? next.top : song.top + 2.4;
+      b.style.top = top + '%';
+      b.style.height = (bot - top) + '%';
       b.setAttribute('aria-label', song.label);
-      ['pointerdown', 'pointerup'].forEach(function (ev) {
-        b.addEventListener(ev, function (e) { e.stopPropagation(); });
-      });
-      b.addEventListener('click', function (e) {
+      function activate(e) {
         e.stopPropagation();
         e.preventDefault();
         goToPageNumber(song.page);
+      }
+      b.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+      b.addEventListener('pointerup', activate);
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        if (e.detail === 0) activate(e);
       });
       page.appendChild(b);
     });
@@ -324,7 +350,14 @@ body { background: var(--ground); color: #fff; }
   function applyState() {
     var jobs = [];
     if (single) {
-      jobs.push(setPage(slotR, pg + 1));
+      jobs.push(setPage(slotR, jumpPage || (pg + 1)));
+    } else if (jumpPage) {
+      var pair = songPagePair(jumpPage);
+      jobs.push(setPage(slotL, pair[0]));
+      jobs.push(setPage(slotR, pair[1]));
+      var wj = stackWidths(idx);
+      stackL.style.width = wj[0] + 'px';
+      stackR.style.width = wj[1] + 'px';
     } else {
       jobs.push(setPage(slotL, SP[idx][0]));
       jobs.push(setPage(slotR, SP[idx][1]));
@@ -373,6 +406,7 @@ body { background: var(--ground); color: #fff; }
   function run(dir, from, to) {
     if (busy) return;
     busy = true;
+    var gen = turnGen;
     var dur = single ? 820 : 1000, jobs = [], slotPlan = [];
     // The visible slots are not touched until the leaf is on screen covering them,
     // so the page underneath never changes before the turn begins.
@@ -392,6 +426,7 @@ body { background: var(--ground); color: #fff; }
       }
     }
     Promise.all(jobs).then(function () {
+      if (gen !== turnGen) return;
       // 1. put the leaf on screen at its starting angle, showing the same picture as the page under it
       leaf.style.display = 'block';
       if (dir > 0) {
@@ -401,6 +436,7 @@ body { background: var(--ground); color: #fff; }
       }
       return raf2();   // 2. let the browser fully paint the leaf before anything beneath it changes
     }).then(function () {
+      if (gen !== turnGen) return;
       var opts = { duration: dur, easing: 'cubic-bezier(.62,.04,.3,1)', fill: 'both', direction: dir > 0 ? 'normal' : 'reverse' };
       var anims = [], ff = faceFrames(single);
       anims.push(front.animate(ff.front, opts));
@@ -409,6 +445,7 @@ body { background: var(--ground); color: #fff; }
       anims.push(back.querySelector('.sh').animate(FRAMES.back, opts));
       anims.push(slotR.querySelector('.cast').animate(FRAMES.castR, opts));
       if (!single) anims.push(slotL.querySelector('.cast').animate(FRAMES.castL, opts));
+      turnAnims = anims;
       if (!single) {
         var w = stackWidths(to);
         stackL.style.transition = stackR.style.transition = 'width ' + dur + 'ms ease';
@@ -419,23 +456,32 @@ body { background: var(--ground); color: #fff; }
       if (single) pg = to; else idx = to;   // state changes now so arrows and clicks reflect the destination
       updateArrows();
       return Promise.all(anims.map(function (x) { return x.finished; })).then(function () {
+        if (gen !== turnGen) return;
         // paint the final pages underneath first, then lift the leaf, so nothing blinks
         return applyState().then(raf2).then(function () {
+          if (gen !== turnGen) return;
           if (single) return;
           var out = leaf.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'linear', fill: 'forwards' });
           anims.push(out);
           return out.finished;
         }).then(function () {
+          if (gen !== turnGen) return;
           hideLeaf();
           anims.forEach(function (x) { try { x.cancel(); } catch (e) {} });
+          turnAnims = [];
           stackL.style.transition = stackR.style.transition = '';
           busy = false;
         });
       });
-    }).catch(function () { busy = false; render(); });
+    }).catch(function () { if (gen === turnGen) { busy = false; render(); } });
   }
 
   function go(dir) {
+    if (jumpPage) {
+      idx = spreadIndexForPage(jumpPage);
+      pg = jumpPage - 1;
+      jumpPage = 0;
+    }
     if (busy) return;
     if (single) resetViewZoom();
     if (single) {
@@ -458,6 +504,7 @@ body { background: var(--ground); color: #fff; }
   function restart() {
     if (busy) return;
     busy = true;
+    jumpPage = 0;
     book.classList.add('fading');
     setTimeout(function () {
       idx = 0; pg = 0;
