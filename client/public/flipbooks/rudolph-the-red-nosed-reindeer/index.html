@@ -94,19 +94,20 @@ body {
 .stackWrapR { position: absolute; right: 0; top: 0; height: 100%; width: 0; }
 #book.single .stack { display: none; }
 
-/* navigation arrows: decorative hints, taps and clicks are handled by the stage */
+/* navigation arrows: single-click turns, double-click jumps to start/end */
 .arrow {
-  position: absolute; top: 50%; z-index: 10; pointer-events: none;
+  position: absolute; top: 50%; z-index: 10; pointer-events: auto; cursor: pointer;
   width: clamp(28px, calc(var(--pw, 600px) * 0.075), 44px); aspect-ratio: 1;
   display: grid; place-items: center; border-radius: 50%;
   background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .30);
   opacity: .7; transform: translateY(-50%); transition: opacity .3s ease;
 }
+.arrow::before { content: ""; position: absolute; inset: -18px; }
 .arrow svg { width: 46%; height: 46%; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 /* sits just outside the book, centred on the page height */
 .arrow.l { right: calc(100% + var(--gap, 26px)); }
 .arrow.r { left: calc(100% + var(--gap, 26px)); }
-.arrow.off { opacity: 0; }
+.arrow.off { opacity: 0; pointer-events: none; }
 #book.single .arrow { display: none; }
 
 @media (prefers-reduced-motion: reduce) { #book, .arrow { transition: none; } }
@@ -173,7 +174,16 @@ body {
     var s = document.createElement('span'); s.className = 'again-label'; s.textContent = 'View Again...'; p.appendChild(s);
   });
 
-  var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0;
+  var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, turnGen = 0, turnAnims = [];
+
+  function abortTurn() {
+    turnGen++;
+    turnAnims.forEach(function (x) { try { x.cancel(); } catch (e) {} });
+    turnAnims = [];
+    hideLeaf();
+    stackL.style.transition = stackR.style.transition = '';
+    busy = false;
+  }
 
   function src(n) {
     if (!n || n > IMAGES) return '';
@@ -316,6 +326,7 @@ body {
   function run(dir, from, to) {
     if (busy) return;
     busy = true;
+    var gen = turnGen;
     var dur = single ? 820 : 1000, jobs = [], slotPlan = [];
     // The visible slots are not touched until the leaf is on screen covering them,
     // so the page underneath never changes before the turn begins.
@@ -335,6 +346,7 @@ body {
       }
     }
     Promise.all(jobs).then(function () {
+      if (gen !== turnGen) return;
       // 1. put the leaf on screen at its starting angle, showing the same picture as the page under it
       leaf.style.display = 'block';
       // starting look: forward = front face flat over the right page; backward = back face flat over the left page
@@ -345,6 +357,7 @@ body {
       }
       return raf2();   // 2. let the browser fully paint the leaf before anything beneath it changes
     }).then(function () {
+      if (gen !== turnGen) return;
       var opts = { duration: dur, easing: 'cubic-bezier(.62,.04,.3,1)', fill: 'both', direction: dir > 0 ? 'normal' : 'reverse' };
       var anims = [], ff = faceFrames(single);
       anims.push(front.animate(ff.front, opts));
@@ -353,6 +366,7 @@ body {
       anims.push(back.querySelector('.sh').animate(FRAMES.back, opts));
       anims.push(slotR.querySelector('.cast').animate(FRAMES.castR, opts));
       if (!single) anims.push(slotL.querySelector('.cast').animate(FRAMES.castL, opts));
+      turnAnims = anims;
       if (!single) {
         var w = stackWidths(to);
         stackL.style.transition = stackR.style.transition = 'width ' + dur + 'ms ease';
@@ -363,21 +377,25 @@ body {
       if (single) pg = to; else idx = to;   // state changes now so the arrows and clicks reflect the destination
       updateArrows();
       return Promise.all(anims.map(function (x) { return x.finished; })).then(function () {
+        if (gen !== turnGen) return;
         // paint the final pages underneath first, then lift the leaf, so nothing blinks
         return applyState().then(raf2).then(function () {
+          if (gen !== turnGen) return;
           // dissolve the leaf over the identical page beneath instead of cutting it away
           if (single) return;
           var out = leaf.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'linear', fill: 'forwards' });
           anims.push(out);
           return out.finished;
         }).then(function () {
+          if (gen !== turnGen) return;
           hideLeaf();
           anims.forEach(function (x) { try { x.cancel(); } catch (e) {} });
+          turnAnims = [];
           stackL.style.transition = stackR.style.transition = '';
           busy = false;
         });
       });
-    }).catch(function () { busy = false; render(); });
+    }).catch(function () { if (gen === turnGen) { busy = false; render(); } });
   }
 
   function go(dir) {
@@ -410,6 +428,24 @@ body {
     }, 380);
   }
 
+  function goToStart() {
+    abortTurn();
+    resetViewZoom();
+    hideLeaf();
+    idx = 0;
+    pg = 0;
+    applyState();
+  }
+
+  function goToEnd() {
+    abortTurn();
+    resetViewZoom();
+    hideLeaf();
+    idx = LAST;
+    pg = TOTAL - 1;
+    applyState();
+  }
+
   var mobileZoomCtl = null;
   function resetViewZoom() {
     if (mobileZoomCtl) mobileZoomCtl.reset();
@@ -421,7 +457,7 @@ body {
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single }; },
     onTurn: function (dir) { go(dir); },
     ignoreTarget: function (el) {
-      return el.closest && el.closest('.flipbook-close');
+      return el.closest && (el.closest('.flipbook-close') || el.closest('.arrow'));
     },
     onTap: function (e, type) {
       var r = stage.getBoundingClientRect();
@@ -433,8 +469,15 @@ body {
       } else {
         go(onRight ? 1 : -1);
       }
+    },
+    onJump: function (dir) {
+      if (dir < 0) goToStart();
+      else goToEnd();
     }
   });
+  if (typeof wireFlipArrows === 'function') {
+    wireFlipArrows(arrL, arrR, { start: goToStart, end: goToEnd, turn: go });
+  }
   window.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowRight' || e.key === 'PageDown') { if (atLastPage()) restart(); else go(1); }
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1);

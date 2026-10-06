@@ -88,18 +88,19 @@ body { background: var(--ground); color: #fff; }
 .stackWrapR { position: absolute; right: 0; top: 0; height: 100%; width: 0; }
 #book.single .stack { display: none; }
 
-/* navigation arrows: decorative hints, clicks are handled by the stage */
+/* navigation arrows: single-click turns, double-click jumps to start/end */
 .arrow {
-  position: absolute; top: 50%; z-index: 10; pointer-events: none;
+  position: absolute; top: 50%; z-index: 10; pointer-events: auto; cursor: pointer;
   width: clamp(28px, calc(var(--pw, 600px) * 0.075), 44px); aspect-ratio: 1;
   display: grid; place-items: center; border-radius: 50%;
   background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .30);
   opacity: .7; transform: translateY(-50%); transition: opacity .3s ease;
 }
+.arrow::before { content: ""; position: absolute; inset: -18px; }
 .arrow svg { width: 46%; height: 46%; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 .arrow.l { right: calc(100% + var(--gap, 26px)); }
 .arrow.r { left: calc(100% + var(--gap, 26px)); }
-.arrow.off { opacity: 0; }
+.arrow.off { opacity: 0; pointer-events: none; }
 #book.single .arrow { display: none; }
 @media (prefers-reduced-motion: reduce) { #book, .arrow { transition: none; } }
 
@@ -502,18 +503,27 @@ body { background: var(--ground); color: #fff; }
   }
 
   function restart() {
-    if (busy) return;
-    busy = true;
+    goToStart();
+  }
+
+  function goToStart() {
+    abortTurn();
+    resetViewZoom();
+    hideLeaf();
     jumpPage = 0;
-    book.classList.add('fading');
-    setTimeout(function () {
-      idx = 0; pg = 0;
-      applyState().then(function () {
-        hideLeaf();
-        book.classList.remove('fading');
-        busy = false;
-      });
-    }, 380);
+    idx = 0;
+    pg = 0;
+    applyState();
+  }
+
+  function goToEnd() {
+    abortTurn();
+    resetViewZoom();
+    hideLeaf();
+    jumpPage = 0;
+    idx = LAST;
+    pg = TOTAL - 1;
+    applyState();
   }
 
   var mobileZoomCtl = null;
@@ -527,14 +537,21 @@ body { background: var(--ground); color: #fff; }
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single }; },
     onTurn: function (dir) { go(dir); },
     ignoreTarget: function (el) {
-      return el.closest && (el.closest('.flipbook-close') || el.closest('.hot'));
+      return el.closest && (el.closest('.flipbook-close') || el.closest('.hot') || el.closest('.arrow'));
     },
     onTap: function (e, type) {
       if (type === 'touch') return;
       var r = stage.getBoundingClientRect();
       go(e.clientX - r.left >= r.width / 2 ? 1 : -1);
+    },
+    onJump: function (dir) {
+      if (dir < 0) goToStart();
+      else goToEnd();
     }
   });
+  if (typeof wireFlipArrows === 'function') {
+    wireFlipArrows(arrL, arrR, { start: goToStart, end: goToEnd, turn: go });
+  }
   window.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowRight' || e.key === 'PageDown') go(1);
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1);
