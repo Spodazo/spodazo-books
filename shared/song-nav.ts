@@ -10,22 +10,22 @@ export type SongNav = {
 };
 
 /** Be Thou Forward list: first row and gap between printed titles. */
-export const SONG_NAV_FIRST_TOP = 53.6;
-export const SONG_NAV_STEP = 3.2;
+export const SONG_NAV_FIRST_TOP = 53.3;
+export const SONG_NAV_STEP = 2.22;
 
 export const BE_THOU_SONG_NAV: SongNav = {
   songListPage: 3,
   entries: [
-    { page: 4, top: 53.6, label: "01 Be Thou My Vision" },
-    { page: 6, top: 56.8, label: "02 House of Many Mansions" },
-    { page: 7, top: 60.0, label: "03 Horsemen's Praise" },
-    { page: 8, top: 63.2, label: "04 Planted by the Stream" },
-    { page: 10, top: 66.4, label: "05 Garment of Praise" },
-    { page: 11, top: 69.6, label: "06 Grounded in Love" },
-    { page: 12, top: 72.8, label: "07 Firm Foundation" },
-    { page: 14, top: 76.0, label: "08 Grace for Grace" },
-    { page: 15, top: 79.2, label: "09 Friend of Sinners" },
-    { page: 16, top: 82.4, label: "10 All is Well" },
+    { page: 4, top: 53.3, label: "01 Be Thou My Vision" },
+    { page: 6, top: 55.5, label: "02 House of Many Mansions" },
+    { page: 7, top: 57.7, label: "03 Horsemen's Praise" },
+    { page: 8, top: 60.0, label: "04 Planted by the Stream" },
+    { page: 10, top: 62.2, label: "05 Garment of Praise" },
+    { page: 11, top: 64.4, label: "06 Grounded in Love" },
+    { page: 12, top: 66.6, label: "07 Firm Foundation" },
+    { page: 14, top: 68.8, label: "08 Grace for Grace" },
+    { page: 15, top: 71.1, label: "09 Friend of Sinners" },
+    { page: 16, top: 73.3, label: "10 All is Well" },
   ],
 };
 
