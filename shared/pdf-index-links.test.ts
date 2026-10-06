@@ -4,7 +4,9 @@ import {
   detectPdfIndexLinks,
   facsimilePageLinks,
   groupPdfLines,
+  lineBoxTopPercent,
   normalizeIndexTitle,
+  retargetStoredIndexLinks,
 } from "./pdf-index-links";
 
 function item(text: string, x: number, y: number, size = 14): { text: string; x: number; y: number; size: number } {
@@ -53,7 +55,83 @@ test("detectPdfIndexLinks maps a numbered song list to later pages", () => {
   assert.equal(links[1].page, 5);
   assert.equal(links[2].page, 6);
   assert.match(links[0].label, /Be Thou My Vision/);
-  assert.ok(links[0].top > 15 && links[0].top < 35);
+  const glyphTop = lineBoxTopPercent({ y: 200, size: 14 }, 842);
+  assert.ok(Math.abs(links[0].top - glyphTop) < 0.4);
+  assert.ok(links[0].top < ((200 - 14 * 0.35) / 842) * 100);
+});
+
+test("detectPdfIndexLinks keeps similar titles and ignores printed page numbers", () => {
+  const pages = [
+    { sourcePage: 1, width: 595, height: 842, items: [item("Songbook", 80, 80, 28)] },
+    {
+      sourcePage: 2,
+      width: 595,
+      height: 842,
+      items: [
+        item("Contents", 80, 80, 24),
+        item("01 First Light", 90, 200),
+        item("03 Horsemen's Praise", 90, 230),
+        item("05 Garment of Praise", 90, 260),
+        item("10 All is Well ........ 1", 90, 290),
+      ],
+    },
+    {
+      sourcePage: 3,
+      width: 595,
+      height: 842,
+      items: [item("01 First Light", 80, 80, 22), item("and all is well tonight", 80, 140)],
+    },
+    { sourcePage: 6, width: 595, height: 842, items: [item("03 Horsemen's Praise", 80, 80, 22)] },
+    { sourcePage: 8, width: 595, height: 842, items: [item("05 Garment of Praise", 80, 80, 22)] },
+    { sourcePage: 12, width: 595, height: 842, items: [item("10 All is Well", 80, 80, 22)] },
+  ];
+  const links = detectPdfIndexLinks(pages, "Evening Songs").get(2) || [];
+  assert.deepEqual(links.map((link) => link.page), [3, 6, 8, 12]);
+});
+
+test("detectPdfIndexLinks uses text-line boxes even when annotation rects sit low", () => {
+  const pages = [
+    { sourcePage: 1, width: 595, height: 842, items: [item("Cover", 80, 80)] },
+    {
+      sourcePage: 2,
+      width: 595,
+      height: 842,
+      items: [
+        item("Songs", 80, 80, 22),
+        item("01 First Light", 90, 200),
+        item("02 River Hymn", 90, 240),
+      ],
+      annotations: [
+        { destPage: 4, left: 20, top: 25.5, width: 50, height: 1.6, label: "One" },
+        { destPage: 5, left: 20, top: 30.2, width: 50, height: 1.6, label: "Two" },
+      ],
+    },
+    { sourcePage: 4, width: 595, height: 842, items: [item("01 First Light", 80, 80, 22)] },
+    { sourcePage: 5, width: 595, height: 842, items: [item("02 River Hymn", 80, 80, 22)] },
+  ];
+  const links = detectPdfIndexLinks(pages).get(2) || [];
+  const glyphTop = lineBoxTopPercent({ y: 200, size: 14 }, 842);
+  assert.equal(links.length, 2);
+  assert.deepEqual(links.map((link) => link.page), [4, 5]);
+  assert.ok(Math.abs(links[0].top - glyphTop) < 0.4);
+  assert.ok(links[0].top < 25);
+});
+
+test("retargetStoredIndexLinks fixes a tap that pointed at the wrong titled page", () => {
+  const pages = retargetStoredIndexLinks([
+    { sourcePage: 1, title: "Cover", links: [] },
+    {
+      sourcePage: 2,
+      title: "Contents",
+      links: [
+        { page: 3, label: "01 First Light", top: 20, left: 12, width: 50, height: 4 },
+        { page: 3, label: "02 River Hymn", top: 25, left: 12, width: 50, height: 4 },
+      ],
+    },
+    { sourcePage: 3, title: "01 First Light" },
+    { sourcePage: 4, title: "02 River Hymn" },
+  ]);
+  assert.deepEqual((pages[1].links || []).map((link) => link.page), [3, 4]);
 });
 
 test("detectPdfIndexLinks uses dotted page numbers and PDF link annotations", () => {
@@ -103,4 +181,19 @@ test("facsimilePageLinks groups stored page taps by source page", () => {
   ]);
   assert.equal(map["2"].length, 2);
   assert.equal(map["2"][0].page, 4);
+
+  const retargeted = facsimilePageLinks([
+    { sourcePage: 1, title: "Cover" },
+    {
+      sourcePage: 2,
+      title: "Contents",
+      links: [
+        { page: 3, label: "01 First Light", top: 20, left: 12, width: 50, height: 4 },
+        { page: 3, label: "02 River Hymn", top: 25, left: 12, width: 50, height: 4 },
+      ],
+    },
+    { sourcePage: 3, title: "01 First Light" },
+    { sourcePage: 4, title: "02 River Hymn" },
+  ]);
+  assert.deepEqual(retargeted["2"].map((link) => link.page), [3, 4]);
 });

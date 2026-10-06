@@ -101,6 +101,57 @@ async function readLinkAnnotations(
   return links;
 }
 
+type PdfJsDoc = {
+  numPages: number;
+  getPage: (n: number) => Promise<{
+    getViewport: (opts: { scale: number }) => { width: number; height: number; transform: number[]; convertToViewportRectangle?: (rect: number[]) => number[] };
+    getTextContent: () => Promise<{ items: Array<{ str?: string; transform?: number[] }> }>;
+    getAnnotations: () => Promise<unknown[]>;
+    cleanup: () => void;
+    render: (opts: { canvasContext: CanvasRenderingContext2D; canvas: HTMLCanvasElement; viewport: unknown }) => { promise: Promise<void> };
+  }>;
+  getDestination: (name: string) => Promise<unknown>;
+  getPageIndex: (ref: unknown) => Promise<number>;
+  cleanup: () => Promise<void>;
+};
+
+async function indexPageFromPdf(doc: PdfJsDoc, sourcePage: number): Promise<PdfIndexPageInput> {
+  const page = await doc.getPage(sourcePage);
+  const base = page.getViewport({ scale: 1 });
+  const content = await page.getTextContent();
+  const items = content.items
+    .filter((t) => "str" in t)
+    .map((t) => {
+      const text = t as { str: string; transform: number[] };
+      const m = pdfjs.Util.transform(base.transform, text.transform);
+      return { text: text.str, x: m[4], y: m[5], size: Math.hypot(m[2], m[3]) };
+    });
+  const annotations = await readLinkAnnotations(doc, page, base);
+  return {
+    sourcePage,
+    width: base.width,
+    height: base.height,
+    items,
+    annotations,
+  };
+}
+
+export async function detectPdfIndexLinksFromFile(pdfPath: string, bookTitle = ""): Promise<Map<number, PageJumpLink[]>> {
+  const bytes = new Uint8Array(await fs.readFile(pdfPath));
+  const doc = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, isEvalSupported: false }).promise as PdfJsDoc;
+  try {
+    const indexPages: PdfIndexPageInput[] = [];
+    for (let i = 1; i <= doc.numPages; i += 1) {
+      const indexPage = await indexPageFromPdf(doc, i);
+      indexPages.push(indexPage);
+      // getPage objects from the text-only pass can be released.
+    }
+    return detectPdfIndexLinks(indexPages, bookTitle);
+  } finally {
+    await doc.cleanup();
+  }
+}
+
 export async function importPdfOnServer(
   pdfPath: string,
   originalName: string,
