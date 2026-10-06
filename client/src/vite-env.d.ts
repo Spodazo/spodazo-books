@@ -34,7 +34,16 @@ declare module "*.js" {
   export const mountReader: (
     container: HTMLElement,
     book: unknown,
-    options?: { libraryUrl?: string; baseUrl?: string; credits?: string; copyright?: string; logoUrl?: string },
-  ) => { destroy: () => void };
+    options?: { libraryUrl?: string; baseUrl?: string; credits?: string; copyright?: string; logoUrl?: string; fadeOpen?: boolean },
+  ) => { frame: HTMLIFrameElement; destroy: () => void };
+  export const mountFacsimileFlipbook: (
+    container: HTMLElement,
+    book: unknown,
+    options?: { libraryUrl?: string; baseUrl?: string },
+  ) => { frame: HTMLIFrameElement; destroy: () => void };
+  export const createFacsimileFlipbookDocument: (
+    book: unknown,
+    options?: { libraryUrl?: string; baseUrl?: string },
+  ) => string;
 }
 

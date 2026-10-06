@@ -27,6 +27,7 @@ test("bundled flipbooks jump on double-click arrows and mobile edges", async () 
   for (const file of [
     "../client/public/flipbooks/be-thou-my-vision/index.html",
     "../client/public/flipbooks/rudolph-the-red-nosed-reindeer/index.html",
+    "../client/src/flipbook/facsimile-flipbook-engine.js",
   ]) {
     const html = await readFile(new URL(file, import.meta.url), "utf8");
     assert.match(html, /function goToStart/);

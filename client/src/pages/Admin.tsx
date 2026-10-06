@@ -27,7 +27,9 @@ import { ensureBookLayouts } from "@shared/page-layout";
 import { writeCachedBooks, writeCachedSetup } from "../lib/homeCache";
 import { applyPalette } from "../lib/palette";
 import { applySiteIcons } from "../lib/siteIcons";
+import { shouldUseFacsimileFlipbook } from "@shared/facsimile-flipbook";
 import { downloadBookPdf, type BookPdfKind } from "../flipbook/download-book-pdf";
+import { mountFacsimileFlipbook } from "../flipbook/facsimile-flipbook.js";
 import { mountReader } from "../flipbook/reader.js";
 
 type Imported = {
@@ -369,7 +371,7 @@ function ImportBookForm({
         const file = event.currentTarget.files?.[0];
         if (file) void load(file);
       }} />
-      <p className="hint">{status || "Each PDF page becomes one leaf of the flip book. Import runs on the server so Safari and dock icons work reliably."}</p>
+      <p className="hint">{status || "Each PDF page becomes one leaf. The saved book opens with the same flip-book turns, arrows, mobile pinch-zoom, and Read again as Be Thou My Vision. Import runs on the server so Safari and dock icons work reliably."}</p>
       {imported && page ? (
         <>
           <label>Book title</label>
@@ -433,6 +435,31 @@ function ImportBookForm({
                 pdfUrl: imported.book.pdfUrl,
                 coverUrl: imported.book.pages[0]?.imageUrl,
                 pageTemplate: "one-up",
+                pageBackground: "#022a58",
+                spreadBackground: "#021b3f",
+                pageTexture: "felt",
+                textFont: "Lexend",
+                textColor: "#f1c27d",
+                coverLayout: {
+                  background: "#021b3f",
+                  elements: [
+                    {
+                      id: "cover-art",
+                      type: "image",
+                      x: 0,
+                      y: 0,
+                      w: 100,
+                      h: 100,
+                      z: 1,
+                      imageAsset: imported.book.pages[0]?.imageAsset,
+                      imageUrl: imported.book.pages[0]?.imageUrl,
+                      fit: "cover",
+                      focusX: 50,
+                      focusY: 50,
+                      opacity: 100,
+                    },
+                  ],
+                },
                 pages: imported.book.pages,
                 published: true,
                 hidden: false,
@@ -798,7 +825,10 @@ function BookEditor({
 
   useEffect(() => {
     if (!preview || !previewRef.current) return;
-    const handle = mountReader(previewRef.current, ensureBookLayouts({ ...book, title, tagline, author, date, coverUrl }, { coverUrl }), { libraryUrl: "/admin", baseUrl: location.href });
+    const previewBook = { ...book, title, tagline, author, date, coverUrl };
+    const handle = shouldUseFacsimileFlipbook(previewBook)
+      ? mountFacsimileFlipbook(previewRef.current, previewBook, { libraryUrl: "/admin", baseUrl: location.href })
+      : mountReader(previewRef.current, ensureBookLayouts(previewBook, { coverUrl }), { libraryUrl: "/admin", baseUrl: location.href });
     return () => handle.destroy();
   }, [preview, book, title, tagline, author, date, coverUrl]);
 
@@ -890,7 +920,7 @@ function BookEditor({
       {preview ? (
         <div className="reader-preview">
           <button type="button" className="ghost" onClick={() => setPreview(false)}>Close preview</button>
-          <div ref={previewRef} className="reader-host" />
+          <div ref={previewRef} className={`reader-host${shouldUseFacsimileFlipbook(book) ? " bundled-flipbook-host" : ""}`} />
         </div>
       ) : null}
     </section>
