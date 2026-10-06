@@ -37,6 +37,16 @@ test("bundled flipbooks jump on double-click arrows and mobile edges", async () 
   }
 });
 
+test("uploaded PDF flipbooks mount contents taps from pageLinks", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const engine = await readFile(new URL("../client/src/flipbook/facsimile-flipbook-engine.js", import.meta.url), "utf8");
+  assert.match(engine, /PAGE_LINKS/);
+  assert.match(engine, /function goToPageNumber/);
+  assert.match(engine, /function mountIndexHots/);
+  assert.match(engine, /hot-index/);
+  assert.match(engine, /closest\("\.hot"\)/);
+});
+
 test("Be Thou song list taps live on the contents page", async () => {
   const { readFile } = await import("node:fs/promises");
   const html = await readFile(

@@ -14,9 +14,14 @@ test("uploaded PDF flipbook engine has the Be Thou My Vision controls", async ()
   assert.match(engine, /spodazo-book-close/);
   assert.match(engine, /spodazo-reader-ready/);
   assert.match(engine, /Read again/);
+  assert.match(engine, /function goToPageNumber/);
+  assert.match(engine, /function mountIndexHots/);
+  assert.match(engine, /hot-index/);
   assert.match(css, /\.flipbook-close/);
   assert.match(css, /\.arrow/);
+  assert.match(css, /\.page\.index \.hot/);
   assert.match(mount, /createFacsimileFlipbookDocument/);
   assert.match(mount, /mountFacsimileFlipbook/);
+  assert.match(mount, /pageLinks/);
   assert.match(mount, /\/flipbooks\/mobile-view-zoom\.js/);
 });

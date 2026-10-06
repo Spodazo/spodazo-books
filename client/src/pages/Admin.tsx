@@ -354,7 +354,12 @@ function ImportBookForm({
         dispose: () => {},
       });
       setPageIndex(0);
-      setStatus(`${result.book.pages.length} pages ready. Review the wording, then save.`);
+      const linkCount = result.book.pages.reduce((total, item) => total + (item.links?.length || 0), 0);
+      setStatus(
+        linkCount
+          ? `${result.book.pages.length} pages ready, with ${linkCount} contents links. Review the wording, then save.`
+          : `${result.book.pages.length} pages ready. Review the wording, then save.`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed");
     } finally {
@@ -371,7 +376,7 @@ function ImportBookForm({
         const file = event.currentTarget.files?.[0];
         if (file) void load(file);
       }} />
-      <p className="hint">{status || "Each PDF page becomes one leaf. The saved book opens with the same flip-book turns, arrows, mobile pinch-zoom, and Read again as Be Thou My Vision. Import runs on the server so Safari and dock icons work reliably."}</p>
+      <p className="hint">{status || "Each PDF page becomes one leaf. Song lists and contents pages become tappable, like Be Thou My Vision. Import runs on the server so Safari and dock icons work reliably."}</p>
       {imported && page ? (
         <>
           <label>Book title</label>

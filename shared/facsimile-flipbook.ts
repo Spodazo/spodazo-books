@@ -1,5 +1,8 @@
 import { isBundledFlipbookSlug } from "./bundled-flipbooks";
 import { isOneLeafPdfPage } from "./page-layout";
+import { facsimilePageLinks } from "./pdf-index-links";
+
+export { facsimilePageLinks } from "./pdf-index-links";
 
 /** A4 portrait height/width — same leaf ratio as Be Thou My Vision. */
 export const FACSIMILE_A4_RATIO = 842.16 / 595.44;

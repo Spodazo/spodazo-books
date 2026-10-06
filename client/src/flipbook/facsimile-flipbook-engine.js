@@ -11,6 +11,7 @@
   var SP = Array.isArray(cfg.spreads) && cfg.spreads.length ? cfg.spreads : [[0, 1]];
   var LAST = SP.length - 1;
   var LIBRARY = cfg.libraryUrl || "/";
+  var PAGE_LINKS = cfg.pageLinks && typeof cfg.pageLinks === "object" ? cfg.pageLinks : {};
 
   var stage = document.getElementById("stage");
   var book = document.getElementById("book");
@@ -75,11 +76,83 @@
 
   function pageEl(host) { return host.querySelector(".page"); }
 
+  function linksFor(n) {
+    return PAGE_LINKS[n] || PAGE_LINKS[String(n)] || [];
+  }
+
+  function isSectionStart(n) {
+    var keys = Object.keys(PAGE_LINKS);
+    for (var i = 0; i < keys.length; i++) {
+      var list = PAGE_LINKS[keys[i]] || [];
+      for (var j = 0; j < list.length; j++) if (Number(list[j].page) === n) return true;
+    }
+    return false;
+  }
+
+  function sectionPagePair(n) {
+    var right = n + 1;
+    if (right > IMAGES || isSectionStart(right)) return [n, 0];
+    return [n, right];
+  }
+
+  function goToPageNumber(n) {
+    if (!n || n < 1 || n > IMAGES) return;
+    abortTurn();
+    resetViewZoom();
+    hideLeaf();
+    jumpPage = n;
+    pg = n - 1;
+    idx = spreadIndexForPage(n);
+    applyState();
+  }
+
+  function clearIndexHots(page) {
+    page.classList.remove("index");
+    page.removeAttribute("data-index-hots");
+    Array.prototype.slice.call(page.querySelectorAll(".hot-index")).forEach(function (el) { el.remove(); });
+  }
+
+  function mountIndexHots(page, n) {
+    var links = linksFor(n);
+    clearIndexHots(page);
+    if (!links.length) return;
+    page.classList.add("index");
+    page.setAttribute("data-index-hots", String(n));
+    links.forEach(function (link) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "hot hot-index";
+      b.style.top = Number(link.top) + "%";
+      b.style.left = Number(link.left) + "%";
+      b.style.width = Number(link.width) + "%";
+      b.style.height = Number(link.height) + "%";
+      b.setAttribute("aria-label", link.label || ("Go to page " + link.page));
+      function activate(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        goToPageNumber(Number(link.page));
+      }
+      b.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+      b.addEventListener("pointerup", activate);
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        if (e.detail === 0) activate(e);
+      });
+      page.appendChild(b);
+    });
+  }
+
   function setPage(host, n, blankPaper) {
     var p = pageEl(host);
     var img = p.querySelector("img");
-    p.classList.remove("empty", "blank", "again", "link");
+    p.classList.remove("empty", "blank", "again", "link", "index");
+    clearIndexHots(p);
     if (n === TOTAL) p.classList.add("link");
+    if (n && linksFor(n).length) {
+      p.classList.add("index");
+      mountIndexHots(p, n);
+    }
     if (!n) {
       img.removeAttribute("src");
       p.classList.add(blankPaper ? "blank" : "empty");
@@ -163,9 +236,9 @@
     if (single) {
       jobs.push(setPage(slotR, jumpPage || (pg + 1)));
     } else if (jumpPage) {
-      var pairIdx = spreadIndexForPage(jumpPage);
-      jobs.push(setPage(slotL, SP[pairIdx][0]));
-      jobs.push(setPage(slotR, SP[pairIdx][1]));
+      var pair = sectionPagePair(jumpPage);
+      jobs.push(setPage(slotL, pair[0]));
+      jobs.push(setPage(slotR, pair[1]));
       var wj = stackWidths(idx);
       stackL.style.width = wj[0] + "px";
       stackR.style.width = wj[1] + "px";
@@ -371,7 +444,7 @@
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single }; },
     onTurn: function (dir) { go(dir); },
     ignoreTarget: function (el) {
-      return el.closest && (el.closest(".flipbook-close") || el.closest(".arrow"));
+      return el.closest && (el.closest(".flipbook-close") || el.closest(".hot") || el.closest(".arrow"));
     },
     onTap: function (e, type) {
       var r = stage.getBoundingClientRect();
