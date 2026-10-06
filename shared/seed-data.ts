@@ -34,6 +34,15 @@ export function groupBooksByAudience<T extends { audience?: string | null }>(boo
   return { children, adults };
 }
 
+/** Admin arrow order — left to right on the home page. */
+export function sortBooksByAdminOrder<T extends { sortOrder?: number | null; title?: string | null }>(books: T[]): T[] {
+  return books.slice().sort((a, b) => {
+    const left = Number.isFinite(Number(a.sortOrder)) ? Number(a.sortOrder) : 0;
+    const right = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : 0;
+    return left - right || String(a.title || "").localeCompare(String(b.title || ""));
+  });
+}
+
 export function uniqueSlug(base: string, used: Set<string>): string {
   const root = slugify(base) || "book";
   let candidate = root;

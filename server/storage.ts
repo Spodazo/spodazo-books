@@ -384,9 +384,13 @@ export class JsonBookStore implements BookStore {
 
   async reorderBooks(bookIds: string[]): Promise<BookListItem[]> {
     const catalog = this.read();
+    const stamped = nowIso();
     bookIds.forEach((id, index) => {
       const book = catalog.books.find((item) => item.id === id);
-      if (book) book.sortOrder = index + 1;
+      if (book) {
+        book.sortOrder = index + 1;
+        book.updatedAt = stamped;
+      }
     });
     this.write(catalog);
     return this.listBooks();
@@ -530,7 +534,7 @@ export class PostgresBookStore implements BookStore {
         pdf: input.pdf || "",
         pagesJson: pagesToJson(pages),
         color: normalizePaletteId(input.color),
-        sortOrder: input.sortOrder ?? 0,
+        sortOrder: input.sortOrder ?? (await this.db.select().from(books)).length + 1,
         hidden: Boolean(input.hidden),
         published: input.published !== false,
         audience: normalizeAudience(input.audience),
