@@ -111,6 +111,7 @@
   }
 
   function layout() {
+    if (busy) return;
     var r = stage.getBoundingClientRect();
     var W = r.width;
     var H = r.height;
@@ -404,8 +405,11 @@
       var im = new Image();
       im.onload = function () {
         if (im.naturalWidth > 0 && im.naturalHeight > 0) {
-          RATIO = im.naturalHeight / im.naturalWidth;
-          layout();
+          var next = im.naturalHeight / im.naturalWidth;
+          if (Math.abs(next - RATIO) > 0.01) {
+            RATIO = next;
+            if (!busy) layout();
+          }
         }
         res();
       };
@@ -432,7 +436,8 @@
     } catch (e) {}
   }
 
-  applyFirstPageRatio().then(function () { layout(); });
+  layout();
+  applyFirstPageRatio();
 
   Promise.race([
     Promise.all([load(1), load(2), load(3)]),
