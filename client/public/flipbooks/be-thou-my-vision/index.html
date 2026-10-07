@@ -189,10 +189,16 @@ body { background: var(--ground); color: #fff; }
   });
 
   var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, jumpPage = 0, turnGen = 0, turnAnims = [];
-  // After a song-list tap, ignore turn gestures from that same touch (mobile often
-  // emits a swipe/turn right after the jump and skips to the lyrics leaf).
+  // After a song-list tap, ignore turn gestures from that same touch. Mobile Safari
+  // also synthesizes a mouse click on the new page (~300ms later), which used to
+  // clear the lock and skip ahead to the lyrics leaf.
   var suppressTurns = false;
+  var suppressTurnsUntil = 0;
   var landPage = 0;
+
+  function turnsSuppressed() {
+    return suppressTurns || Date.now() < suppressTurnsUntil;
+  }
 
   // Contents page (picture 2): invisible taps over the printed song list jump to each song.
   var SONG_NAV = [
@@ -255,6 +261,7 @@ body { background: var(--ground); color: #fff; }
     pg = n - 1;
     idx = spreadIndexForPage(n);
     suppressTurns = true;
+    suppressTurnsUntil = Date.now() + 900;
     applyState();
   }
 
@@ -512,7 +519,7 @@ body { background: var(--ground); color: #fff; }
 
   function go(dir) {
     // Drop turn gestures that piggy-back on the song-list tap (common on mobile).
-    if (suppressTurns) return;
+    if (turnsSuppressed()) return;
     if (jumpPage || landPage) {
       var start = jumpPage || landPage;
       idx = spreadIndexForPage(start);
@@ -550,6 +557,7 @@ body { background: var(--ground); color: #fff; }
     jumpPage = 0;
     landPage = 0;
     suppressTurns = false;
+    suppressTurnsUntil = 0;
     idx = 0;
     pg = 0;
     applyState();
@@ -562,6 +570,7 @@ body { background: var(--ground); color: #fff; }
     jumpPage = 0;
     landPage = 0;
     suppressTurns = false;
+    suppressTurnsUntil = 0;
     idx = LAST;
     pg = TOTAL - 1;
     applyState();
@@ -571,13 +580,17 @@ body { background: var(--ground); color: #fff; }
   function resetViewZoom() {
     if (mobileZoomCtl) mobileZoomCtl.reset();
   }
-  // A new touch/click that is not a song hotspot ends the post-jump turn lock.
+  // End the post-jump turn lock only on a real new touch — not the ghost mouse
+  // click Safari fires on the destination page after a song-list tap.
   stage.addEventListener('pointerdown', function (e) {
     if (e.target && e.target.closest && e.target.closest('.hot-song')) return;
+    if (e.pointerType === 'mouse' && Date.now() < suppressTurnsUntil) return;
     suppressTurns = false;
+    suppressTurnsUntil = 0;
   }, true);
   function turn(dir) {
     suppressTurns = false;
+    suppressTurnsUntil = 0;
     go(dir);
   }
   mobileZoomCtl = attachFlipbookMobileZoom({
@@ -591,6 +604,7 @@ body { background: var(--ground); color: #fff; }
     },
     onTap: function (e, type) {
       if (type === 'touch') return;
+      if (turnsSuppressed() || landPage) return;
       var r = stage.getBoundingClientRect();
       go(e.clientX - r.left >= r.width / 2 ? 1 : -1);
     },
