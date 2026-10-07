@@ -8,6 +8,7 @@ import { prepareFaviconSet, warmHomeCardImages } from "./media";
 import { ensureDataDirs, syncBundledMedia } from "./paths";
 import { ensureSessionTable, sessionMiddleware } from "./session";
 import { ensureBeThouMyVisionCatalog } from "./be-thou-my-vision-catalog";
+import { ensureEchoesContentsList } from "./echoes-contents-list";
 import { refreshImportedPdfIndexLinks } from "./pdf-index-links-refresh";
 import { ensureRudolphOneUpDisplay } from "./rudolph-one-up-migration";
 import { getStore } from "./storage";
@@ -42,6 +43,11 @@ async function start() {
     await ensureBeThouMyVisionCatalog(store);
   } catch (err) {
     console.error("[catalog] Be Thou My Vision catalog bootstrap failed:", err);
+  }
+  try {
+    await ensureEchoesContentsList(store);
+  } catch (err) {
+    console.error("[catalog] Echoes contents list update failed:", err);
   }
   try {
     await refreshImportedPdfIndexLinks(store);

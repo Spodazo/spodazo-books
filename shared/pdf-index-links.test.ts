@@ -218,19 +218,19 @@ test("facsimilePageLinks groups stored page taps by source page", () => {
   assert.deepEqual(numbered["2"].map((link) => link.page), [4, 6]);
 });
 
-test("song list rows after a missing title open that song, not the next one", () => {
+test("song list rows open the album tracks in catalog order", () => {
   const lines = [
     { text: "01 Echoes of the Storm", top: 30.52 },
     { text: "02 Though He Slay Me", top: 33.57 },
     { text: "03 By Waters Deep and Still", top: 36.9 },
     { text: "04 Under His Wings", top: 39.96 },
-    { text: "05 Horsemens Praise", top: 43.31 },
-    { text: "06 A Promise Broken", top: 46.5 },
-    { text: "07 Clean Once Again", top: 49.56 },
+    { text: "05 A Promise Broken", top: 43.31 },
+    { text: "06 Clean Once Again", top: 46.5 },
+    { text: "07 Armor of God", top: 49.56 },
     { text: "08 Restored", top: 53.05 },
     { text: "09 Our Light", top: 55.94 },
-    { text: "10 Your Hands Will Break My Fall", top: 59.16 },
-    { text: "1l The Heavens Declare", top: 62.65 },
+    { text: "10 The Heavens Declare", top: 59.16 },
+    { text: "11 Your Hands Will Break My Fall", top: 62.65 },
     { text: "12 Be Thou My Vision", top: 65.7 },
   ];
   const songs = [
@@ -265,7 +265,7 @@ test("song list rows after a missing title open that song, not the next one", ()
     ],
     rows,
   );
-  assert.deepEqual(links.map((link) => link.page), [4, 6, 8, 10, 16, 12, 14, 18, 20, 24, 22, 26]);
+  assert.deepEqual(links.map((link) => link.page), [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]);
 });
 
 test("noisy contents text still opens each named song", () => {
@@ -276,13 +276,13 @@ test("noisy contents text still opens each named song", () => {
     "02 Though He Slay Me",
     "03 By Waters Deep and Still",
     "04 Under His Wings",
-    "5 : 05 Horsemens Praise",
-    "3 o 7 06 A Promise Broken",
-    "07 Clean Once Again",
+    "5 : 05 A Promise Broken",
+    "3 o 7 06 Clean Once Again",
+    "07 Armor of God",
     "08 Restored",
     "09 Our Light",
-    "10 Your nee Will Break My Fall",
-    "Tl The Heavens Declare",
+    "10 The Heavens Declare",
+    "11 Your Hands Will Break My Fall",
     "12 Be Thou My Vision",
   ].join("\n");
   const songs = [
@@ -312,5 +312,16 @@ test("noisy contents text still opens each named song", () => {
     })),
     rows,
   );
-  assert.deepEqual(links.map((link) => link.page), [4, 6, 8, 10, 16, 12, 14, 18, 20, 24, 22, 26]);
+  assert.deepEqual(links.map((link) => link.page), [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]);
+});
+
+test("a contents name that is not on the album is not given another song", () => {
+  const rows = matchSongListToPages(
+    [{ text: "05 Horsemens Praise", top: 40 }],
+    [
+      { sourcePage: 12, title: "A Promise Broken" },
+      { sourcePage: 16, title: "Armor of God" },
+    ],
+  );
+  assert.equal(rows[0].page, 0);
 });
