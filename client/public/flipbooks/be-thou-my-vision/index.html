@@ -189,8 +189,10 @@ body { background: var(--ground); color: #fff; }
   });
 
   var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, jumpPage = 0, turnGen = 0, turnAnims = [];
-  // Ignore page-turn gestures that arrive in the same tap as a song-list jump.
-  var ignoreTurnUntil = 0;
+  // After a song-list tap, ignore turn gestures from that same touch (mobile often
+  // emits a swipe/turn right after the jump and skips to the lyrics leaf).
+  var suppressTurns = false;
+  var landPage = 0;
 
   // Contents page (picture 2): invisible taps over the printed song list jump to each song.
   var SONG_NAV = [
@@ -249,9 +251,10 @@ body { background: var(--ground); color: #fff; }
     resetViewZoom();
     hideLeaf();
     jumpPage = n;
+    landPage = n;
     pg = n - 1;
     idx = spreadIndexForPage(n);
-    ignoreTurnUntil = Date.now() + 500;
+    suppressTurns = true;
     applyState();
   }
 
@@ -275,6 +278,7 @@ body { background: var(--ground); color: #fff; }
         goToPageNumber(song.page);
       }
       b.addEventListener('pointerdown', function (e) {
+        suppressTurns = true;
         e.stopPropagation();
         if (e.stopImmediatePropagation) e.stopImmediatePropagation();
         e.preventDefault();
@@ -332,8 +336,8 @@ body { background: var(--ground); color: #fff; }
     if (single !== wasSingle) {
       resetViewZoom();
       if (single) {
-        // Prefer the cover/title leaf (left), or the page we jumped to — never force the right leaf.
-        if (jumpPage) pg = jumpPage - 1;
+        // Prefer the cover/title leaf, or the page we jumped to — never force the lyrics leaf.
+        if (jumpPage || landPage) pg = (jumpPage || landPage) - 1;
         else {
           var leftN = SP[idx][0], rightN = SP[idx][1], curN = pg + 1;
           if (curN !== leftN && curN !== rightN) pg = Math.max(0, (leftN || rightN) - 1);
@@ -378,7 +382,9 @@ body { background: var(--ground); color: #fff; }
   function applyState() {
     var jobs = [];
     if (single) {
-      jobs.push(setPage(slotR, jumpPage || (pg + 1)));
+      // landPage keeps the cover leaf up if a same-tap turn cleared jumpPage.
+      var show = jumpPage || landPage || (pg + 1);
+      jobs.push(setPage(slotR, show));
     } else if (jumpPage) {
       var pair = songPagePair(jumpPage);
       jobs.push(setPage(slotL, pair[0]));
@@ -505,12 +511,14 @@ body { background: var(--ground); color: #fff; }
   }
 
   function go(dir) {
-    // Drop turn gestures that piggy-back on the song-list tap.
-    if (Date.now() < ignoreTurnUntil) return;
-    if (jumpPage) {
-      idx = spreadIndexForPage(jumpPage);
-      pg = jumpPage - 1;
+    // Drop turn gestures that piggy-back on the song-list tap (common on mobile).
+    if (suppressTurns) return;
+    if (jumpPage || landPage) {
+      var start = jumpPage || landPage;
+      idx = spreadIndexForPage(start);
+      pg = start - 1;
       jumpPage = 0;
+      landPage = 0;
     }
     if (busy) return;
     if (single) resetViewZoom();
@@ -540,6 +548,8 @@ body { background: var(--ground); color: #fff; }
     resetViewZoom();
     hideLeaf();
     jumpPage = 0;
+    landPage = 0;
+    suppressTurns = false;
     idx = 0;
     pg = 0;
     applyState();
@@ -550,6 +560,8 @@ body { background: var(--ground); color: #fff; }
     resetViewZoom();
     hideLeaf();
     jumpPage = 0;
+    landPage = 0;
+    suppressTurns = false;
     idx = LAST;
     pg = TOTAL - 1;
     applyState();
@@ -558,6 +570,15 @@ body { background: var(--ground); color: #fff; }
   var mobileZoomCtl = null;
   function resetViewZoom() {
     if (mobileZoomCtl) mobileZoomCtl.reset();
+  }
+  // A new touch/click that is not a song hotspot ends the post-jump turn lock.
+  stage.addEventListener('pointerdown', function (e) {
+    if (e.target && e.target.closest && e.target.closest('.hot-song')) return;
+    suppressTurns = false;
+  }, true);
+  function turn(dir) {
+    suppressTurns = false;
+    go(dir);
   }
   mobileZoomCtl = attachFlipbookMobileZoom({
     stage: stage,
@@ -579,11 +600,11 @@ body { background: var(--ground); color: #fff; }
     }
   });
   if (typeof wireFlipArrows === 'function') {
-    wireFlipArrows(arrL, arrR, { start: goToStart, end: goToEnd, turn: go });
+    wireFlipArrows(arrL, arrR, { start: goToStart, end: goToEnd, turn: turn });
   }
   window.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') go(1);
-    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1);
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') turn(1);
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') turn(-1);
   });
   window.addEventListener('resize', function () { if (!busy) layout(); else setTimeout(layout, 1100); });
 
