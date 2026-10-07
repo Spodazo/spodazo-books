@@ -30,6 +30,7 @@ async function buildAll() {
       "@napi-rs/canvas",
       "pdfjs-dist/legacy/build/pdf.mjs",
       "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
+      "tesseract.js",
     ],
     target: "node22",
     logLevel: "info",

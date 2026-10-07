@@ -1,13 +1,30 @@
 import { isBundledFlipbookSlug } from "../shared/bundled-flipbooks";
-import { indexLinksEqual } from "../shared/pdf-index-links";
+import { indexLinksEqual, matchSongListToPages, realignIndexLinksByOrder } from "../shared/pdf-index-links";
 import { shouldUseFacsimileFlipbook } from "../shared/facsimile-flipbook";
-import type { BookPage } from "../shared/types";
-import { localPdfPath } from "./media";
+import type { BookPage, PageJumpLink } from "../shared/types";
+import { recognizeContentsLines } from "./contents-ocr";
+import { localImagePath, localPdfPath } from "./media";
 import { detectPdfIndexLinksFromFile } from "./pdf-import";
 import type { BookStore } from "./storage";
 
 function linksChanged(pages: BookPage[], next: Map<number, NonNullable<BookPage["links"]>>): boolean {
   return pages.some((page) => !indexLinksEqual(page.links, next.get(page.sourcePage) || []));
+}
+
+async function realignImageContents(
+  pages: BookPage[],
+  found: Map<number, PageJumpLink[]>,
+): Promise<void> {
+  for (const page of pages) {
+    const links = found.get(page.sourcePage) || page.links || [];
+    if (links.length < 2) continue;
+    const image = localImagePath(page.fullPageAsset || page.imageAsset || "");
+    if (!image) continue;
+    const lines = await recognizeContentsLines(image);
+    const rows = matchSongListToPages(lines, pages);
+    const next = realignIndexLinksByOrder(links, rows);
+    if (next.some((link, index) => link.page !== links[index].page)) found.set(page.sourcePage, next);
+  }
 }
 
 /** Re-read stored PDFs so already-imported song lists pick up box and destination fixes. */
@@ -23,6 +40,7 @@ export async function refreshImportedPdfIndexLinks(store: BookStore): Promise<nu
     if (!pdfPath) continue;
     try {
       const found = await detectPdfIndexLinksFromFile(pdfPath, book.title);
+      await realignImageContents(book.pages, found);
       if (!found.size && !book.pages.some((page) => (page.links || []).length)) continue;
       if (!linksChanged(book.pages, found)) continue;
       const pages = book.pages.map((page) => ({

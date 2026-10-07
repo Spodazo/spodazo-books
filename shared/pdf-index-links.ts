@@ -257,7 +257,7 @@ function textLinkCandidates(page: PdfIndexPageInput, bookTitle: string) {
   if (candidates.length < 2) return [];
   if (!heading) {
     const numbered = candidates.filter((item) => item.entry.number).length;
-    if (numbered < 3 && candidates.length < 3) return [];
+    if (numbered < 3) return [];
   }
   return candidates;
 }
@@ -319,6 +319,119 @@ function pageFromTitles(pages: Array<{ sourcePage?: number; title?: string; para
       })),
     ],
   }));
+}
+
+function repairContentsLine(text: string): string {
+  return text.replace(/^([0-9Il|]{1,2})(?=\s)/, (raw) => raw.replace(/[Il|]/g, "1"));
+}
+
+function isSongTitle(title: string): boolean {
+  const value = title.trim();
+  if (!value || isNumberedPageLabel(value)) return false;
+  return !/^(lyrics|verse\b|forward|contents|songs?)$/i.test(value);
+}
+
+export type MatchedContentsRow = { label: string; page: number; top: number };
+
+/**
+ * Point each contents row at the song page with that title.
+ * A single leftover row is paired with the single leftover song, so a renamed
+ * title (contents "Horsemen's Praise", page "Armor of God") still lands together
+ * instead of every later row opening the next song.
+ */
+export function matchSongListToPages(
+  lines: Array<{ text: string; top: number }>,
+  pages: Array<{ sourcePage?: number; title?: string }>,
+): MatchedContentsRow[] {
+  const songs = pages
+    .map((page, index) => ({ sourcePage: page.sourcePage || index + 1, title: String(page.title || "").trim() }))
+    .filter((page) => isSongTitle(page.title));
+  const rows = lines
+    .map((line) => {
+      const text = repairContentsLine(line.text).trim();
+      if (!text) return null;
+      const hay = normalizeIndexTitle(text);
+      const namesASong = songs.some((song) => {
+        const title = normalizeIndexTitle(song.title);
+        return title.length >= 8 && hay.includes(title);
+      });
+      if (!namesASong && !/\d{1,2}\s+[A-Za-z]/.test(text)) return null;
+      const entry = parseEntry(text);
+      return {
+        label: entry?.number ? `${entry.number} ${entry.label}` : text,
+        text,
+        top: line.top,
+      };
+    })
+    .filter((row): row is { label: string; text: string; top: number } => Boolean(row));
+  const dests = rows.map(() => 0);
+  const labels = rows.map((row) => row.label);
+  const scored: Array<{ index: number; song: number; score: number }> = [];
+  rows.forEach((row, index) => {
+    const hay = normalizeIndexTitle(row.text);
+    songs.forEach((song, songIndex) => {
+      const title = normalizeIndexTitle(song.title);
+      if (title.length < 4) return;
+      let score = 0;
+      if (hay === title || hay.endsWith(` ${title}`) || hay.includes(title)) score = 200;
+      else {
+        const left = new Set(hay.split(" ").filter((word) => word.length > 2));
+        const right = title.split(" ").filter((word) => word.length > 2);
+        const hit = right.filter((word) => left.has(word)).length;
+        if (hit >= 3 && hit / right.length >= 0.6) score = 140;
+      }
+      if (score) scored.push({ index, song: songIndex, score });
+    });
+  });
+  scored.sort((a, b) => b.score - a.score || a.index - b.index);
+  const usedRows = new Set<number>();
+  const usedSongs = new Set<number>();
+  for (const hit of scored) {
+    if (usedRows.has(hit.index) || usedSongs.has(hit.song)) continue;
+    dests[hit.index] = songs[hit.song].sourcePage;
+    labels[hit.index] = songs[hit.song].title;
+    usedRows.add(hit.index);
+    usedSongs.add(hit.song);
+  }
+  const openRows = rows.map((_, index) => index).filter((index) => !dests[index]);
+  const openSongs = songs.map((_, index) => index).filter((index) => !usedSongs.has(index));
+  if (openRows.length === 1 && openSongs.length === 1) {
+    dests[openRows[0]] = songs[openSongs[0]].sourcePage;
+    labels[openRows[0]] = songs[openSongs[0]].title;
+  }
+  return rows.map((row, index) => ({ label: labels[index], page: dests[index], top: row.top }));
+}
+
+/** Move existing contents taps onto the matched song without shifting later rows. */
+export function realignIndexLinks<T extends PageJumpLink>(links: T[], rows: MatchedContentsRow[]): T[] {
+  const used = new Set<number>();
+  return links.map((link) => {
+    let best = -1;
+    let dist = 2.6;
+    rows.forEach((row, index) => {
+      if (used.has(index) || !row.page) return;
+      const gap = Math.abs(row.top - link.top);
+      if (gap < dist) {
+        dist = gap;
+        best = index;
+      }
+    });
+    if (best < 0) return link;
+    used.add(best);
+    return { ...link, page: rows[best].page, label: rows[best].label };
+  });
+}
+
+/** Same reading order: the first tap goes to the first song row, and so on. */
+export function realignIndexLinksByOrder<T extends PageJumpLink>(links: T[], rows: MatchedContentsRow[]): T[] {
+  const orderedLinks = links.map((link, index) => ({ link, index })).sort((a, b) => a.link.top - b.link.top || a.index - b.index);
+  const orderedRows = rows.filter((row) => row.page > 0).slice().sort((a, b) => a.top - b.top);
+  if (orderedRows.length !== orderedLinks.length) return links;
+  const next = links.slice();
+  orderedLinks.forEach((item, index) => {
+    next[item.index] = { ...item.link, page: orderedRows[index].page, label: orderedRows[index].label };
+  });
+  return next;
 }
 
 /** "Page 4" is a page number, not a title. Matching it to every "Page N" title shifts the tap onto the previous leaf. */
