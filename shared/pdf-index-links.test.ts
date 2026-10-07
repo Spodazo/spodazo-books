@@ -5,7 +5,10 @@ import {
   facsimilePageLinks,
   groupPdfLines,
   lineBoxTopPercent,
+  matchSongListToPages,
   normalizeIndexTitle,
+  realignIndexLinks,
+  realignIndexLinksByOrder,
   retargetStoredIndexLinks,
 } from "./pdf-index-links";
 
@@ -213,4 +216,101 @@ test("facsimilePageLinks groups stored page taps by source page", () => {
     { sourcePage: 6, title: "Though He Slay Me" },
   ]);
   assert.deepEqual(numbered["2"].map((link) => link.page), [4, 6]);
+});
+
+test("song list rows after a missing title open that song, not the next one", () => {
+  const lines = [
+    { text: "01 Echoes of the Storm", top: 30.52 },
+    { text: "02 Though He Slay Me", top: 33.57 },
+    { text: "03 By Waters Deep and Still", top: 36.9 },
+    { text: "04 Under His Wings", top: 39.96 },
+    { text: "05 Horsemens Praise", top: 43.31 },
+    { text: "06 A Promise Broken", top: 46.5 },
+    { text: "07 Clean Once Again", top: 49.56 },
+    { text: "08 Restored", top: 53.05 },
+    { text: "09 Our Light", top: 55.94 },
+    { text: "10 Your Hands Will Break My Fall", top: 59.16 },
+    { text: "1l The Heavens Declare", top: 62.65 },
+    { text: "12 Be Thou My Vision", top: 65.7 },
+  ];
+  const songs = [
+    { sourcePage: 4, title: "Echoes of the Storm" },
+    { sourcePage: 6, title: "Though He Slay Me" },
+    { sourcePage: 8, title: "By Waters Deep and Still" },
+    { sourcePage: 10, title: "Under His Wings" },
+    { sourcePage: 12, title: "A Promise Broken" },
+    { sourcePage: 14, title: "Clean Once Again" },
+    { sourcePage: 16, title: "Armor of God" },
+    { sourcePage: 18, title: "Restored" },
+    { sourcePage: 20, title: "Our Light" },
+    { sourcePage: 22, title: "The Heavens Declare" },
+    { sourcePage: 24, title: "Your Hands Will Break My Fall" },
+    { sourcePage: 26, title: "Be Thou My Vision" },
+  ];
+  const rows = matchSongListToPages(lines, songs);
+  const links = realignIndexLinks(
+    [
+      { page: 4, label: "Page 4", top: 29.52, left: 9, width: 80, height: 4.2 },
+      { page: 6, label: "Page 6", top: 32.76, left: 9, width: 80, height: 4.2 },
+      { page: 8, label: "Page 8", top: 36.01, left: 9, width: 80, height: 4.2 },
+      { page: 10, label: "Page 10", top: 39.19, left: 9, width: 80, height: 4.2 },
+      { page: 12, label: "Page 12", top: 42.44, left: 9, width: 80, height: 4.2 },
+      { page: 14, label: "Page 14", top: 45.6, left: 9, width: 80, height: 4.2 },
+      { page: 16, label: "Page 16", top: 48.85, left: 9, width: 80, height: 4.2 },
+      { page: 18, label: "Page 18", top: 52.1, left: 9, width: 80, height: 4.2 },
+      { page: 20, label: "Page 20", top: 55.18, left: 9, width: 80, height: 4.2 },
+      { page: 22, label: "Page 22", top: 58.52, left: 9, width: 80, height: 4.2 },
+      { page: 24, label: "Page 24", top: 61.77, left: 9, width: 80, height: 4.2 },
+      { page: 26, label: "Page 26", top: 64.85, left: 9, width: 80, height: 4.2 },
+    ],
+    rows,
+  );
+  assert.deepEqual(links.map((link) => link.page), [4, 6, 8, 10, 16, 12, 14, 18, 20, 24, 22, 26]);
+});
+
+test("noisy contents text still opens each named song", () => {
+  const text = [
+    "Echoes of Storms",
+    "Songs",
+    "01 Echoes of the Storm",
+    "02 Though He Slay Me",
+    "03 By Waters Deep and Still",
+    "04 Under His Wings",
+    "5 : 05 Horsemens Praise",
+    "3 o 7 06 A Promise Broken",
+    "07 Clean Once Again",
+    "08 Restored",
+    "09 Our Light",
+    "10 Your nee Will Break My Fall",
+    "Tl The Heavens Declare",
+    "12 Be Thou My Vision",
+  ].join("\n");
+  const songs = [
+    { sourcePage: 4, title: "Echoes of the Storm" },
+    { sourcePage: 6, title: "Though He Slay Me" },
+    { sourcePage: 8, title: "By Waters Deep and Still" },
+    { sourcePage: 10, title: "Under His Wings" },
+    { sourcePage: 12, title: "A Promise Broken" },
+    { sourcePage: 14, title: "Clean Once Again" },
+    { sourcePage: 16, title: "Armor of God" },
+    { sourcePage: 18, title: "Restored" },
+    { sourcePage: 20, title: "Our Light" },
+    { sourcePage: 22, title: "The Heavens Declare" },
+    { sourcePage: 24, title: "Your Hands Will Break My Fall" },
+    { sourcePage: 26, title: "Be Thou My Vision" },
+  ];
+  const lines = text.split("\n").map((line, top) => ({ text: line, top }));
+  const rows = matchSongListToPages(lines, songs);
+  const links = realignIndexLinksByOrder(
+    [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26].map((page, index) => ({
+      page,
+      label: `Page ${page}`,
+      top: 29 + index * 3,
+      left: 9,
+      width: 80,
+      height: 4,
+    })),
+    rows,
+  );
+  assert.deepEqual(links.map((link) => link.page), [4, 6, 8, 10, 16, 12, 14, 18, 20, 24, 22, 26]);
 });
