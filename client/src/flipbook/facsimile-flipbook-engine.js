@@ -40,6 +40,15 @@
   var pw = 0;
   var ph = 0;
   var jumpPage = 0;
+  // A song-list tap must stay on the cover leaf. Mobile Safari then synthesizes
+  // a mouse click that was turning forward onto the lyrics leaf.
+  var suppressTurns = false;
+  var suppressTurnsUntil = 0;
+  var landPage = 0;
+
+  function turnsSuppressed() {
+    return suppressTurns || Date.now() < suppressTurnsUntil;
+  }
   var turnGen = 0;
   var turnAnims = [];
 
@@ -101,8 +110,11 @@
     resetViewZoom();
     hideLeaf();
     jumpPage = n;
+    landPage = n;
     pg = n - 1;
     idx = spreadIndexForPage(n);
+    suppressTurns = true;
+    suppressTurnsUntil = Date.now() + 900;
     applyState();
   }
 
@@ -147,10 +159,16 @@
       b.setAttribute("aria-label", link.label || ("Go to page " + link.page));
       function activate(e) {
         e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
         e.preventDefault();
         goToPageNumber(Number(link.page));
       }
-      b.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+      b.addEventListener("pointerdown", function (e) {
+        suppressTurns = true;
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        e.preventDefault();
+      });
       b.addEventListener("pointerup", activate);
       b.addEventListener("click", function (e) {
         e.stopPropagation();
@@ -212,7 +230,11 @@
     single = decideMode(W, H);
     if (single !== wasSingle) {
       resetViewZoom();
-      if (single) { pg = Math.max(0, (SP[idx][1] || SP[idx][0]) - 1); }
+      if (single) {
+        // Open on the cover/title leaf (left), never the lyrics leaf (right).
+        if (jumpPage || landPage) pg = (jumpPage || landPage) - 1;
+        else pg = Math.max(0, (SP[idx][0] || SP[idx][1]) - 1);
+      }
       else { idx = pg === 0 ? 0 : Math.min(LAST, Math.ceil(pg / 2)); }
     }
     var m = Math.max(12, Math.round(H * 0.03));
@@ -254,7 +276,8 @@
   function applyState() {
     var jobs = [];
     if (single) {
-      jobs.push(setPage(slotR, jumpPage || (pg + 1)));
+      var show = jumpPage || landPage || (pg + 1);
+      jobs.push(setPage(slotR, show));
     } else if (jumpPage) {
       var pair = sectionPagePair(jumpPage);
       jobs.push(setPage(slotL, pair[0]));
@@ -397,10 +420,13 @@
   }
 
   function go(dir) {
-    if (jumpPage) {
-      idx = spreadIndexForPage(jumpPage);
-      pg = jumpPage - 1;
+    if (turnsSuppressed()) return;
+    if (jumpPage || landPage) {
+      var start = jumpPage || landPage;
+      idx = spreadIndexForPage(start);
+      pg = start - 1;
       jumpPage = 0;
+      landPage = 0;
     }
     if (busy) return;
     if (single) resetViewZoom();
@@ -438,6 +464,9 @@
     resetViewZoom();
     hideLeaf();
     jumpPage = 0;
+    landPage = 0;
+    suppressTurns = false;
+    suppressTurnsUntil = 0;
     idx = 0;
     pg = 0;
     applyState();
@@ -448,6 +477,9 @@
     resetViewZoom();
     hideLeaf();
     jumpPage = 0;
+    landPage = 0;
+    suppressTurns = false;
+    suppressTurnsUntil = 0;
     idx = LAST;
     pg = TOTAL - 1;
     applyState();
@@ -456,6 +488,17 @@
   var mobileZoomCtl = null;
   function resetViewZoom() {
     if (mobileZoomCtl) mobileZoomCtl.reset();
+  }
+  stage.addEventListener("pointerdown", function (e) {
+    if (e.target && e.target.closest && e.target.closest(".hot-index")) return;
+    if (e.pointerType === "mouse" && Date.now() < suppressTurnsUntil) return;
+    suppressTurns = false;
+    suppressTurnsUntil = 0;
+  }, true);
+  function turn(dir) {
+    suppressTurns = false;
+    suppressTurnsUntil = 0;
+    go(dir);
   }
   mobileZoomCtl = attachFlipbookMobileZoom({
     stage: stage,
@@ -467,6 +510,7 @@
       return el.closest && (el.closest(".flipbook-close") || el.closest(".hot") || el.closest(".arrow"));
     },
     onTap: function (e, type) {
+      if (turnsSuppressed() || landPage) return;
       var r = stage.getBoundingClientRect();
       var onRight = e.clientX - r.left >= r.width / 2;
       if (type === "touch") {
@@ -483,11 +527,11 @@
     },
   });
   if (typeof wireFlipArrows === "function") {
-    wireFlipArrows(arrL, arrR, { start: goToStart, end: goToEnd, turn: go });
+    wireFlipArrows(arrL, arrR, { start: goToStart, end: goToEnd, turn: turn });
   }
   window.addEventListener("keydown", function (e) {
-    if (e.key === "ArrowRight" || e.key === "PageDown") { if (atLastPage()) restart(); else go(1); }
-    else if (e.key === "ArrowLeft" || e.key === "PageUp") go(-1);
+    if (e.key === "ArrowRight" || e.key === "PageDown") { if (atLastPage()) restart(); else turn(1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") turn(-1);
   });
   window.addEventListener("resize", function () { if (!busy) layout(); else setTimeout(layout, 1100); });
 
