@@ -15,6 +15,9 @@ test("uploaded PDF flipbook engine has the Be Thou My Vision controls", async ()
   assert.match(engine, /spodazo-reader-ready/);
   assert.match(engine, /Read again/);
   assert.match(engine, /function goToPageNumber/);
+  assert.match(engine, /function turnsSuppressed/);
+  assert.match(engine, /landPage/);
+  assert.match(engine, /SP\[idx\]\[0\] \|\| SP\[idx\]\[1\]/);
   assert.match(engine, /function mountIndexHots/);
   assert.match(engine, /function imageContentBox/);
   assert.match(engine, /hot-index/);
