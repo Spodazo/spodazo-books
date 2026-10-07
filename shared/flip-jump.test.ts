@@ -60,15 +60,17 @@ test("Be Thou song list taps live on the contents page", async () => {
   assert.equal([...html.matchAll(/label: ['"]/g)].length, 10);
 });
 
-test("Be Thou song-list jumps open on the cover leaf, not the lyrics leaf", async () => {
+test("Be Thou song-list jumps open the cover leaf (and lyrics for two-leaf songs)", async () => {
   const { readFile } = await import("node:fs/promises");
   const html = await readFile(
     new URL("../client/public/flipbooks/be-thou-my-vision/index.html", import.meta.url),
     "utf8",
   );
-  assert.match(html, /function songPagePair\(n\) \{\s*return \[n, 0\];\s*\}/);
+  assert.match(html, /function songPagePair\(n\) \{\s*return \[n, songFollowPage\(n\)\];\s*\}/);
   assert.match(html, /function songFollowPage\(n\)/);
-  assert.match(html, /Song-list jumps always open on the cover\/title leaf/);
+  assert.match(html, /Two-leaf songs also show the lyrics leaf on the right/);
+  assert.match(html, /ignoreTurnUntil/);
+  assert.match(html, /Date\.now\(\) < ignoreTurnUntil/);
 });
 
 test("in-app reader jumps on double-click zones and mobile edge taps", async () => {
