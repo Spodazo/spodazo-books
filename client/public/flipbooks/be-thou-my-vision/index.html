@@ -189,6 +189,8 @@ body { background: var(--ground); color: #fff; }
   });
 
   var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, jumpPage = 0, turnGen = 0, turnAnims = [];
+  // Ignore page-turn gestures that arrive in the same tap as a song-list jump.
+  var ignoreTurnUntil = 0;
 
   // Contents page (picture 2): invisible taps over the printed song list jump to each song.
   var SONG_NAV = [
@@ -223,9 +225,13 @@ body { background: var(--ground); color: #fff; }
     return right;
   }
 
-  /** Song-list jumps always open on the cover/title leaf (left), never the lyrics leaf. */
+  /**
+   * Song-list jumps: cover/title leaf on the left.
+   * Two-leaf songs also show the lyrics leaf on the right.
+   * Single-leaf songs sit alone on the left (blank right).
+   */
   function songPagePair(n) {
-    return [n, 0];
+    return [n, songFollowPage(n)];
   }
 
   function abortTurn() {
@@ -245,6 +251,7 @@ body { background: var(--ground); color: #fff; }
     jumpPage = n;
     pg = n - 1;
     idx = spreadIndexForPage(n);
+    ignoreTurnUntil = Date.now() + 500;
     applyState();
   }
 
@@ -263,13 +270,19 @@ body { background: var(--ground); color: #fff; }
       b.setAttribute('aria-label', song.label);
       function activate(e) {
         e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
         e.preventDefault();
         goToPageNumber(song.page);
       }
-      b.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+      b.addEventListener('pointerdown', function (e) {
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        e.preventDefault();
+      });
       b.addEventListener('pointerup', activate);
       b.addEventListener('click', function (e) {
         e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
         e.preventDefault();
         if (e.detail === 0) activate(e);
       });
@@ -492,25 +505,12 @@ body { background: var(--ground); color: #fff; }
   }
 
   function go(dir) {
+    // Drop turn gestures that piggy-back on the song-list tap.
+    if (Date.now() < ignoreTurnUntil) return;
     if (jumpPage) {
-      var start = jumpPage;
-      var follow = songFollowPage(start);
-      idx = spreadIndexForPage(start);
-      pg = start - 1;
+      idx = spreadIndexForPage(jumpPage);
+      pg = jumpPage - 1;
       jumpPage = 0;
-      if (busy) return;
-      if (single) resetViewZoom();
-      // After a song-list jump, the cover leaf is alone on the left. The first
-      // forward turn should open the lyrics leaf (two-leaf songs) instead of
-      // skipping ahead to the next spread.
-      if (dir > 0 && follow) {
-        if (single) {
-          run(1, pg, follow - 1);
-          return;
-        }
-        applyState();
-        return;
-      }
     }
     if (busy) return;
     if (single) resetViewZoom();
