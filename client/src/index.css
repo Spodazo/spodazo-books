@@ -533,7 +533,10 @@ html.book-closing .bundled-flipbook-host {
     margin-bottom: 40px;
   }
   .library-grid {
-    gap: 16px;
+    /* ~50% of the previous mobile card width (was minmax(240px, 1fr)) */
+    grid-template-columns: repeat(auto-fit, minmax(120px, 140px));
+    justify-content: center;
+    gap: 12px;
   }
   .caption {
     padding: 12px 14px 14px;
