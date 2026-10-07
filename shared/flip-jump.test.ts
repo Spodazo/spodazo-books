@@ -57,6 +57,8 @@ test("Be Thou song list taps live on the contents page", async () => {
   assert.match(html, /label: '01 Be Thou My Vision'/);
   assert.match(html, /label: '10 All is Well'/);
   assert.match(html, /page: 4, top: 31\.53/);
+  assert.match(html, /function clearSongHots/);
+  assert.match(html, /\.page\.link \.hot-song \{ display: none; \}/);
   assert.equal([...html.matchAll(/label: ['"]/g)].length, 10);
 });
 
