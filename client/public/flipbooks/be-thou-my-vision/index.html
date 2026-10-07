@@ -52,7 +52,7 @@ body { background: var(--ground); color: #fff; }
 .hot:hover, .hot:focus-visible { background: rgba(255,255,255,.10); outline: none; }
 .hot-again { left: 36%; width: 28%; top: 40.3%; height: 5.2%; }
 .hot-close { left: 40.5%; width: 19%; top: 46.9%; height: 5.2%; }
-.hot-song { left: 7%; width: 56%; }
+.hot-song { left: 22%; width: 56%; }
 .leaf .hot { display: none !important; }
 .slot:not(.hide) .page:not(.empty) { box-shadow: 0 18px 50px rgba(var(--ink-shadow), .45), 0 4px 14px rgba(var(--ink-shadow), .35); }
 .face .page { box-shadow: none; }
@@ -190,18 +190,18 @@ body { background: var(--ground); color: #fff; }
 
   var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, jumpPage = 0, turnGen = 0, turnAnims = [];
 
-  // Forward page (picture 3): invisible taps over the printed song list jump to each song.
+  // Contents page (picture 2): invisible taps over the printed song list jump to each song.
   var SONG_NAV = [
-    { page: 4, top: 53.3, label: '01 Be Thou My Vision' },
-    { page: 6, top: 55.5, label: '02 House of Many Mansions' },
-    { page: 7, top: 57.7, label: "03 Horsemen's Praise" },
-    { page: 8, top: 60.0, label: '04 Planted by the Stream' },
-    { page: 10, top: 62.2, label: '05 Garment of Praise' },
-    { page: 11, top: 64.4, label: '06 Grounded in Love' },
-    { page: 12, top: 66.6, label: '07 Firm Foundation' },
-    { page: 14, top: 68.8, label: '08 Grace for Grace' },
-    { page: 15, top: 71.1, label: '09 Friend of Sinners' },
-    { page: 16, top: 73.3, label: '10 All is Well' }
+    { page: 4, top: 31.53, label: '01 Be Thou My Vision' },
+    { page: 6, top: 34.64, label: '02 House of Many Mansions' },
+    { page: 7, top: 37.74, label: "03 Horsemen's Praise" },
+    { page: 8, top: 40.80, label: '04 Planted by the Stream' },
+    { page: 10, top: 43.86, label: '05 Garment of Praise' },
+    { page: 11, top: 46.96, label: '06 Grounded in Love' },
+    { page: 12, top: 50.07, label: '07 Firm Foundation' },
+    { page: 14, top: 53.13, label: '08 Grace for Grace' },
+    { page: 15, top: 56.23, label: '09 Friend of Sinners' },
+    { page: 16, top: 59.33, label: '10 All is Well' }
   ];
 
   function spreadIndexForPage(n) {
@@ -257,7 +257,7 @@ body { background: var(--ground); color: #fff; }
       b.className = 'hot hot-song';
       var next = SONG_NAV[i + 1];
       var top = song.top;
-      var bot = next ? next.top : song.top + 2.4;
+      var bot = next ? next.top : song.top + 3.1;
       b.style.top = top + '%';
       b.style.height = (bot - top) + '%';
       b.setAttribute('aria-label', song.label);
@@ -290,7 +290,7 @@ body { background: var(--ground); color: #fff; }
       if (n > IMAGES) { img.removeAttribute('src'); p.classList.add('again'); return Promise.resolve(); }   // extra link page
       p.classList.add('link');   // link laid over the closing picture
     }
-    if (n === 3) {
+    if (n === 2) {
       p.classList.add('songs');
       mountSongHots(p);
     }

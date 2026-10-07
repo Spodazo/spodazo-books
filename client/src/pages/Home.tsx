@@ -4,9 +4,10 @@ import AdminLoginLink from "../components/AdminLoginLink";
 import CoverFace from "../components/CoverFace";
 import { BOOK_FONTS, DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, googleFontsHref } from "@shared/book-fonts";
 import { DEFAULT_PAGE_BACKGROUND, libraryCoverLayout } from "@shared/page-layout";
-import { DEFAULT_PLAYER_SETUP, groupBooksByAudience } from "@shared/seed-data";
+import { DEFAULT_PLAYER_SETUP, sortBooksByAdminOrder } from "@shared/seed-data";
 import type { BookListItem, PlayerSetup } from "@shared/types";
 import { isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
+import { isFacsimileFlipbookListItem } from "@shared/facsimile-flipbook";
 import { fetchBook } from "../lib/api";
 import { markBookOpen } from "../lib/bookOpen";
 import { loadHomeBooks, loadHomeSetup, readCachedBooks, readCachedSetup } from "../lib/homeCache";
@@ -34,12 +35,25 @@ export default function HomePage() {
       setSetup(next);
       applyPalette(next.collectionColor);
     });
-    void loadHomeBooks().then((next) => {
-      setBooks((current) => JSON.stringify(current) === JSON.stringify(next) ? current : next);
-    });
+    const applyBooks = () => {
+      void loadHomeBooks().then((next) => {
+        const ordered = sortBooksByAdminOrder(next);
+        setBooks((current) => JSON.stringify(current) === JSON.stringify(ordered) ? current : ordered);
+      });
+    };
+    applyBooks();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") applyBooks();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", applyBooks);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", applyBooks);
+    };
   }, []);
 
-  const { children, adults } = groupBooksByAudience(books);
+  const shelf = sortBooksByAdminOrder(books);
 
   return (
     <main className="library">
@@ -48,8 +62,7 @@ export default function HomePage() {
         {setup.logoUrl ? <img className="library-logo" src={setup.logoUrl} alt={setup.appName} /> : <small>SPODAZO</small>}
         {setup.theme ? <p className="library-theme">{setup.theme}</p> : null}
       </header>
-      <LibrarySection books={children} />
-      <LibrarySection books={adults} />
+      <LibrarySection books={shelf} />
       {!books.length ? <p className="empty">Books will appear here after they are published in Admin.</p> : null}
       {setup.logoUrl || setup.credits || setup.copyright ? (
         <footer className="library-legal">
@@ -75,38 +88,15 @@ function LibrarySection({ books }: { books: BookListItem[] }) {
   );
 }
 
-function useLibraryCoverZoomEnabled() {
-  const [enabled, setEnabled] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(min-width: 701px)").matches : false,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 701px)");
-    const sync = () => setEnabled(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return enabled;
-}
-
 function LibraryBookCard({ book }: { book: BookListItem }) {
-  const zoomEnabled = useLibraryCoverZoomEnabled();
-  const [zoomed, setZoomed] = useState(false);
-
   return (
-    <article
-      className={`book-card${zoomed ? " is-cover-zoomed" : ""}`}
-      onMouseEnter={zoomEnabled ? () => setZoomed(true) : undefined}
-      onMouseLeave={zoomEnabled ? () => setZoomed(false) : undefined}
-    >
+    <article className="book-card">
       <Link
         href={`/${book.slug}`}
         className="cover-link"
         aria-label={`Read ${book.title}`}
-        onFocus={zoomEnabled ? () => setZoomed(true) : undefined}
-        onBlur={zoomEnabled ? () => setZoomed(false) : undefined}
         onClick={() => {
-          markBookOpen({ bundled: isBundledFlipbookSlug(book.slug) });
+          markBookOpen({ bundled: isBundledFlipbookSlug(book.slug) || isFacsimileFlipbookListItem(book) });
           void fetchBook(book.slug);
         }}
       >

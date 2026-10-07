@@ -1,8 +1,9 @@
+import { sortBooksByAdminOrder } from "@shared/seed-data";
 import type { BookListItem, PlayerSetup } from "@shared/types";
 import { fetchBooks, fetchPlayerSetup } from "./api";
 import { applySiteIcons } from "./siteIcons";
 
-export const HOME_BOOKS_KEY = "spodazo-home-books-v2";
+export const HOME_BOOKS_KEY = "spodazo-home-books-v3";
 export const HOME_SETUP_KEY = "spodazo-home-setup-v1";
 
 const decodedSrcs = new Set<string>();
@@ -28,7 +29,7 @@ export function readCachedBooks(): BookListItem[] {
     const raw = storage()?.getItem(HOME_BOOKS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as BookListItem[]) : [];
+    return Array.isArray(parsed) ? sortBooksByAdminOrder(parsed as BookListItem[]) : [];
   } catch {
     return [];
   }
@@ -36,7 +37,7 @@ export function readCachedBooks(): BookListItem[] {
 
 export function writeCachedBooks(books: BookListItem[]) {
   try {
-    storage()?.setItem(HOME_BOOKS_KEY, JSON.stringify(books));
+    storage()?.setItem(HOME_BOOKS_KEY, JSON.stringify(sortBooksByAdminOrder(books)));
   } catch {
     /* private mode */
   }
@@ -70,7 +71,7 @@ export async function loadHomeSetup(): Promise<PlayerSetup> {
 }
 
 export async function loadHomeBooks(): Promise<BookListItem[]> {
-  const books = await fetchBooks();
+  const books = sortBooksByAdminOrder(await fetchBooks());
   writeCachedBooks(books);
   return books;
 }

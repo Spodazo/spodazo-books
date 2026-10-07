@@ -35,6 +35,15 @@ export type PageLayout = {
   background?: string;
 };
 
+export type PageJumpLink = {
+  page: number;
+  label: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
 export type BookPage = {
   id: string;
   sourcePage: number;
@@ -50,6 +59,8 @@ export type BookPage = {
   alt?: string;
   elements: PageElement[];
   background: string;
+  /** Tappable song-list / contents / index hits on this facsimile page. */
+  links?: PageJumpLink[];
 };
 
 export type Book = {

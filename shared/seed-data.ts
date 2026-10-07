@@ -1,4 +1,5 @@
 import { normalizeColor, normalizeLayout } from "./page-layout";
+import { normalizePageJumpLinks } from "./pdf-index-links";
 import { DEFAULT_PALETTE_ID, normalizePaletteId } from "./palettes";
 import type { BookAudience, BookPage, CharacterRender, Curator, CuratorRecord, PageTemplate, PlayerSetup } from "./types";
 
@@ -31,6 +32,15 @@ export function groupBooksByAudience<T extends { audience?: string | null }>(boo
     else children.push(book);
   }
   return { children, adults };
+}
+
+/** Admin arrow order — left to right on the home page. */
+export function sortBooksByAdminOrder<T extends { sortOrder?: number | null; title?: string | null }>(books: T[]): T[] {
+  return books.slice().sort((a, b) => {
+    const left = Number.isFinite(Number(a.sortOrder)) ? Number(a.sortOrder) : 0;
+    const right = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : 0;
+    return left - right || String(a.title || "").localeCompare(String(b.title || ""));
+  });
 }
 
 export function uniqueSlug(base: string, used: Set<string>): string {
@@ -127,6 +137,7 @@ export function normalizeBookPage(raw: Partial<BookPage>, index: number): BookPa
     alt: raw.alt ? String(raw.alt) : undefined,
     elements: normalizeLayout({ elements: raw.elements || [] }).elements,
     background: normalizeColor(raw.background, ""),
+    links: normalizePageJumpLinks(raw.links),
   };
 }
 
@@ -153,6 +164,7 @@ export function pagesToJson(pages: BookPage[]): string {
       position: page.position,
       focalPoint: page.focalPoint,
       alt: page.alt,
+      links: page.links?.length ? page.links : undefined,
       elements: normalizeLayout({ elements: page.elements }).elements.map((item) => ({
         id: item.id,
         type: item.type,

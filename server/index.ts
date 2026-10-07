@@ -8,6 +8,7 @@ import { prepareFaviconSet, warmHomeCardImages } from "./media";
 import { ensureDataDirs, syncBundledMedia } from "./paths";
 import { ensureSessionTable, sessionMiddleware } from "./session";
 import { ensureBeThouMyVisionCatalog } from "./be-thou-my-vision-catalog";
+import { refreshImportedPdfIndexLinks } from "./pdf-index-links-refresh";
 import { ensureRudolphOneUpDisplay } from "./rudolph-one-up-migration";
 import { getStore } from "./storage";
 
@@ -41,6 +42,11 @@ async function start() {
     await ensureBeThouMyVisionCatalog(store);
   } catch (err) {
     console.error("[catalog] Be Thou My Vision catalog bootstrap failed:", err);
+  }
+  try {
+    await refreshImportedPdfIndexLinks(store);
+  } catch (err) {
+    console.error("[catalog] PDF contents link refresh failed:", err);
   }
   try {
     const setup = await (await getStore()).getPlayerSetup();
