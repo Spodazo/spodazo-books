@@ -69,8 +69,9 @@ test("Be Thou song-list jumps open the cover leaf (and lyrics for two-leaf songs
   assert.match(html, /function songPagePair\(n\) \{\s*return \[n, songFollowPage\(n\)\];\s*\}/);
   assert.match(html, /function songFollowPage\(n\)/);
   assert.match(html, /Two-leaf songs also show the lyrics leaf on the right/);
-  assert.match(html, /ignoreTurnUntil/);
-  assert.match(html, /Date\.now\(\) < ignoreTurnUntil/);
+  assert.match(html, /suppressTurns/);
+  assert.match(html, /landPage/);
+  assert.match(html, /if \(suppressTurns\) return/);
 });
 
 test("in-app reader jumps on double-click zones and mobile edge taps", async () => {
