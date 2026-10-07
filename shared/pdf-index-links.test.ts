@@ -196,4 +196,21 @@ test("facsimilePageLinks groups stored page taps by source page", () => {
     { sourcePage: 4, title: "02 River Hymn" },
   ]);
   assert.deepEqual(retargeted["2"].map((link) => link.page), [3, 4]);
+
+  const numbered = facsimilePageLinks([
+    { sourcePage: 1, title: "Page 1" },
+    {
+      sourcePage: 2,
+      title: "Page 2",
+      links: [
+        { page: 4, label: "Page 4", top: 30, left: 9, width: 80, height: 4.2 },
+        { page: 6, label: "Page 6", top: 34, left: 9, width: 80, height: 4.2 },
+      ],
+    },
+    { sourcePage: 3, title: "Page 3" },
+    { sourcePage: 4, title: "Echoes of the Storm" },
+    { sourcePage: 5, title: "Page 5" },
+    { sourcePage: 6, title: "Though He Slay Me" },
+  ]);
+  assert.deepEqual(numbered["2"].map((link) => link.page), [4, 6]);
 });
