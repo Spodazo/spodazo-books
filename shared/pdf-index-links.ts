@@ -335,9 +335,7 @@ export type MatchedContentsRow = { label: string; page: number; top: number };
 
 /**
  * Point each contents row at the song page with that title.
- * A single leftover row is paired with the single leftover song, so a renamed
- * title (contents "Horsemen's Praise", page "Armor of God") still lands together
- * instead of every later row opening the next song.
+ * A row that names a song not in the book stays unmatched. It is not given another song.
  */
 export function matchSongListToPages(
   lines: Array<{ text: string; top: number }>,
@@ -392,12 +390,6 @@ export function matchSongListToPages(
     labels[hit.index] = songs[hit.song].title;
     usedRows.add(hit.index);
     usedSongs.add(hit.song);
-  }
-  const openRows = rows.map((_, index) => index).filter((index) => !dests[index]);
-  const openSongs = songs.map((_, index) => index).filter((index) => !usedSongs.has(index));
-  if (openRows.length === 1 && openSongs.length === 1) {
-    dests[openRows[0]] = songs[openSongs[0]].sourcePage;
-    labels[openRows[0]] = songs[openSongs[0]].title;
   }
   return rows.map((row, index) => ({ label: labels[index], page: dests[index], top: row.top }));
 }
