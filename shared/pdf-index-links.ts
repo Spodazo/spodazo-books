@@ -321,6 +321,11 @@ function pageFromTitles(pages: Array<{ sourcePage?: number; title?: string; para
   }));
 }
 
+/** "Page 4" is a page number, not a title. Matching it to every "Page N" title shifts the tap onto the previous leaf. */
+function isNumberedPageLabel(label: string): boolean {
+  return /^page(?:\s+\d{1,3})?$/i.test(String(label || "").trim());
+}
+
 /** Re-aim stored taps using later page titles when a better unique match exists. */
 export function retargetStoredIndexLinks<T extends { sourcePage?: number; title?: string; paragraphs?: string[]; links?: PageJumpLink[] }>(
   pages: T[],
@@ -330,7 +335,13 @@ export function retargetStoredIndexLinks<T extends { sourcePage?: number; title?
     const links = page.links || [];
     if (links.length < 2) return page;
     const sourcePage = page.sourcePage || index + 1;
-    const entries = links.map((link) => parseEntry(link.label) || { label: link.label });
+    const entries = links.map((link) => {
+      const parsed = parseEntry(link.label) || { label: link.label };
+      if (isNumberedPageLabel(link.label) || isNumberedPageLabel(parsed.label || "")) {
+        return { label: "" };
+      }
+      return parsed;
+    });
     const dests = assignDestinations(entries, indexPages, sourcePage, "");
     let changed = false;
     const next = links.map((link, linkIndex) => {
