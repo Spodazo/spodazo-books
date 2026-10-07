@@ -216,10 +216,16 @@ body { background: var(--ground); color: #fff; }
     return false;
   }
 
-  function songPagePair(n) {
+  /** Lyrics (or second) leaf for a two-leaf song; 0 if the song is a single leaf. */
+  function songFollowPage(n) {
     var right = n + 1;
-    if (right > IMAGES || isSongStart(right)) return [n, 0];
-    return [n, right];
+    if (right > IMAGES || isSongStart(right)) return 0;
+    return right;
+  }
+
+  /** Song-list jumps always open on the cover/title leaf (left), never the lyrics leaf. */
+  function songPagePair(n) {
+    return [n, 0];
   }
 
   function abortTurn() {
@@ -312,8 +318,16 @@ body { background: var(--ground); color: #fff; }
     single = decideMode(W, H);
     if (single !== wasSingle) {
       resetViewZoom();
-      if (single) { pg = Math.max(0, (SP[idx][1] || SP[idx][0]) - 1); }
-      else { idx = pg === 0 ? 0 : Math.min(LAST, Math.ceil(pg / 2)); }
+      if (single) {
+        // Prefer the cover/title leaf (left), or the page we jumped to — never force the right leaf.
+        if (jumpPage) pg = jumpPage - 1;
+        else {
+          var leftN = SP[idx][0], rightN = SP[idx][1], curN = pg + 1;
+          if (curN !== leftN && curN !== rightN) pg = Math.max(0, (leftN || rightN) - 1);
+        }
+      } else {
+        idx = pg === 0 ? 0 : Math.min(LAST, Math.ceil(pg / 2));
+      }
     }
     var m = Math.max(12, Math.round(H * 0.03));          // slight margin top and bottom
     var avail = H - 2 * m;
@@ -479,9 +493,24 @@ body { background: var(--ground); color: #fff; }
 
   function go(dir) {
     if (jumpPage) {
-      idx = spreadIndexForPage(jumpPage);
-      pg = jumpPage - 1;
+      var start = jumpPage;
+      var follow = songFollowPage(start);
+      idx = spreadIndexForPage(start);
+      pg = start - 1;
       jumpPage = 0;
+      if (busy) return;
+      if (single) resetViewZoom();
+      // After a song-list jump, the cover leaf is alone on the left. The first
+      // forward turn should open the lyrics leaf (two-leaf songs) instead of
+      // skipping ahead to the next spread.
+      if (dir > 0 && follow) {
+        if (single) {
+          run(1, pg, follow - 1);
+          return;
+        }
+        applyState();
+        return;
+      }
     }
     if (busy) return;
     if (single) resetViewZoom();
