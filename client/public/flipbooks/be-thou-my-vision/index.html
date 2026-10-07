@@ -47,8 +47,9 @@ body { background: var(--ground); color: #fff; }
 .page.again { background: var(--again); }
 /* invisible link areas laid over the words printed on the back cover */
 .hot { display: none; position: absolute; z-index: 3; margin: 0; padding: 0; border: 0; border-radius: .6em; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
-.page.link .hot { display: block; }
+.page.link .hot-again, .page.link .hot-close { display: block; }
 .page.songs .hot-song { display: block; }
+.page.link .hot-song { display: none; }
 .hot:hover, .hot:focus-visible { background: rgba(255,255,255,.10); outline: none; }
 .hot-again { left: 36%; width: 28%; top: 40.3%; height: 5.2%; }
 .hot-close { left: 40.5%; width: 19%; top: 46.9%; height: 5.2%; }
@@ -182,8 +183,23 @@ body { background: var(--ground); color: #fff; }
     var p = host.querySelector('.page');
     [['again', 'Read Again'], ['close', 'Close']].forEach(function (d) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'hot hot-' + d[0]; b.setAttribute('aria-label', d[1]);
-      ['pointerdown', 'pointerup'].forEach(function (ev) { b.addEventListener(ev, function (e) { e.stopPropagation(); }); });
-      b.addEventListener('click', function (e) { e.stopPropagation(); if (d[0] === 'again') restart(); else closeBook(); });
+      function activate(e) {
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        e.preventDefault();
+        if (d[0] === 'again') restart(); else closeBook();
+      }
+      b.addEventListener('pointerdown', function (e) {
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+      b.addEventListener('pointerup', activate);
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        if (e.detail === 0) activate(e);
+      });
       p.appendChild(b);
     });
   });
@@ -265,6 +281,11 @@ body { background: var(--ground); color: #fff; }
     applyState();
   }
 
+  function clearSongHots(page) {
+    page.removeAttribute('data-song-hots');
+    Array.prototype.slice.call(page.querySelectorAll('.hot-song')).forEach(function (el) { el.remove(); });
+  }
+
   function mountSongHots(page) {
     if (page.getAttribute('data-song-hots') === '1') return;
     page.setAttribute('data-song-hots', '1');
@@ -310,6 +331,7 @@ body { background: var(--ground); color: #fff; }
   function setPage(host, n, blankPaper) {
     var p = pageEl(host), img = p.querySelector('img');
     p.classList.remove('empty', 'blank', 'again', 'link', 'songs');
+    if (n !== 2) clearSongHots(p);
     if (n === TOTAL) {
       if (n > IMAGES) { img.removeAttribute('src'); p.classList.add('again'); return Promise.resolve(); }   // extra link page
       p.classList.add('link');   // link laid over the closing picture

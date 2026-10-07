@@ -449,6 +449,9 @@
     book.classList.add("fading");
     setTimeout(function () {
       jumpPage = 0;
+      landPage = 0;
+      suppressTurns = false;
+      suppressTurnsUntil = 0;
       idx = 0;
       pg = 0;
       applyState().then(function () {
