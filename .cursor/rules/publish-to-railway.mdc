@@ -1,0 +1,28 @@
+---
+description: Finalize Spodazo Books work, then ask before publishing to Railway
+alwaysApply: true
+---
+
+# Publish to Railway (Spodazo Books)
+
+Railway production (`https://books.spodazo.com`) deploys from **`main` only**. Pushing a feature branch is **not** published.
+
+## After every change set
+
+1. **Finalize** the work first (implement, verify locally if needed, leave a clean completed change).
+2. **Do not** merge to `main`, open-and-merge a PR, or treat the site as updated until the user agrees to publish.
+3. **Tell them clearly** the work is done but **not live on Railway yet**.
+4. **Ask once**: whether to publish to Railway now.
+
+## When they say yes / publish / pp
+
+1. Commit if there are unpublished local changes.
+2. Get the commit onto **`main`** (PR + merge, or push `main` if already on it).
+3. Confirm the Railway deploy for that commit succeeded.
+4. Reply with: **live on Railway** + the commit short SHA (and PR URL if used).
+
+## Never
+
+- Say or imply changes are “published” / “live” after only a feature-branch push.
+- Skip the ask and merge to `main` on your own.
+- Leave them unsure whether production updated — always state live vs not live.
