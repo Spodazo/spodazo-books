@@ -35,14 +35,17 @@ body { background: var(--ground); color: #fff; }
 .page { position: absolute; inset: 0; background: var(--paper); overflow: hidden; }
 .page img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; pointer-events: none; -webkit-user-drag: none; }
 .hot { display: none; position: absolute; z-index: 3; margin: 0; padding: 0; border: 0; border-radius: .6em; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
-.page.index .hot { display: block; }
+.page.index .hot-index { display: block; }
+.page.link .hot-again, .page.link .hot-close { display: block; }
+.hot-again { left: 36%; width: 28%; top: 40.3%; height: 5.2%; }
+.hot-close { left: 40.5%; width: 19%; top: 46.9%; height: 5.2%; }
 .hot:hover, .hot:focus-visible { background: rgba(255,255,255,.10); outline: none; }
 .leaf .hot { display: none !important; }
 .page.empty { visibility: hidden; }
 .page.blank img, .page.again img { display: none; }
 .page.again { background: var(--again); }
 .page .again-label { display: none; }
-.page.again .again-label, .page.link .again-label {
+.page.again .again-label {
   position: absolute; inset: auto 12% 8%; display: flex; align-items: center; justify-content: center;
   font-family: var(--display); font-weight: 500; color: var(--gold);
   font-size: calc(var(--pw, 600px) * 0.032); letter-spacing: .02em;

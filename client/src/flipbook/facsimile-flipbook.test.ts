@@ -19,6 +19,10 @@ test("uploaded PDF flipbook engine has the Be Thou My Vision controls", async ()
   assert.match(engine, /landPage/);
   assert.match(engine, /SP\[idx\]\[0\] \|\| SP\[idx\]\[1\]/);
   assert.match(engine, /function mountIndexHots/);
+  assert.match(engine, /function mountCoverLinks/);
+  assert.match(engine, /hot-again/);
+  assert.match(engine, /hot-close/);
+  assert.match(css, /\.page\.link \.hot-again/);
   assert.match(engine, /function imageContentBox/);
   assert.match(engine, /hot-index/);
   assert.match(css, /\.flipbook-close/);

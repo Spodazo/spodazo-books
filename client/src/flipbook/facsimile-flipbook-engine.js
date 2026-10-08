@@ -141,6 +141,57 @@
     return { top: 0, left: (100 - w) / 2, width: w, height: 100 };
   }
 
+  var COVER_LINKS = [
+    { kind: "again", label: "Read Again", top: 40.3, left: 36, width: 28, height: 5.2 },
+    { kind: "close", label: "Close", top: 46.9, left: 40.5, width: 19, height: 5.2 },
+  ];
+
+  function placeCoverLinks(page) {
+    var box = imageContentBox(page);
+    Array.prototype.forEach.call(page.querySelectorAll(".hot-again, .hot-close"), function (b) {
+      b.style.top = (box.top + Number(b.dataset.top) * box.height / 100) + "%";
+      b.style.left = (box.left + Number(b.dataset.left) * box.width / 100) + "%";
+      b.style.width = (Number(b.dataset.width) * box.width / 100) + "%";
+      b.style.height = (Number(b.dataset.height) * box.height / 100) + "%";
+    });
+  }
+
+  function mountCoverLinks(page) {
+    if (page.getAttribute("data-cover-links") !== "1") {
+      page.setAttribute("data-cover-links", "1");
+      COVER_LINKS.forEach(function (link) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "hot hot-" + link.kind;
+        b.dataset.top = link.top;
+        b.dataset.left = link.left;
+        b.dataset.width = link.width;
+        b.dataset.height = link.height;
+        b.setAttribute("aria-label", link.label);
+        function activate(e) {
+          e.stopPropagation();
+          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+          e.preventDefault();
+          if (link.kind === "again") restart();
+          else exitToLibrary();
+        }
+        b.addEventListener("pointerdown", function (e) {
+          e.stopPropagation();
+          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+          e.preventDefault();
+        });
+        b.addEventListener("pointerup", activate);
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          if (e.detail === 0) activate(e);
+        });
+        page.appendChild(b);
+      });
+    }
+    placeCoverLinks(page);
+  }
+
   function mountIndexHots(page, n) {
     var links = linksFor(n);
     clearIndexHots(page);
@@ -184,7 +235,10 @@
     var img = p.querySelector("img");
     p.classList.remove("empty", "blank", "again", "link", "index");
     clearIndexHots(p);
-    if (n === TOTAL) p.classList.add("link");
+    if (n === TOTAL) {
+      p.classList.add("link");
+      mountCoverLinks(p);
+    }
     if (n && linksFor(n).length) {
       p.classList.add("index");
       mountIndexHots(p, n);
@@ -197,6 +251,7 @@
     var s = src(n);
     if (img.getAttribute("src") !== s) img.setAttribute("src", s);
     return (img.decode ? img.decode().catch(function () {}) : Promise.resolve()).then(function () {
+      if (n === TOTAL) placeCoverLinks(p);
       if (n && linksFor(n).length) mountIndexHots(p, n);
     });
   }
