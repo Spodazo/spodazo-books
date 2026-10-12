@@ -4,18 +4,25 @@ import { localImagePath } from "./media";
 import type { BookStore } from "./storage";
 
 const CONTENTS_IMAGE = path.resolve(process.cwd(), "server/assets/echoes-of-storms-contents.jpg");
+const STORM_LYRICS_IMAGE = path.resolve(process.cwd(), "server/assets/echoes-of-the-storm-lyrics.jpg");
 
-/** Replace the printed song list. Horsemen's Praise is not on this album. */
-export async function ensureEchoesContentsList(store: BookStore): Promise<void> {
-  if (!fs.existsSync(CONTENTS_IMAGE)) return;
-  const book = await store.getBookBySlug("echoes-of-storms-songbook");
-  const page = book?.pages.find((item) => (item.links || []).length >= 8);
-  if (!page) return;
-  const dest = localImagePath(page.fullPageAsset || page.imageAsset || "");
+function replaceStoredImage(asset: string | undefined, file: string, label: string): void {
+  if (!asset || !fs.existsSync(file)) return;
+  const dest = localImagePath(asset);
   if (!dest) return;
-  const next = fs.readFileSync(CONTENTS_IMAGE);
+  const next = fs.readFileSync(file);
   const current = fs.readFileSync(dest);
   if (current.equals(next)) return;
   fs.writeFileSync(dest, next);
-  console.log("[catalog] updated Echoes of Storms contents list");
+  console.log(`[catalog] updated ${label}`);
+}
+
+/** Keep shipped Echoes of Storms pages in step with the album. */
+export async function ensureEchoesContentsList(store: BookStore): Promise<void> {
+  const book = await store.getBookBySlug("echoes-of-storms-songbook");
+  if (!book) return;
+  const contents = book.pages.find((item) => (item.links || []).length >= 8);
+  replaceStoredImage(contents?.fullPageAsset || contents?.imageAsset, CONTENTS_IMAGE, "Echoes of Storms contents list");
+  const lyrics = book.pages.find((item) => item.sourcePage === 5);
+  replaceStoredImage(lyrics?.fullPageAsset || lyrics?.imageAsset, STORM_LYRICS_IMAGE, "Echoes of the Storm lyrics");
 }
