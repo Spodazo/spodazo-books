@@ -7,7 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, isWillowBook, visibleStoryPages} from '@shared/reader-pages';
-import {WILLOW_SONG_AUDIO_URL} from '@shared/willow-song-book';
+import {WILLOW_SONG_AUDIO_URL, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
 import {isImportedPdfFacsimileBook,storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
@@ -100,10 +100,15 @@ function elementHtml(el, baseUrl, book, extraMarkup = "") {
   return `<div class="el el-text${extra ? ` ${extra}` : ""}" style="${style}" ${meta}>${frameMarkup(el.frame, (Number(el.w) || 10) / (Number(el.h) || 10))}${elementTextHtml(el.text || "", esc)}${again}${extraMarkup}</div>`;
 }
 
-function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "", taglineExtra = "") {
+function cueAttr(seconds) {
+  if (seconds == null || Number.isNaN(Number(seconds))) return "";
+  return ` data-cue="${Number(seconds)}"`;
+}
+
+function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "", taglineExtra = "", attrs = "") {
   const fill = pageFill(layout, book);
   const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book, el.role === "tagline" ? taglineExtra : "")).join("");
-  return `<article class="page laid-out${extraClass}" aria-label="${esc(label)}" style="background-color:${fill}">${items}${extra}</article>`;
+  return `<article class="page laid-out${extraClass}" aria-label="${esc(label)}" style="background-color:${fill}"${attrs}>${items}${extra}</article>`;
 }
 
 function storyBody(paragraphs) {
@@ -165,10 +170,10 @@ function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
   const current = isCurrent ? " current" : "";
   const sing = singAlongHtml(book, baseUrl);
   if (hasLayout(book.titleLayout)) {
-    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, ` title-page${current}`, sing).replace("<article", '<article data-source="title"');
+    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, ` title-page${current}`, sing, isWillowBook(book) ? cueAttr(WILLOW_SONG_TITLE_CUE) : "").replace("<article", '<article data-source="title"');
   }
   const src = coverSrc(book, baseUrl);
-  return `<article class="page title-page${current}" data-source="title" aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div>${sing}</div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
+  return `<article class="page title-page${current}" data-source="title"${isWillowBook(book)?cueAttr(WILLOW_SONG_TITLE_CUE):""} aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div>${sing}</div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
@@ -190,7 +195,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const oneLeaf=book.pageTemplate==='one-up';
   const pdfFacsimile=isImportedPdfFacsimileBook(book,storyPages);
   const cover=frontCoverHtml(book,baseUrl,libraryUrl);
-  const storyDeps={esc,safeURL,baseUrl,book,skipCover,oneLeaf,hasLayout,laidOutPage:(label,layout,zones)=>laidOutPage(label,layout,book,baseUrl,zones),pageFill,storyBody};
+  const storyDeps={esc,safeURL,baseUrl,book,skipCover,oneLeaf,hasLayout,laidOutPage:(label,layout,zones,i)=>laidOutPage(label,layout,book,baseUrl,zones,"","", isWillowBook(book)?cueAttr(willowStoryPageCue(i)):""),pageFill,storyBody};
   const titleBlock=pdfFacsimile?'':titlePageHtml(book,baseUrl,libraryUrl,!cover);
   const endBlock=pdfFacsimile?'':endPageHtml(book,baseUrl,credits,copyright,logoUrl);
   const articles=cover+titleBlock+buildStoryPagesHtml(storyPages,storyDeps)+endBlock;

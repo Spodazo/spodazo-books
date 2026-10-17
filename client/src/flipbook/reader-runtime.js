@@ -663,15 +663,41 @@ function songAudio(){
   if(!src)return null;
   song=new Audio(src);
   song.addEventListener('ended',function(){syncSingAlong(false);});
-  song.addEventListener('play',function(){syncSingAlong(true);});
+  song.addEventListener('play',function(){syncSingAlong(true);followSong();});
   song.addEventListener('pause',function(){syncSingAlong(false);});
+  song.addEventListener('timeupdate',followSong);
   return song;
 }
+function cueFor(p){
+  if(!p)return NaN;
+  var raw=p.getAttribute('data-cue');
+  if(raw==null||raw==='')return NaN;
+  return Number(raw);
+}
+function pageForSongTime(t){
+  var best=-1,bestCue=-1,i,c;
+  for(i=0;i<pages.length;i++){
+    c=cueFor(pages[i]);
+    if(isNaN(c))continue;
+    if(t+0.4>=c&&c>=bestCue){bestCue=c;best=i;}
+  }
+  return best;
+}
+function followSong(){
+  var target;
+  if(!song||song.paused||busy)return;
+  target=pageForSongTime(song.currentTime);
+  if(target<0||target<=index)return;
+  if(target===index+1)go(1);
+  else jumpTo(target);
+}
 function toggleSingAlong(){
-  var audio=songAudio();
+  var audio=songAudio(),cue;
   if(!audio)return;
-  if(audio.paused)audio.play().catch(function(){});
-  else audio.pause();
+  if(!audio.paused){audio.pause();return;}
+  cue=cueFor(pages[index]);
+  if((audio.ended||audio.currentTime<0.5)&&!isNaN(cue))audio.currentTime=cue;
+  audio.play().catch(function(){});
 }
 function edgeJumpSide(x,width){
   var band=Math.max(56,width*0.18);

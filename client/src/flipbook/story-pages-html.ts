@@ -14,7 +14,7 @@ export type StoryPageHtmlDeps = {
   skipCover: boolean;
   oneLeaf: boolean;
   hasLayout: (layout: BookPage) => boolean;
-  laidOutPage: (label: string, layout: BookPage, zones: string) => string;
+  laidOutPage: (label: string, layout: BookPage, zones: string, index: number) => string;
   pageFill: (page: BookPage, book: Book) => string;
   storyBody: (paragraphs: string[]) => string[];
 };
@@ -52,7 +52,7 @@ export function storyPagesHtml(storyPages: BookPage[], deps: StoryPageHtmlDeps):
       const zones = `<button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button>`;
       const coverOnly = !deps.skipCover && i === 0;
       const pdfLeaf = isOneLeafPdfPage(p);
-      if (deps.hasLayout(p) && !pdfLeaf) return deps.laidOutPage(p.title || `Page ${i + 1}`, p, zones);
+      if (deps.hasLayout(p) && !pdfLeaf) return deps.laidOutPage(p.title || `Page ${i + 1}`, p, zones, i);
       const fallback = pdfLeaf || coverOnly;
       const leafSide = deps.oneLeaf && fallback && !coverOnly ? (i % 2 === 0 ? " leaf-right" : " leaf-left") : "";
       const classes = `page${fallback ? " facsimile" : ""}${deps.oneLeaf && fallback ? ` one-leaf${leafSide}` : ""}${coverOnly ? " cover-plate" : ""}`;
