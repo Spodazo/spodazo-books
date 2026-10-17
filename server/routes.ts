@@ -14,6 +14,7 @@ import {
   FAVICON_PUBLIC_FILES,
   faviconPublicPath,
   imageUrl,
+  localAudioPath,
   localImagePath,
   localPdfPath,
   parseImageWidth,
@@ -537,6 +538,17 @@ export function registerRoutes(app: Express): void {
       return;
     }
     res.setHeader("Content-Disposition", `attachment; filename="${path.basename(full)}"`);
+    res.sendFile(path.resolve(full));
+  });
+
+  app.get("/media/audio/:file", (req, res) => {
+    const full = localAudioPath(req.params.file);
+    if (!full) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400");
     res.sendFile(path.resolve(full));
   });
 }

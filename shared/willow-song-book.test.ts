@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  WILLOW_SONG_AUDIO_URL,
   WILLOW_SONG_PAGE_COUNT,
   isWillowSongBook,
   needsWillowSongUpdate,
@@ -24,6 +25,7 @@ test("Willow song pages follow the lyrics including extra chorus art", () => {
   assert.equal(pages[8]?.imageAsset, "willow-chorus-dance-roar.webp");
   assert.equal(pages[12]?.imageAsset, "willow-final-chorus.webp");
   assert.ok(isWillowSongBook({ slug: "willows-big-forest-adventure", title: "Willow", pages, tagline: "" }));
+  assert.equal(WILLOW_SONG_AUDIO_URL, "/media/audio/willows-forest-adventure.mp3");
 });
 
 test("needsWillowSongUpdate is true until the chorus pages are in place", () => {
