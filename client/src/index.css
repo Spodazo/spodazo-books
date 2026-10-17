@@ -173,7 +173,7 @@ html.book-closing .bundled-flipbook-host {
 }
 .library-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 28px;
   align-items: start;
 }
@@ -487,8 +487,7 @@ html.book-closing .bundled-flipbook-host {
 
 @media (min-width: 701px) {
   .library-grid {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 280px));
-    justify-content: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -509,9 +508,7 @@ html.book-closing .bundled-flipbook-host {
     margin-bottom: 40px;
   }
   .library-grid {
-    /* ~50% of the previous mobile card width (was minmax(240px, 1fr)) */
-    grid-template-columns: repeat(auto-fit, minmax(120px, 140px));
-    justify-content: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
   .caption {
