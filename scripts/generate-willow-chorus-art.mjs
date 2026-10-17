@@ -28,10 +28,10 @@ const jobs = [
     prompt: `${STYLE} Willow stands full-body in a sunlit forest clearing, paws planted, chest puffed out, mouth open in a brave happy roar. Proud and playful. There is NO bear anywhere in the picture. Empty forest path, flowers, maybe a distant butterfly.`,
   },
   {
-    filename: "willow-chorus-dance.webp",
-    name: "willow-chorus-dance",
-    references: ["willow-character.webp", "willow-ref-run.png"],
-    prompt: `${STYLE} Willow is dancing with joy in a sunlit forest clearing: hopping and spinning, scarf flying, paws in the air, big grin. Musical, giggly energy. Full body, playful pose, same forest world.`,
+    filename: "willow-chorus-dance-roar.webp",
+    name: "willow-chorus-dance-roar",
+    references: ["willow-chorus-dance.webp", "willow-chorus-puff.webp"],
+    prompt: `${STYLE} Keep the EXACT dancing stance from the first reference: one foot lifted, both paws up, scarf flying, hopping down the path, musical notes, butterfly. Change ONLY her face to a big brave happy roar, mouth wide open. No bear.`,
   },
   {
     filename: "willow-final-chorus.webp",

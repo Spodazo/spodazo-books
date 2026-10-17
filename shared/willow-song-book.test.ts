@@ -21,7 +21,7 @@ test("Willow song pages follow the lyrics including extra chorus art", () => {
   assert.match(text, /The happiest hug\.\.\. and so much more!/);
   assert.equal(pages[5]?.imageAsset, "willow-chorus-bear-falls.webp");
   assert.equal(pages[6]?.imageAsset, "willow-chorus-puff.webp");
-  assert.equal(pages.filter((page) => page.imageAsset === "willow-chorus-dance.webp").length, 1);
+  assert.equal(pages[8]?.imageAsset, "willow-chorus-dance-roar.webp");
   assert.equal(pages[12]?.imageAsset, "willow-final-chorus.webp");
   assert.ok(isWillowSongBook({ slug: "willows-big-forest-adventure", title: "Willow", pages, tagline: "" }));
 });
