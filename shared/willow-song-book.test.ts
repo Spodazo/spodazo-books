@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { visibleStoryPages } from "./reader-pages";
 import {
   WILLOW_SONG_AUDIO_URL,
   WILLOW_SONG_PAGE_COUNT,
+  WILLOW_SONG_PAGE_CUES,
+  WILLOW_SONG_TITLE_CUE,
   isWillowSongBook,
   needsWillowSongUpdate,
   willowSongPages,
   willowSongPayload,
+  willowStoryPageCue,
 } from "./willow-song-book";
 import type { Book } from "./types";
 
@@ -30,6 +34,20 @@ test("Willow song pages follow the lyrics with the dance chorus after Hooray", (
   assert.ok(!pages.some((page) => page.imageAsset === "willow-chorus-puff.webp"));
   assert.ok(isWillowSongBook({ slug: "willows-big-forest-adventure", title: "Willow", pages, tagline: "" }));
   assert.equal(WILLOW_SONG_AUDIO_URL, "/media/audio/willows-forest-adventure.mp3");
+});
+
+test("Willow sing-along cues follow the recorded lyrics", () => {
+  const visible = visibleStoryPages({ slug: "willows-big-forest-adventure", title: "Willow", pages: willowSongPages() });
+  assert.equal(WILLOW_SONG_TITLE_CUE, 0);
+  assert.equal(WILLOW_SONG_PAGE_CUES.length, visible.length);
+  assert.equal(willowStoryPageCue(0), 8);
+  assert.equal(willowStoryPageCue(4), 68);
+  assert.equal(willowStoryPageCue(5), 83);
+  assert.equal(willowStoryPageCue(6), 91);
+  for (let i = 1; i < WILLOW_SONG_PAGE_CUES.length; i += 1) {
+    assert.ok(WILLOW_SONG_PAGE_CUES[i] > WILLOW_SONG_PAGE_CUES[i - 1]);
+  }
+  assert.ok(WILLOW_SONG_PAGE_CUES[WILLOW_SONG_PAGE_CUES.length - 1] < 166);
 });
 
 test("needsWillowSongUpdate is true until the chorus pages are in place", () => {

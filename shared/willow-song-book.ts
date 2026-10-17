@@ -6,6 +6,18 @@ export const WILLOW_SONG_TAGLINE = "A little tiger. A very big roar.\nThe happie
 export const WILLOW_SONG_MARKER = "Hugs for Willow, and hugs galore!";
 export const WILLOW_SONG_AUDIO_ASSET = "willows-forest-adventure.mp3";
 export const WILLOW_SONG_AUDIO_URL = `/media/audio/${WILLOW_SONG_AUDIO_ASSET}`;
+/** Seconds into the song when the title page should be showing. */
+export const WILLOW_SONG_TITLE_CUE = 0;
+/**
+ * Start times (seconds) for visible story pages, in reading order.
+ * Matched to the recorded lyrics so Sing Along can turn the page with the song.
+ */
+export const WILLOW_SONG_PAGE_CUES = [8, 30, 46, 60, 68, 83, 91, 106, 113, 128, 135, 153];
+
+export function willowStoryPageCue(index: number): number | undefined {
+  if (index < 0 || index >= WILLOW_SONG_PAGE_CUES.length) return undefined;
+  return WILLOW_SONG_PAGE_CUES[index];
+}
 
 const CHORUS = [
   "GRRR-ROAR! Roar, roar, little tiger, roar!",
