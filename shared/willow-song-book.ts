@@ -18,14 +18,6 @@ const CHORUS = [
   "Be brave and give it your best!",
 ].join("\n");
 
-const DANCE_CHORUS = [
-  "Roar, roar, little tiger, roar!",
-  "(Grrr-roar!)",
-  "",
-  "Plant your paws and puff your chest,",
-  "Be brave and give it your best!",
-].join("\n");
-
 function art(id: string, asset: string, box: { x?: number; y?: number; w?: number; h?: number } = {}): PageElement {
   return {
     id,
@@ -209,12 +201,12 @@ export function willowSongPages(): BookPage[] {
     page(
       8,
       "Chorus — Dance",
-      DANCE_CHORUS,
+      CHORUS,
       "willow-chorus-dance-roar.webp",
       [],
       {
         artBox: { x: 0, y: 0, w: 49, h: 100 },
-        textBox: { x: 55.5, y: 16, w: 39, h: 68, fontSize: 4.4 },
+        textBox: { x: 55.5, y: 10, w: 39, h: 80, fontSize: 4.2 },
       },
     ),
     page(
@@ -301,7 +293,11 @@ export function isWillowSongBook(book: Pick<Book, "slug" | "title" | "pages" | "
     book.pages.length === WILLOW_SONG_PAGE_COUNT &&
     text.includes(WILLOW_SONG_MARKER) &&
     book.pages.some((item) => item.imageAsset === "willow-chorus-bear-falls.webp") &&
-    book.pages.some((item) => item.imageAsset === "willow-chorus-dance-roar.webp") &&
+    book.pages.some(
+      (item) =>
+        item.imageAsset === "willow-chorus-dance-roar.webp" &&
+        (item.paragraphs || []).join(" ").includes("The loudest growl you've heard before"),
+    ) &&
     !book.pages.some((item) => item.imageAsset === "willow-chorus-puff.webp")
   );
 }

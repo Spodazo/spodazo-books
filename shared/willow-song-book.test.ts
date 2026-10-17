@@ -23,6 +23,8 @@ test("Willow song pages follow the lyrics with the dance chorus after Hooray", (
   assert.equal(pages[5]?.imageAsset, "willow-chorus-bear-falls.webp");
   assert.equal(pages[6]?.imageAsset, "art-006.webp");
   assert.equal(pages[7]?.imageAsset, "willow-chorus-dance-roar.webp");
+  assert.match(pages[7]?.paragraphs.join("\n") || "", /GRRR-ROAR! Roar, roar, little tiger, roar!/);
+  assert.match(pages[7]?.paragraphs.join("\n") || "", /The loudest growl you've heard before!/);
   assert.equal(pages[8]?.imageAsset, "art-007.webp");
   assert.equal(pages[11]?.imageAsset, "willow-final-chorus.webp");
   assert.ok(!pages.some((page) => page.imageAsset === "willow-chorus-puff.webp"));
