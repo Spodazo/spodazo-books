@@ -22,10 +22,10 @@ const jobs = [
     prompt: `${STYLE} Keep Willow and the falling bear in the center-left, both fully visible. Comic surprise: the bear falls backward onto his rump, legs and paws in the air, face visible, startled by Willow's roar — not hurt, not running away. Willow stands at the left, brave, looking at him. She is NOT covering her cheeks.`,
   },
   {
-    filename: "willow-chorus-roar.webp",
-    name: "willow-chorus-roar",
-    references: ["willow-character.webp", "willow-ref-roar.png"],
-    prompt: `${STYLE} Willow plants her paws wide, puffs her chest, and lets out a brave happy roar with her mouth open. She looks proud and playful, not scared. Full body in a sunlit forest clearing. No bear, or only a tiny surprised bear far away in the background.`,
+    filename: "willow-chorus-puff.webp",
+    name: "willow-chorus-puff",
+    references: ["willow-character.webp", "willow-chorus-roar.webp"],
+    prompt: `${STYLE} Willow stands full-body in a sunlit forest clearing, paws planted, chest puffed out, mouth open in a brave happy roar. Proud and playful. There is NO bear anywhere in the picture. Empty forest path, flowers, maybe a distant butterfly.`,
   },
   {
     filename: "willow-chorus-dance.webp",
