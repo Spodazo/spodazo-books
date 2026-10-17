@@ -186,7 +186,7 @@ export function willowSongPages(): BookPage[] {
       6,
       "Chorus",
       CHORUS,
-      "willow-chorus-roar.webp",
+      "willow-chorus-amazement.webp",
       [],
       {
         artBox: { x: 0, y: 0, w: 49, h: 100 },
@@ -309,6 +309,7 @@ export function isWillowSongBook(book: Pick<Book, "slug" | "title" | "pages" | "
   return (
     book.pages.length === WILLOW_SONG_PAGE_COUNT &&
     text.includes(WILLOW_SONG_MARKER) &&
+    book.pages.some((item) => item.imageAsset === "willow-chorus-amazement.webp") &&
     book.pages.some((item) => item.imageAsset === "willow-chorus-dance.webp")
   );
 }

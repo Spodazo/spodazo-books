@@ -16,6 +16,12 @@ const STYLE =
 
 const jobs = [
   {
+    filename: "willow-chorus-amazement.webp",
+    name: "willow-chorus-amazement",
+    references: ["willow-character.webp", "willow-ref-bear-runs.png"],
+    prompt: `${STYLE} IMPORTANT COMPOSITION: this painting will be cropped to the LEFT HALF, so place Willow AND the running brown bear fully inside the left half. Willow stands in the lower-left watching the bear with wide amazed eyes, an open wondering mouth, and paws to her cheeks — a 'did I do that?!' look. The bear is clearly visible in the left-center, running away up the path. She is NOT roaring and NOT planting her paws at the bear.`,
+  },
+  {
     filename: "willow-chorus-roar.webp",
     name: "willow-chorus-roar",
     references: ["willow-character.webp", "willow-ref-roar.png"],
