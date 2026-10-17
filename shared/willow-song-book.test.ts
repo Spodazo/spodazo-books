@@ -10,7 +10,7 @@ import {
 } from "./willow-song-book";
 import type { Book } from "./types";
 
-test("Willow song pages follow the lyrics including extra chorus art", () => {
+test("Willow song pages follow the lyrics without duplicate chorus pages", () => {
   const pages = willowSongPages();
   const text = pages.map((page) => page.paragraphs.join("\n")).join("\n---\n");
   assert.equal(pages.length, WILLOW_SONG_PAGE_COUNT);
@@ -21,9 +21,11 @@ test("Willow song pages follow the lyrics including extra chorus art", () => {
   assert.match(text, /Hugs for Willow, and hugs galore!/);
   assert.match(text, /The happiest hug\.\.\. and so much more!/);
   assert.equal(pages[5]?.imageAsset, "willow-chorus-bear-falls.webp");
-  assert.equal(pages[6]?.imageAsset, "willow-chorus-puff.webp");
-  assert.equal(pages[8]?.imageAsset, "willow-chorus-dance-roar.webp");
-  assert.equal(pages[12]?.imageAsset, "willow-final-chorus.webp");
+  assert.equal(pages[6]?.imageAsset, "art-006.webp");
+  assert.equal(pages[7]?.imageAsset, "art-007.webp");
+  assert.equal(pages[10]?.imageAsset, "willow-final-chorus.webp");
+  assert.ok(!pages.some((page) => page.imageAsset === "willow-chorus-puff.webp"));
+  assert.ok(!pages.some((page) => page.imageAsset === "willow-chorus-dance-roar.webp"));
   assert.ok(isWillowSongBook({ slug: "willows-big-forest-adventure", title: "Willow", pages, tagline: "" }));
   assert.equal(WILLOW_SONG_AUDIO_URL, "/media/audio/willows-forest-adventure.mp3");
 });
