@@ -1,7 +1,7 @@
 import type { Book, BookPage, PageElement, PageLayout } from "./types";
 import { isWillowBook } from "./reader-pages";
 
-export const WILLOW_SONG_PAGE_COUNT = 14;
+export const WILLOW_SONG_PAGE_COUNT = 12;
 export const WILLOW_SONG_TAGLINE = "A little tiger. A very big roar.\nThe happiest hug... and so much more!";
 export const WILLOW_SONG_MARKER = "Hugs for Willow, and hugs galore!";
 export const WILLOW_SONG_AUDIO_ASSET = "willows-forest-adventure.mp3";
@@ -12,14 +12,6 @@ const CHORUS = [
   "(Grrr-roar!)",
   "",
   "The loudest growl you've heard before!",
-  "(Grrr-roar!)",
-  "",
-  "Plant your paws and puff your chest,",
-  "Be brave and give it your best!",
-].join("\n");
-
-const DANCE_CHORUS = [
-  "Roar, roar, little tiger, roar!",
   "(Grrr-roar!)",
   "",
   "Plant your paws and puff your chest,",
@@ -197,17 +189,6 @@ export function willowSongPages(): BookPage[] {
     ),
     page(
       7,
-      "Chorus — Roar",
-      DANCE_CHORUS,
-      "willow-chorus-puff.webp",
-      [],
-      {
-        artBox: { x: 0, y: 0, w: 49, h: 100 },
-        textBox: { x: 55.5, y: 16, w: 39, h: 68, fontSize: 4.4 },
-      },
-    ),
-    page(
-      8,
       "Break",
       ['The bear jumped back and ran away,', "“Was that me?!” she whispered... “Hooray!”"].join("\n\n"),
       "art-006.webp",
@@ -218,18 +199,7 @@ export function willowSongPages(): BookPage[] {
       },
     ),
     page(
-      9,
-      "Chorus — Dance",
-      CHORUS,
-      "willow-chorus-dance-roar.webp",
-      [],
-      {
-        artBox: { x: 0, y: 0, w: 49, h: 100 },
-        textBox: { x: 55.5, y: 10, w: 39, h: 80, fontSize: 4.2 },
-      },
-    ),
-    page(
-      10,
+      8,
       "Bridge",
       ['She curled up small in a leafy bed,', "“I wish Mummy and Mamma were here,” she said."].join("\n\n"),
       "art-007.webp",
@@ -240,7 +210,7 @@ export function willowSongPages(): BookPage[] {
       },
     ),
     page(
-      11,
+      9,
       "Verse 4",
       [
         "Then a roar rolled in through the trees,",
@@ -257,7 +227,7 @@ export function willowSongPages(): BookPage[] {
       },
     ),
     page(
-      12,
+      10,
       "Verse 4",
       ["Mummy and Mamma came running fast,", "Found their Willow safe at last!"].join("\n\n"),
       "art-009.webp",
@@ -268,7 +238,7 @@ export function willowSongPages(): BookPage[] {
       },
     ),
     page(
-      13,
+      11,
       "Final Chorus",
       [
         "GRRR-ROAR! Roar, roar, little tiger, roar!",
@@ -288,7 +258,7 @@ export function willowSongPages(): BookPage[] {
       },
     ),
     page(
-      14,
+      12,
       "Outro",
       ["A little tiger, a very big roar,", "The happiest hug... and so much more!"].join("\n\n"),
       "art-010.webp",
@@ -312,8 +282,8 @@ export function isWillowSongBook(book: Pick<Book, "slug" | "title" | "pages" | "
     book.pages.length === WILLOW_SONG_PAGE_COUNT &&
     text.includes(WILLOW_SONG_MARKER) &&
     book.pages.some((item) => item.imageAsset === "willow-chorus-bear-falls.webp") &&
-    book.pages.some((item) => item.imageAsset === "willow-chorus-puff.webp") &&
-    book.pages.some((item) => item.imageAsset === "willow-chorus-dance-roar.webp")
+    !book.pages.some((item) => item.imageAsset === "willow-chorus-puff.webp") &&
+    !book.pages.some((item) => item.imageAsset === "willow-chorus-dance-roar.webp")
   );
 }
 
