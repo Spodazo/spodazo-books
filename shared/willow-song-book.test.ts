@@ -19,7 +19,7 @@ test("Willow song pages follow the lyrics including extra chorus art", () => {
   assert.match(text, /I wish Mummy and Mamma were here/);
   assert.match(text, /Hugs for Willow, and hugs galore!/);
   assert.match(text, /The happiest hug\.\.\. and so much more!/);
-  assert.equal(pages[5]?.imageAsset, "willow-chorus-amazement.webp");
+  assert.equal(pages[5]?.imageAsset, "willow-chorus-bear-falls.webp");
   assert.equal(pages.filter((page) => page.imageAsset === "willow-chorus-roar.webp").length, 1);
   assert.equal(pages.filter((page) => page.imageAsset === "willow-chorus-dance.webp").length, 1);
   assert.equal(pages[12]?.imageAsset, "willow-final-chorus.webp");
