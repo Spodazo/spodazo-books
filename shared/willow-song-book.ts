@@ -4,6 +4,8 @@ import { isWillowBook } from "./reader-pages";
 export const WILLOW_SONG_PAGE_COUNT = 14;
 export const WILLOW_SONG_TAGLINE = "A little tiger. A very big roar.\nThe happiest hug... and so much more!";
 export const WILLOW_SONG_MARKER = "Hugs for Willow, and hugs galore!";
+export const WILLOW_SONG_AUDIO_ASSET = "willows-forest-adventure.mp3";
+export const WILLOW_SONG_AUDIO_URL = `/media/audio/${WILLOW_SONG_AUDIO_ASSET}`;
 
 const CHORUS = [
   "GRRR-ROAR! Roar, roar, little tiger, roar!",

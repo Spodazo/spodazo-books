@@ -13,6 +13,10 @@ export function pdfsDir(): string {
   return path.join(dataDir(), "pdfs");
 }
 
+export function audioDir(): string {
+  return path.join(dataDir(), "audio");
+}
+
 export function faviconDir(): string {
   return path.join(dataDir(), "favicons");
 }
@@ -22,7 +26,7 @@ export function catalogPath(): string {
 }
 
 export function ensureDataDirs(): void {
-  for (const dir of [dataDir(), imagesDir(), pdfsDir(), faviconDir()]) {
+  for (const dir of [dataDir(), imagesDir(), pdfsDir(), audioDir(), faviconDir()]) {
     fs.mkdirSync(dir, { recursive: true });
   }
 }
@@ -31,6 +35,7 @@ export function syncBundledMedia(): void {
   ensureDataDirs();
   copyDir(path.resolve(process.cwd(), "media/images"), imagesDir());
   copyDir(path.resolve(process.cwd(), "media/pdfs"), pdfsDir());
+  copyDir(path.resolve(process.cwd(), "media/audio"), audioDir());
 }
 
 function copyDir(srcDir: string, destDir: string): void {

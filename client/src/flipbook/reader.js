@@ -6,7 +6,8 @@ import {normalizePaperTexture, paperTexture, paperTextureUrl} from '@shared/pape
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
-import {characterUrlFor, visibleStoryPages} from '@shared/reader-pages';
+import {characterUrlFor, isWillowBook, visibleStoryPages} from '@shared/reader-pages';
+import {WILLOW_SONG_AUDIO_URL} from '@shared/willow-song-book';
 import {isImportedPdfFacsimileBook,storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
@@ -78,7 +79,7 @@ function elementSize(el) {
   return (Number(el.w) || 10) * (Number(el.h) || 10) >= 400 ? "main" : "small";
 }
 
-function elementHtml(el, baseUrl, book) {
+function elementHtml(el, baseUrl, book, extraMarkup = "") {
   const align = el.align === "center" || el.align === "right" ? el.align : "left";
   const justify = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
   const font = fontStack(el.fontFamily || book?.textFont).replace(/"/g, "'");
@@ -96,12 +97,12 @@ function elementHtml(el, baseUrl, book) {
   }
   const extra = frameClass(el.frame);
   const again = el.role === "end" ? `<button type="button" class="read-again">Read again</button>` : "";
-  return `<div class="el el-text${extra ? ` ${extra}` : ""}" style="${style}" ${meta}>${frameMarkup(el.frame, (Number(el.w) || 10) / (Number(el.h) || 10))}${elementTextHtml(el.text || "", esc)}${again}</div>`;
+  return `<div class="el el-text${extra ? ` ${extra}` : ""}" style="${style}" ${meta}>${frameMarkup(el.frame, (Number(el.w) || 10) / (Number(el.h) || 10))}${elementTextHtml(el.text || "", esc)}${again}${extraMarkup}</div>`;
 }
 
-function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "") {
+function laidOutPage(label, layout, book, baseUrl, extra = "", extraClass = "", taglineExtra = "") {
   const fill = pageFill(layout, book);
-  const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book)).join("");
+  const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book, el.role === "tagline" ? taglineExtra : "")).join("");
   return `<article class="page laid-out${extraClass}" aria-label="${esc(label)}" style="background-color:${fill}">${items}${extra}</article>`;
 }
 
@@ -109,10 +110,6 @@ function storyBody(paragraphs) {
   return (paragraphs || [])
     .map((line) => String(line).trim())
     .filter((line) => line && !/^\d+\s*\/\s*\d+$/.test(line));
-}
-
-function isWillow(book) {
-  return /willow/i.test(String(book.slug || "")) || /willow/i.test(String(book.title || ""));
 }
 
 function legalHtml(credits, copyright, logoUrl, baseUrl, date) {
@@ -157,14 +154,21 @@ function frontCoverHtml(book, baseUrl, libraryUrl) {
   return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
 }
 
+function singAlongHtml(book, baseUrl) {
+  if (!isWillowBook(book)) return "";
+  const src = esc(safeURL(WILLOW_SONG_AUDIO_URL, baseUrl));
+  return `<button type="button" class="sing-along" data-audio="${src}" aria-pressed="false">Sing Along</button>`;
+}
+
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
   const chrome = readerChrome(libraryUrl, baseUrl, {hint: isCurrent});
   const current = isCurrent ? " current" : "";
+  const sing = singAlongHtml(book, baseUrl);
   if (hasLayout(book.titleLayout)) {
-    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, ` title-page${current}`).replace("<article", '<article data-source="title"');
+    return laidOutPage("Title page", book.titleLayout, book, baseUrl, chrome, ` title-page${current}`, sing).replace("<article", '<article data-source="title"');
   }
   const src = coverSrc(book, baseUrl);
-  return `<article class="page title-page${current}" data-source="title" aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
+  return `<article class="page title-page${current}" data-source="title" aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div>${sing}</div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
