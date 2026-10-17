@@ -11,6 +11,7 @@ import { ensureBeThouMyVisionCatalog } from "./be-thou-my-vision-catalog";
 import { ensureEchoesContentsList } from "./echoes-contents-list";
 import { refreshImportedPdfIndexLinks } from "./pdf-index-links-refresh";
 import { ensureRudolphOneUpDisplay } from "./rudolph-one-up-migration";
+import { ensureWillowSongBook } from "./willow-song-book";
 import { getStore } from "./storage";
 
 process.on("unhandledRejection", (reason) => {
@@ -48,6 +49,11 @@ async function start() {
     await ensureEchoesContentsList(store);
   } catch (err) {
     console.error("[catalog] Echoes contents list update failed:", err);
+  }
+  try {
+    await ensureWillowSongBook(store);
+  } catch (err) {
+    console.error("[catalog] Willow song book update failed:", err);
   }
   try {
     await refreshImportedPdfIndexLinks(store);
