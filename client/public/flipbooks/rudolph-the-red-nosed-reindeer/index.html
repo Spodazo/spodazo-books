@@ -172,7 +172,18 @@ body {
   var arrL = document.getElementById('arrL'), arrR = document.getElementById('arrR');
 
   Array.prototype.forEach.call(document.querySelectorAll('.page'), function (p) {
-    var s = document.createElement('span'); s.className = 'again-label'; s.textContent = 'View Again...'; p.appendChild(s);
+    var s = document.createElement('span'); s.className = 'again-label'; s.textContent = 'View Again...';
+    s.addEventListener('pointerup', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      restart();
+    });
+    s.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      restart();
+    });
+    p.appendChild(s);
   });
 
   var single = false, closed = true, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, turnGen = 0, turnAnims = [];
@@ -538,6 +549,10 @@ body {
       return el.closest && (el.closest('.flipbook-close') || el.closest('.arrow'));
     },
     onTap: function (e, type) {
+      if (e.target && e.target.closest && e.target.closest('.again-label')) {
+        restart();
+        return;
+      }
       var r = stage.getBoundingClientRect();
       var onRight = e.clientX - r.left >= r.width / 2;
       if (type === 'touch') {
