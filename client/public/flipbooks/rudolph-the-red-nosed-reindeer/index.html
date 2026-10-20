@@ -57,27 +57,17 @@ body {
   width: 0 !important;
   background: none !important;
 }
-#book.closed .slot.R .page { clip-path: inset(0 8px 0 8px); }
-#book.closed .slot.R .page::after { content: none; background: none; }
+#book.closed .slot.R .page {
+  box-shadow: none;
+}
+#book.closed .slot.R .page::before,
+#book.closed .slot.R .page::after,
 #book.closed .slot.R::before,
 #book.closed .slot.R::after {
-  content: "";
-  position: absolute;
-  z-index: 6;
-  top: 0;
-  bottom: 0;
-  width: 28px;
-  pointer-events: none;
+  content: none;
+  background: none;
+  display: none;
 }
-#book.closed .slot.R::before {
-  left: 0;
-  background: linear-gradient(to right, #050810, rgba(5, 8, 16, 0));
-}
-#book.closed .slot.R::after {
-  right: 0;
-  background: linear-gradient(to left, #050810, rgba(5, 8, 16, 0));
-}
-#book.closed .slot.R .page img { object-fit: cover; transform: scale(1.06); }
 .page.empty { visibility: hidden; }
 .page.blank img, .page.again img { display: none; }
 .page.again { background: var(--again); }
