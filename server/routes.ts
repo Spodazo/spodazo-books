@@ -34,6 +34,7 @@ import {
   parseOutlineRequest,
 } from "./ai-book";
 import { importPdfOnServer } from "./pdf-import";
+import { withTaglineText } from "../shared/page-layout";
 
 function isPdfUpload(file: { fieldname: string; mimetype: string; originalname: string }): boolean {
   return file.fieldname === "pdf" || file.mimetype === "application/pdf" || /\.pdf$/i.test(file.originalname);
@@ -466,12 +467,23 @@ export function registerRoutes(app: Express): void {
       }
       const used = new Set((await store.listBooks()).filter((book) => book.id !== current.id).map((book) => book.slug));
       const pages = pagesFromBody(body.pages);
+      const tagline = body.tagline !== undefined ? String(body.tagline) : undefined;
+      const titleLayout = body.titleLayout !== undefined
+        ? body.titleLayout
+        : tagline !== undefined
+          ? withTaglineText(current.titleLayout, tagline)
+          : undefined;
+      const coverLayout = body.coverLayout !== undefined
+        ? body.coverLayout
+        : tagline !== undefined
+          ? withTaglineText(current.coverLayout, tagline)
+          : undefined;
       const updated = await store.updateBook(current.id, {
         title: body.title !== undefined ? String(body.title) : undefined,
         slug: body.slug !== undefined
           ? uniqueSlug(String(body.slug || current.slug), used)
           : undefined,
-        tagline: body.tagline !== undefined ? String(body.tagline) : undefined,
+        tagline,
         author: body.author !== undefined ? String(body.author) : undefined,
         date: body.date !== undefined ? String(body.date) : undefined,
         cover: files?.cover?.[0]?.filename || (body.coverUrl ? filenameFromUrl(body.coverUrl) : undefined),
@@ -488,8 +500,8 @@ export function registerRoutes(app: Express): void {
         spreadBackground: body.spreadBackground !== undefined ? String(body.spreadBackground) : undefined,
         textFont: body.textFont !== undefined ? String(body.textFont) : undefined,
         textColor: body.textColor !== undefined ? String(body.textColor) : undefined,
-        titleLayout: body.titleLayout !== undefined ? body.titleLayout : undefined,
-        coverLayout: body.coverLayout !== undefined ? body.coverLayout : undefined,
+        titleLayout,
+        coverLayout,
         backCoverLayout: body.backCoverLayout !== undefined ? body.backCoverLayout : undefined,
         endLayout: body.endLayout !== undefined ? body.endLayout : undefined,
       });

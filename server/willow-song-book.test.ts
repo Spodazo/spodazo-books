@@ -29,6 +29,7 @@ test("ensureWillowSongBook rewrites Willow once and stays put", async () => {
   assert.ok(book);
   assert.equal(book.pages.length, WILLOW_SONG_PAGE_COUNT);
   assert.match(book.pages.map((page) => page.paragraphs.join(" ")).join(" "), new RegExp(WILLOW_SONG_MARKER));
+  assert.equal(book.coverLayout.elements.find((item) => item.role === "tagline")?.text?.includes("Sing-Along Book"), true);
   assert.equal(book.coverLayout.elements.find((item) => item.role === "tagline")?.text?.includes("so much more"), true);
   assert.equal((await store.listBooks()).filter((item) => item.slug === created.slug).length, 1);
 

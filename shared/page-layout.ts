@@ -218,6 +218,14 @@ export function textForRole(elements: PageElement[], role: PageElementRole): str
     .join(" ");
 }
 
+/** Copy a subtitle into cover and title tagline boxes so Admin subtitle edits show on the book. */
+export function withTaglineText(layout: PageLayout | undefined, tagline: string): PageLayout {
+  const elements = (layout?.elements || []).map((item) =>
+    item.role === "tagline" ? { ...item, text: tagline } : item,
+  );
+  return { ...layout, elements };
+}
+
 export function elementTextHtml(text: string, escape: (value: string) => string): string {
   const raw = String(text || "");
   if (!raw) return "<p></p>";
