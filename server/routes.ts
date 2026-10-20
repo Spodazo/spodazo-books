@@ -2,6 +2,7 @@ import type { Express, NextFunction, Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
+import { rudolphLegacyRedirect } from "../shared/rudolph";
 import { slugify, uniqueSlug } from "../shared/seed-data";
 import type { BookPage, PlayerSetup } from "../shared/types";
 import { loginAdmin, logoutAdmin, requireAdmin } from "./auth";
@@ -104,6 +105,20 @@ function sendNoStoreJson(res: Response, body: unknown): void {
 }
 
 export function registerRoutes(app: Express): void {
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      next();
+      return;
+    }
+    const target = rudolphLegacyRedirect(req.path);
+    if (!target) {
+      next();
+      return;
+    }
+    const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+    res.redirect(301, `${target}${query}`);
+  });
+
   app.get("/api/version", async (_req, res) => {
     const store = await getStore();
     const libraryAt = await store.libraryUpdatedAt();

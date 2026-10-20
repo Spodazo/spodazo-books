@@ -123,7 +123,7 @@ const pages = manifest.pages.map((page) => ({
 
 const body = {
   title,
-  slug: "Rudolph-The-Red-Nosed-Reindeer",
+  slug: "Rudolph",
   tagline,
   author,
   date,

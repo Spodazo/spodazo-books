@@ -11,6 +11,7 @@ import { ensureBeThouMyVisionCatalog } from "./be-thou-my-vision-catalog";
 import { ensureEchoesContentsList } from "./echoes-contents-list";
 import { refreshImportedPdfIndexLinks } from "./pdf-index-links-refresh";
 import { ensureRudolphOneUpDisplay } from "./rudolph-one-up-migration";
+import { ensureRudolphPublicSlug } from "./rudolph-slug";
 import { ensureWillowSongBook } from "./willow-song-book";
 import { getStore } from "./storage";
 
@@ -36,6 +37,7 @@ async function start() {
   await ensureSessionTable();
   const store = await getStore();
   try {
+    await ensureRudolphPublicSlug(store);
     await ensureRudolphOneUpDisplay(store);
   } catch (err) {
     console.error("[catalog] Rudolph one-up migration failed:", err);
