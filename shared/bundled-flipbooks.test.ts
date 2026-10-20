@@ -12,7 +12,10 @@ test("Rudolph uses the bundled static flipbook", () => {
     bundledFlipbookSrc("Rudolph", "/"),
     "/flipbooks/rudolph-the-red-nosed-reindeer/index.html",
   );
-  assert.equal(bundledFlipbookSrc("willows-big-forest-adventure", "/"), "");
+  assert.equal(
+    bundledFlipbookSrc("Rudolph", "/", "deploy-1"),
+    "/flipbooks/rudolph-the-red-nosed-reindeer/index.html?v=deploy-1",
+  );
 });
 
 test("Rudolph catalog pages mirror the zip export", () => {

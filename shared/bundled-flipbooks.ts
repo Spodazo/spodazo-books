@@ -22,10 +22,13 @@ function flipbookRoot(baseUrl: string): string {
 }
 
 /** iframe `src` for a bundled flipbook, or empty when the app reader should mount. */
-export function bundledFlipbookSrc(slug: string, baseUrl = "/"): string {
+export function bundledFlipbookSrc(slug: string, baseUrl = "/", version = ""): string {
   const bundle = bundledFlipbook(slug);
   if (!bundle) return "";
-  return `${flipbookRoot(baseUrl)}flipbooks/${bundle.dir}/index.html`;
+  const src = `${flipbookRoot(baseUrl)}flipbooks/${bundle.dir}/index.html`;
+  const build = String(version || "").trim();
+  if (!build) return src;
+  return `${src}?v=${encodeURIComponent(build)}`;
 }
 
 export function bundledFlipbookCoverUrl(slug: string, baseUrl = "/"): string {
