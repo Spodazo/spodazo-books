@@ -19,3 +19,12 @@ test("Willow title page has a Sing Along control wired to the song", async () =>
   assert.match(runtime, /\.sing-along/);
   assert.match(css, /\.sing-along/);
 });
+
+test("the cover turns with the same leaf as the other pages", async () => {
+  const runtime = await readFile(new URL("./reader-runtime.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
+  assert.doesNotMatch(runtime, /openUnderCover/);
+  assert.doesNotMatch(runtime, /cover-open-top/);
+  assert.match(runtime, /animateLeaf/);
+  assert.match(css, /html:not\(\.mobile\) \.front-cover-leaf\{[^}]*left:50%/);
+});

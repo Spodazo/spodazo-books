@@ -407,70 +407,6 @@ function animateLeaf(leaf,done,ms,onMid,back){
   if(onMid)mid=setTimeout(function(){if(!leaf._done)onMid();},Math.round(dur*0.5));
   timer=setTimeout(finish,dur+40);
 }
-function openUnderCover(old,next,done){
-  var layer=document.createElement('div');
-  layer.className='flip-layer fade-layer cover-open';
-  layer.setAttribute('aria-hidden','true');
-  layer.style.width=book.clientWidth+'px';
-  layer.style.height=book.clientHeight+'px';
-  var top=document.createElement('div');
-  top.className='cover-open-top';
-  top.appendChild(copy(old,true));
-  layer.appendChild(top);
-  book.appendChild(layer);
-  next.style.transition='none';
-  next.style.clipPath='inset(0 25% 0 25%)';
-  next.style.visibility='';
-  old.style.visibility='hidden';
-  void next.offsetWidth;
-  next.style.transition='clip-path 1.6s cubic-bezier(.22,.6,.2,1)';
-  next.style.clipPath='inset(0 0 0 0)';
-  curlHold=false;
-  plantCurl(index,true);
-  var timer=setTimeout(function(){top.classList.add('away');},900);
-  var end=setTimeout(finish,1850);
-  function finish(){
-    if(layer._done)return;
-    layer._done=true;
-    clearTimeout(timer);
-    clearTimeout(end);
-    next.style.transition='none';
-    next.style.clipPath='';
-    var wrap=document.querySelector('.page-curl');
-    if(wrap)wrap.style.zIndex='';
-    done(layer);
-  }
-}
-function closeOntoCover(old,next,done){
-  document.documentElement.classList.add('closed-book');
-  var layer=document.createElement('div');
-  layer.className='flip-layer fade-layer cover-open';
-  layer.setAttribute('aria-hidden','true');
-  layer.style.width=book.clientWidth+'px';
-  layer.style.height=book.clientHeight+'px';
-  var top=document.createElement('div');
-  top.className='cover-open-top away';
-  top.appendChild(copy(next,true));
-  layer.appendChild(top);
-  book.appendChild(layer);
-  next.style.visibility='hidden';
-  old.style.transition='none';
-  old.style.clipPath='inset(0 0 0 0)';
-  void old.offsetWidth;
-  old.style.transition='clip-path 1.6s cubic-bezier(.22,.6,.2,1)';
-  old.style.clipPath='inset(0 25% 0 25%)';
-  top.classList.remove('away');
-  var end=setTimeout(finish,1850);
-  function finish(){
-    if(layer._done)return;
-    layer._done=true;
-    clearTimeout(end);
-    old.style.visibility='hidden';
-    old.style.transition='none';
-    old.style.clipPath='';
-    done(layer);
-  }
-}
 var leavePending=false;
 function leaveLibrary(e){
   var a=e.target.closest&&e.target.closest('a.reader-close');
@@ -509,6 +445,10 @@ function show(n,ms,after){
   busy=true;
   hideCurl();
   index=n;
+  if(!mobile&&old.classList.contains('front-cover')){
+    old.style.visibility='hidden';
+    document.documentElement.classList.remove('closed-book');
+  }
   next.classList.add('current');
   next.style.visibility='hidden';
   void next.offsetHeight;
@@ -521,8 +461,6 @@ function show(n,ms,after){
   layer.style.width=book.clientWidth+'px';
   layer.style.height=book.clientHeight+'px';
   function done(){releaseFlip(layer,after);}
-  if(!mobile&&old.classList.contains('front-cover')&&!back){openUnderCover(old,next,function(coverLayer){releaseFlip(coverLayer,after);});return;}
-  if(!mobile&&next.classList.contains('front-cover')&&back){closeOntoCover(old,next,function(coverLayer){releaseFlip(coverLayer,after);});return;}
   if(mobile){
     layer.className='flip-layer mobile-flip'+(back?' flip-back':'');
     var under=document.createElement('div');under.className='mobile-under';
