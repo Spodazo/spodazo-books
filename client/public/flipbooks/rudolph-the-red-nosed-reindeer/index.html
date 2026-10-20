@@ -93,6 +93,7 @@ body {
 .stackWrapL { position: absolute; left: 0; top: 0; height: 100%; width: 0; }
 .stackWrapR { position: absolute; right: 0; top: 0; height: 100%; width: 0; }
 #book.single .stack, #book.closed .stack { display: none; }
+#book.closed .slot.R .page::after { background: none; }
 
 /* navigation arrows: single-click turns, double-click jumps to start/end */
 .arrow {
@@ -250,6 +251,8 @@ body {
     ph = Math.floor(pw * RATIO);
     var bw = single ? pw : pw * 2;
     var left = Math.round((W - bw) / 2);
+    // Closed cover is the right-hand page, shifted so that page sits in the middle.
+    if (closed && !single) left -= Math.round(pw / 2);
     book.style.width = bw + 'px';
     book.style.height = ph + 'px';
     book.style.left = left + 'px';
@@ -258,8 +261,7 @@ body {
     book.classList.toggle('single', single);
     book.classList.toggle('closed', closed && !single);
     slotL.classList.toggle('hide', single || closed);
-    // Closed cover sits in the middle of the spread. Opening turns that page in place.
-    slotR.style.left = single ? '0' : (closed ? '25%' : '50%');
+    slotR.style.left = single ? '0' : '50%';
     slotR.style.width = single ? '100%' : '50%';
     render();
   }
@@ -369,14 +371,7 @@ body {
     }
     Promise.all(jobs).then(function () {
       if (gen !== turnGen) return;
-      if (!single && from < 0) {
-        closed = false;
-        book.classList.remove('closed');
-        slotL.classList.remove('hide');
-        slotR.style.left = '50%';
-        slotR.style.width = '50%';
-        setPage(slotL, SP[0][0]);
-      }
+      if (!single && from < 0) setPage(slotL, SP[0][0]);
       // 1. put the leaf on screen at its starting angle, showing the same picture as the page under it
       leaf.style.display = 'block';
       // starting look: forward = front face flat over the right page; backward = back face flat over the left page
@@ -402,24 +397,29 @@ body {
         stackL.style.transition = stackR.style.transition = 'width ' + dur + 'ms ease';
         stackL.style.width = w[0] + 'px';
         stackR.style.width = w[1] + 'px';
+        if (from < 0 || to < 0) {
+          if (from < 0) {
+            closed = false;
+            book.classList.remove('closed');
+          }
+          var stageBox = stage.getBoundingClientRect();
+          var centered = Math.round((stageBox.width - pw * 2) / 2);
+          var coverShift = centered - Math.round(pw / 2);
+          book.style.transition = 'left ' + dur + 'ms cubic-bezier(.62,.04,.3,1)';
+          book.style.left = (from < 0 ? centered : coverShift) + 'px';
+        }
       }
       slotPlan.forEach(function (s) { setPage(s[0], s[1]); });   // same frame as the leaf appears
       if (single) pg = to;
       else if (to < 0) { closed = true; idx = 0; pg = 0; }
       else { closed = false; idx = to; }
       updateArrows();
+      var settled = false;
       setTimeout(function () {
-        if (gen !== turnGen || !busy) return;
+        if (gen !== turnGen || settled || !busy) return;
         abortTurn();
-        if (!single && from < 0) {
-          closed = false;
-          idx = 0;
-          pg = 0;
-        } else if (!single && to < 0) {
-          closed = true;
-          idx = 0;
-          pg = 0;
-        }
+        if (!single && from < 0) { closed = false; idx = 0; pg = 0; }
+        else if (!single && to < 0) { closed = true; idx = 0; pg = 0; }
         layout();
       }, 1800);
       return Promise.all(anims.map(function (x) { return x.finished; })).then(function () {
@@ -439,15 +439,13 @@ body {
           anims.forEach(function (x) { try { x.cancel(); } catch (e) {} });
           turnAnims = [];
           stackL.style.transition = stackR.style.transition = '';
+          book.style.transition = '';
+          settled = true;
           if (!single && to < 0) {
             book.classList.add('closed');
             slotL.classList.add('hide');
-            slotR.style.left = '25%';
-            slotR.style.width = '50%';
           } else if (!single && from < 0) {
             slotL.classList.remove('hide');
-            slotR.style.left = '50%';
-            slotR.style.width = '50%';
           }
           busy = false;
         });
