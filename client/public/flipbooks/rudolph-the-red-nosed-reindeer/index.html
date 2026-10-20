@@ -79,6 +79,8 @@ body {
   text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .28em;
   text-decoration-color: rgba(255, 227, 163, .55);
 }
+.page.link { box-shadow: none !important; }
+.page.link::after { content: none !important; background: none !important; }
 .slot:not(.hide) .page:not(.empty) { box-shadow: 0 18px 50px rgba(var(--ink-shadow), .45), 0 4px 14px rgba(var(--ink-shadow), .35); }
 .face .page { box-shadow: none; }
 .slot.hide { display: none; }
@@ -298,7 +300,10 @@ body {
 
   function stackWidths(i) {
     var u = Math.max(0.9, pw / 520) * 8 / LAST;
-    return [i * u, (LAST - i) * u + u * 1.5];
+    var pair = i < 0 ? [0, 0] : SP[i];
+    // The last spread is the back cover. Do not draw the page-edge stack beside it.
+    if (!pair[1] || pair[0] === TOTAL) return [0, 0];
+    return [pair[0] ? i * u : 0, pair[1] ? (LAST - i) * u + u * 1.5 : 0];
   }
 
   var closeBtn = document.getElementById('closeBtn');
