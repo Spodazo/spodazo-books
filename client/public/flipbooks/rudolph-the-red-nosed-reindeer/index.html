@@ -549,19 +549,16 @@ body {
       return el.closest && (el.closest('.flipbook-close') || el.closest('.arrow'));
     },
     onTap: function (e, type) {
-      if (e.target && e.target.closest && e.target.closest('.again-label')) {
+      var r = stage.getBoundingClientRect();
+      var onRight = e.clientX - r.left >= r.width / 2;
+      // The stage captures the pointer, so a tap on "View Again..." never reaches that label.
+      // On the last spread that label covers the left page, and a left tap was turning back one page.
+      if (atLastPage()) {
         restart();
         return;
       }
-      var r = stage.getBoundingClientRect();
-      var onRight = e.clientX - r.left >= r.width / 2;
-      if (type === 'touch') {
-        if (atLastPage()) restart();
-      } else if (atLastPage() && (single || onRight)) {
-        restart();
-      } else {
-        go(onRight ? 1 : -1);
-      }
+      if (type === 'touch') return;
+      go(onRight ? 1 : -1);
     },
     onJump: function (dir) {
       if (dir < 0) goToStart();
