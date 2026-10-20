@@ -270,19 +270,25 @@ html.book-closing .bundled-flipbook-host {
 .reader-host {
   position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100dvh;
+  width: auto;
+  height: auto;
+  overflow: hidden;
   background: #efdda6;
   transition: none;
 }
-.bundled-flipbook-host {
+.bundled-flipbook-host,
+html.book-opening-bundled,
+html.book-opening-bundled body {
   background: #050810;
 }
 .bundled-flipbook-frame {
+  position: absolute;
+  inset: 0;
   display: block;
   border: 0;
   width: 100%;
   height: 100%;
+  background: #050810;
 }
 @media (min-width: 701px) {
   .reader-host {

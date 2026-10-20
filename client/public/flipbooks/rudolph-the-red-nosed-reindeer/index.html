@@ -17,7 +17,7 @@
   --display: "Lexend", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
 }
-html, body { height: 100%; margin: 0; overflow: hidden; }
+html, body { height: 100%; margin: 0; overflow: hidden; width: 100%; max-width: 100%; background-color: #050810; color-scheme: dark; }
 body {
   background: #050810 url('starry-sky.jpg') center center / cover no-repeat fixed;
   color: #fff;
@@ -48,7 +48,9 @@ body {
 #book.single .face.front { left: 0; width: 100%; }
 #book.single .face.back { display: none; }
 .page { position: absolute; inset: 0; background: var(--paper); overflow: hidden; }
-.page img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; pointer-events: none; -webkit-user-drag: none; }
+.page img { display: block; width: 100%; height: 100%; max-width: none; object-fit: contain; object-position: center; pointer-events: none; -webkit-user-drag: none; }
+#book.closed { overflow: hidden; }
+#book.closed .slot.R .page img { object-fit: cover; transform: scale(1.03); }
 .page.empty { visibility: hidden; }
 .page.blank img, .page.again img { display: none; }
 .page.again { background: var(--again); }
