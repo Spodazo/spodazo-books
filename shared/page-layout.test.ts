@@ -21,6 +21,7 @@ import {
   syncBookFromLayouts,
   syncCoverLayoutWithArt,
   libraryCoverLayout,
+  withTaglineText,
 } from "./page-layout";
 import type { Book, BookPage } from "./types";
 
@@ -342,6 +343,14 @@ test("libraryCoverLayout uses book.cover when coverLayout art is stale", () => {
   const art = layout.elements.find((el) => el.id === "cover-art");
   assert.equal(art?.imageAsset, "custom-cover.webp");
   assert.equal(art?.imageUrl, "/media/images/custom-cover.webp?v=1");
+});
+
+test("withTaglineText updates cover and title tagline boxes", () => {
+  const layout = withTaglineText(
+    { elements: [{ id: "cover-tagline", type: "text", x: 10, y: 80, w: 80, h: 8, z: 1, text: "old", role: "tagline" }] },
+    "A Sing-Along Book!",
+  );
+  assert.equal(layout.elements[0]?.text, "A Sing-Along Book!");
 });
 
 test("elementTextHtml keeps paragraph and line breaks", () => {

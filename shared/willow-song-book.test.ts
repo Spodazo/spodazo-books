@@ -3,6 +3,7 @@ import test from "node:test";
 import { visibleStoryPages } from "./reader-pages";
 import {
   WILLOW_SONG_AUDIO_URL,
+  WILLOW_SONG_TAGLINE,
   WILLOW_SONG_END_CUE,
   WILLOW_SONG_END_DELAY,
   WILLOW_SONG_LAST_WORD_AT,
@@ -36,6 +37,7 @@ test("Willow song pages follow the lyrics with the dance chorus after Hooray", (
   assert.equal(pages[11]?.imageAsset, "willow-final-chorus.webp");
   assert.ok(!pages.some((page) => page.imageAsset === "willow-chorus-puff.webp"));
   assert.ok(isWillowSongBook({ slug: "willows-big-forest-adventure", title: "Willow", pages, tagline: "" }));
+  assert.match(WILLOW_SONG_TAGLINE, /A Sing-Along Book!/);
   assert.equal(WILLOW_SONG_AUDIO_URL, "/media/audio/willows-forest-adventure.mp3");
 });
 
@@ -88,4 +90,13 @@ test("needsWillowSongUpdate is true until the chorus pages are in place", () => 
   assert.equal(needsWillowSongUpdate(old), true);
   const next = { ...old, ...willowSongPayload(old), pages: willowSongPages() };
   assert.equal(needsWillowSongUpdate(next), false);
+  assert.match(next.tagline || "", /A Sing-Along Book!/);
+  assert.match(next.titleLayout?.elements.find((item) => item.role === "tagline")?.text || "", /A Sing-Along Book!/);
+  const missingSingAlong = {
+    ...next,
+    titleLayout: {
+      elements: [{ id: "title-tagline", type: "text" as const, x: 1, y: 1, w: 10, h: 10, z: 1, text: "A little tiger.\nThe happiest hug... and so much more!", role: "tagline" as const }],
+    },
+  };
+  assert.equal(needsWillowSongUpdate(missingSingAlong), true);
 });

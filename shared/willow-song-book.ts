@@ -2,7 +2,8 @@ import type { Book, BookPage, PageElement, PageLayout } from "./types";
 import { isWillowBook } from "./reader-pages";
 
 export const WILLOW_SONG_PAGE_COUNT = 13;
-export const WILLOW_SONG_TAGLINE = "A little tiger. A very big roar.\nThe happiest hug... and so much more!";
+export const WILLOW_SONG_TAGLINE =
+  "A Sing-Along Book!\nA little tiger. A very big roar.\nThe happiest hug... and so much more!";
 export const WILLOW_SONG_MARKER = "Hugs for Willow, and hugs galore!";
 export const WILLOW_SONG_AUDIO_ASSET = "willows-forest-adventure.mp3";
 export const WILLOW_SONG_AUDIO_URL = `/media/audio/${WILLOW_SONG_AUDIO_ASSET}`;
@@ -301,7 +302,11 @@ export function willowSongPages(): BookPage[] {
 }
 
 function layoutHasSongTagline(layout?: PageLayout): boolean {
-  return (layout?.elements || []).some((item) => item.role === "tagline" && String(item.text || "").includes("so much more"));
+  const text = (layout?.elements || [])
+    .filter((item) => item.role === "tagline")
+    .map((item) => String(item.text || ""))
+    .join("\n");
+  return text.includes("Sing-Along Book") && text.includes("so much more");
 }
 
 export function isWillowSongBook(book: Pick<Book, "slug" | "title" | "pages" | "tagline">): boolean {
@@ -321,9 +326,18 @@ export function isWillowSongBook(book: Pick<Book, "slug" | "title" | "pages" | "
 }
 
 export function withWillowSongTagline(layout: PageLayout | undefined): PageLayout {
-  const elements = (layout?.elements || []).map((item) =>
-    item.role === "tagline" ? { ...item, text: WILLOW_SONG_TAGLINE } : item,
-  );
+  const elements = (layout?.elements || []).map((item) => {
+    if (item.role !== "tagline") return item;
+    const next = { ...item, text: WILLOW_SONG_TAGLINE };
+    if (item.id === "cover-tagline") {
+      next.y = Math.min(Number(item.y) || 82, 79.5);
+      next.h = Math.max(Number(item.h) || 8, 11);
+    }
+    if (item.id === "title-tagline") {
+      next.h = Math.max(Number(item.h) || 16, 28);
+    }
+    return next;
+  });
   return { ...layout, elements };
 }
 
