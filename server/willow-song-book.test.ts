@@ -33,6 +33,16 @@ test("ensureWillowSongBook rewrites Willow once and stays put", async () => {
   assert.equal(book.coverLayout.elements.find((item) => item.role === "tagline")?.text?.includes("so much more"), true);
   assert.equal((await store.listBooks()).filter((item) => item.slug === created.slug).length, 1);
 
+  await store.updateBook(book.id, {
+    tagline: "A custom subtitle from Admin",
+    coverLayout: { elements: [{ id: "cover-tagline", type: "text", x: 10, y: 80, w: 80, h: 8, z: 1, text: "A custom subtitle from Admin", role: "tagline" }] },
+    titleLayout: { elements: [{ id: "title-tagline", type: "text", x: 54, y: 50, w: 40, h: 16, z: 1, text: "A custom subtitle from Admin", role: "tagline" }] },
+  });
+  await ensureWillowSongBook(store);
+  const kept = await store.getBookBySlug(created.slug);
+  assert.equal(kept?.tagline, "A custom subtitle from Admin");
+  assert.equal(kept?.coverLayout.elements.find((item) => item.role === "tagline")?.text, "A custom subtitle from Admin");
+
   delete process.env.BOOKS_DATA_DIR;
   resetStoreForTests();
   fs.rmSync(dir, { recursive: true, force: true });

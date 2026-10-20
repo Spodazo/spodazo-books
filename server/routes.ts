@@ -34,7 +34,7 @@ import {
   parseOutlineRequest,
 } from "./ai-book";
 import { importPdfOnServer } from "./pdf-import";
-import { withTaglineText } from "../shared/page-layout";
+import { withTaglineText, withTitleText } from "../shared/page-layout";
 
 function isPdfUpload(file: { fieldname: string; mimetype: string; originalname: string }): boolean {
   return file.fieldname === "pdf" || file.mimetype === "application/pdf" || /\.pdf$/i.test(file.originalname);
@@ -467,19 +467,26 @@ export function registerRoutes(app: Express): void {
       }
       const used = new Set((await store.listBooks()).filter((book) => book.id !== current.id).map((book) => book.slug));
       const pages = pagesFromBody(body.pages);
+      const title = body.title !== undefined ? String(body.title) : undefined;
       const tagline = body.tagline !== undefined ? String(body.tagline) : undefined;
+      function withAdminCopy(layout: typeof current.titleLayout) {
+        let next = layout;
+        if (title !== undefined) next = withTitleText(next, title);
+        if (tagline !== undefined) next = withTaglineText(next, tagline);
+        return next;
+      }
       const titleLayout = body.titleLayout !== undefined
         ? body.titleLayout
-        : tagline !== undefined
-          ? withTaglineText(current.titleLayout, tagline)
+        : (title !== undefined || tagline !== undefined)
+          ? withAdminCopy(current.titleLayout)
           : undefined;
       const coverLayout = body.coverLayout !== undefined
         ? body.coverLayout
-        : tagline !== undefined
-          ? withTaglineText(current.coverLayout, tagline)
+        : (title !== undefined || tagline !== undefined)
+          ? withAdminCopy(current.coverLayout)
           : undefined;
       const updated = await store.updateBook(current.id, {
-        title: body.title !== undefined ? String(body.title) : undefined,
+        title,
         slug: body.slug !== undefined
           ? uniqueSlug(String(body.slug || current.slug), used)
           : undefined,

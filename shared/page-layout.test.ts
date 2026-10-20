@@ -22,6 +22,7 @@ import {
   syncCoverLayoutWithArt,
   libraryCoverLayout,
   withTaglineText,
+  withTitleText,
 } from "./page-layout";
 import type { Book, BookPage } from "./types";
 
@@ -351,6 +352,20 @@ test("withTaglineText updates cover and title tagline boxes", () => {
     "A Sing-Along Book!",
   );
   assert.equal(layout.elements[0]?.text, "A Sing-Along Book!");
+});
+
+test("withTitleText updates cover and title-page titles, not The End", () => {
+  const layout = withTitleText(
+    {
+      elements: [
+        { id: "cover-title", type: "text", x: 8, y: 64, w: 84, h: 14, z: 2, text: "old", role: "title" },
+        { id: "end-title", type: "text", x: 52, y: 32, w: 42, h: 18, z: 2, text: "THE END", role: "end" },
+      ],
+    },
+    "Willow’s Big Forest Adventure",
+  );
+  assert.equal(layout.elements[0]?.text, "Willow’s Big Forest Adventure");
+  assert.equal(layout.elements[1]?.text, "THE END");
 });
 
 test("elementTextHtml keeps paragraph and line breaks", () => {
