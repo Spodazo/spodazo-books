@@ -92,11 +92,15 @@ test("needsWillowSongUpdate is true until the chorus pages are in place", () => 
   assert.equal(needsWillowSongUpdate(next), false);
   assert.match(next.tagline || "", /A Sing-Along Book!/);
   assert.match(next.titleLayout?.elements.find((item) => item.role === "tagline")?.text || "", /A Sing-Along Book!/);
-  const missingSingAlong = {
+  const customSubtitle = {
     ...next,
+    tagline: "A custom subtitle from Admin",
     titleLayout: {
-      elements: [{ id: "title-tagline", type: "text" as const, x: 1, y: 1, w: 10, h: 10, z: 1, text: "A little tiger.\nThe happiest hug... and so much more!", role: "tagline" as const }],
+      elements: [{ id: "title-tagline", type: "text" as const, x: 1, y: 1, w: 10, h: 10, z: 1, text: "A custom subtitle from Admin", role: "tagline" as const }],
+    },
+    coverLayout: {
+      elements: [{ id: "cover-tagline", type: "text" as const, x: 1, y: 1, w: 10, h: 10, z: 1, text: "A custom subtitle from Admin", role: "tagline" as const }],
     },
   };
-  assert.equal(needsWillowSongUpdate(missingSingAlong), true);
+  assert.equal(needsWillowSongUpdate(customSubtitle), false);
 });

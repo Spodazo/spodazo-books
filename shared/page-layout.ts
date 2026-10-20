@@ -226,6 +226,16 @@ export function withTaglineText(layout: PageLayout | undefined, tagline: string)
   return { ...layout, elements };
 }
 
+/** Copy the book title into cover and title-page title boxes so Admin title edits show on the book. */
+export function withTitleText(layout: PageLayout | undefined, title: string): PageLayout {
+  const elements = (layout?.elements || []).map((item) =>
+    item.role === "title" && (item.id === "cover-title" || item.id === "title-title")
+      ? { ...item, text: title }
+      : item,
+  );
+  return { ...layout, elements };
+}
+
 export function elementTextHtml(text: string, escape: (value: string) => string): string {
   const raw = String(text || "");
   if (!raw) return "<p></p>";

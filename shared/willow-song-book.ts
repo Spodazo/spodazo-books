@@ -301,14 +301,6 @@ export function willowSongPages(): BookPage[] {
   ];
 }
 
-function layoutHasSongTagline(layout?: PageLayout): boolean {
-  const text = (layout?.elements || [])
-    .filter((item) => item.role === "tagline")
-    .map((item) => String(item.text || ""))
-    .join("\n");
-  return text.includes("Sing-Along Book") && text.includes("so much more");
-}
-
 export function isWillowSongBook(book: Pick<Book, "slug" | "title" | "pages" | "tagline">): boolean {
   if (!isWillowBook(book)) return false;
   const text = book.pages.map((item) => (item.paragraphs || []).join(" ")).join(" ");
@@ -352,6 +344,5 @@ export function willowSongPayload(book: Book): Partial<Book> {
 
 export function needsWillowSongUpdate(book: Book): boolean {
   if (!isWillowBook(book)) return false;
-  if (!isWillowSongBook(book)) return true;
-  return !layoutHasSongTagline(book.coverLayout) || !layoutHasSongTagline(book.titleLayout);
+  return !isWillowSongBook(book);
 }
