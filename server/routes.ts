@@ -2,6 +2,7 @@ import type { Express, NextFunction, Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
+import { readFlipbookIndex, sendFlipbookHtml } from "./flipbook-cache";
 import { rudolphLegacyRedirect } from "../shared/rudolph";
 import { slugify, uniqueSlug } from "../shared/seed-data";
 import type { BookPage, PlayerSetup } from "../shared/types";
@@ -117,6 +118,15 @@ export function registerRoutes(app: Express): void {
     }
     const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
     res.redirect(301, `${target}${query}`);
+  });
+
+  app.get("/flipbooks/:dir/index.html", (req, res, next) => {
+    const html = readFlipbookIndex(req.params.dir);
+    if (!html) {
+      next();
+      return;
+    }
+    sendFlipbookHtml(res, html);
   });
 
   app.get("/api/version", async (_req, res) => {

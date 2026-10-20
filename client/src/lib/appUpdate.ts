@@ -56,6 +56,25 @@ function writeStoredRevision(revision: string) {
   } catch {
     /* private mode */
   }
+  publishBuild(revision);
+}
+
+type BuildListener = (build: string) => void;
+const buildListeners = new Set<BuildListener>();
+
+function publishBuild(revision: string) {
+  const build = revision.split("|")[0] || "";
+  buildListeners.forEach((listener) => listener(build));
+}
+
+/** Deploy id already known to this tab. Book iframes append it so a new deploy cannot reuse a cached book. */
+export function currentAppBuild(): string {
+  return readStoredRevision().split("|")[0] || "";
+}
+
+export function subscribeAppBuild(listener: BuildListener): () => void {
+  buildListeners.add(listener);
+  return () => buildListeners.delete(listener);
 }
 
 export async function applyAppUpdate(info: AppVersionInfo): Promise<void> {

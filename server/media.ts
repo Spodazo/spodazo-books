@@ -43,7 +43,14 @@ export function audioUrl(filename: string): string {
 }
 
 export function assetVersion(): string {
-  return process.env.BUILD_ID || process.env.RAILWAY_GIT_COMMIT_SHA || process.env.RAILWAY_DEPLOYMENT_ID || "dev";
+  const fromEnv = process.env.BUILD_ID || process.env.RAILWAY_GIT_COMMIT_SHA || process.env.RAILWAY_DEPLOYMENT_ID;
+  if (fromEnv) return fromEnv;
+  try {
+    const stamp = fs.statSync(process.argv[1]).mtimeMs;
+    return String(Math.round(stamp));
+  } catch {
+    return "dev";
+  }
 }
 
 export const HOME_CARD_WIDTH = 720;
@@ -60,7 +67,7 @@ export function imageUrl(filename: string, width?: number): string {
 
 export function pdfUrl(filename: string): string {
   if (!filename) return "";
-  return `/media/pdfs/${encodeURIComponent(filename)}`;
+  return `/media/pdfs/${encodeURIComponent(filename)}?v=${assetVersion()}`;
 }
 
 export function parseImageWidth(value: unknown): number | undefined {
