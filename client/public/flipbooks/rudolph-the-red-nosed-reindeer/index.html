@@ -372,6 +372,7 @@ body {
       if (!single && from < 0) {
         closed = false;
         book.classList.remove('closed');
+        slotL.classList.remove('hide');
         slotR.style.left = '50%';
         slotR.style.width = '50%';
         setPage(slotL, 1);
@@ -394,7 +395,7 @@ body {
       anims.push(front.querySelector('.sh').animate(FRAMES.front, opts));
       anims.push(back.querySelector('.sh').animate(FRAMES.back, opts));
       anims.push(slotR.querySelector('.cast').animate(FRAMES.castR, opts));
-      if (!single) anims.push(slotL.querySelector('.cast').animate(FRAMES.castL, opts));
+      if (!single && !slotL.classList.contains('hide')) anims.push(slotL.querySelector('.cast').animate(FRAMES.castL, opts));
       turnAnims = anims;
       if (!single) {
         var w = stackWidths(to < 0 ? 0 : to);
@@ -407,6 +408,20 @@ body {
       else if (to < 0) { closed = true; idx = 0; pg = 0; }
       else { closed = false; idx = to; }
       updateArrows();
+      setTimeout(function () {
+        if (gen !== turnGen || !busy) return;
+        abortTurn();
+        if (!single && from < 0) {
+          closed = false;
+          idx = 0;
+          pg = 0;
+        } else if (!single && to < 0) {
+          closed = true;
+          idx = 0;
+          pg = 0;
+        }
+        layout();
+      }, 1800);
       return Promise.all(anims.map(function (x) { return x.finished; })).then(function () {
         if (gen !== turnGen) return;
         // paint the final pages underneath first, then lift the leaf, so nothing blinks
@@ -514,7 +529,8 @@ body {
   function resetViewZoom() {
     if (mobileZoomCtl) mobileZoomCtl.reset();
   }
-  mobileZoomCtl = attachFlipbookMobileZoom({
+  try {
+    mobileZoomCtl = attachFlipbookMobileZoom({
     stage: stage,
     book: book,
     isSingle: function () { return single; },
@@ -539,6 +555,9 @@ body {
       else goToEnd();
     }
   });
+  } catch (err) {
+    mobileZoomCtl = null;
+  }
   if (typeof wireFlipArrows === 'function') {
     wireFlipArrows(arrL, arrR, { start: goToStart, end: goToEnd, turn: go });
   }
@@ -547,10 +566,16 @@ body {
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(-1);
   });
   window.addEventListener('resize', function () { if (!busy) layout(); else setTimeout(layout, 1100); });
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () { if (!busy) layout(); }).observe(stage);
+  }
 
   layout();
+  if (pw < 80 || ph < 80) requestAnimationFrame(function () { if (!busy) layout(); });
+  // Show the cover immediately. Waiting for the pictures left a blank blue screen.
+  book.classList.add('ready');
+  signalReaderReady();
 
-  // load the opening pages first, then reveal and warm the rest
   function load(n) {
     return new Promise(function (res) {
       var s = src(n); if (!s) return res();
@@ -564,14 +589,8 @@ body {
       }
     } catch (e) {}
   }
-  Promise.race([Promise.all([load(1), load(2), load(3)]), new Promise(function (r) { setTimeout(r, 4000); })]).then(function () {
-    book.classList.add('ready');
-    requestAnimationFrame(function () {
-      requestAnimationFrame(signalReaderReady);
-    });
-    var n = 4;
-    (function next() { if (n > IMAGES) return; load(n++).then(next); })();
-  });
+  var warmN = 1;
+  (function next() { if (warmN > IMAGES) return; load(warmN++).then(next); })();
 })();
 </script>
 
