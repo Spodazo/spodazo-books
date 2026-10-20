@@ -30,8 +30,8 @@ const jobs = [
   {
     filename: "willow-chorus-dance-roar.webp",
     name: "willow-chorus-dance-roar",
-    references: ["willow-chorus-dance.webp", "willow-character.webp", "willow-chorus-puff.webp"],
-    prompt: `${STYLE} Keep the EXACT dancing stance from the first reference: one foot lifted, both paws up, scarf flying, hopping down the path, musical notes, butterfly. Change ONLY her face to a big brave happy roar, mouth wide open. Keep Willow embroidered on her overalls like the character reference. No bear.`,
+    references: ["willow-chorus-dance.webp", "willow-chorus-puff.webp"],
+    prompt: `${STYLE} Keep the EXACT dancing stance from the first reference: one foot lifted, both paws up, scarf flying, hopping down the path, musical notes, butterfly. Change ONLY her face to a big brave happy roar, mouth wide open. No bear.`,
   },
   {
     filename: "willow-final-chorus.webp",
