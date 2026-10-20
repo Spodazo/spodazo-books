@@ -433,7 +433,7 @@ function ImportBookForm({
                 slug: /willow/i.test(imported.book.title)
                   ? "Willows-Big-Forest-Adventure"
                   : /rudolph/i.test(imported.book.title)
-                    ? "Rudolph-The-Red-Nosed-Reindeer"
+                    ? "Rudolph"
                     : /be thou my vision/i.test(imported.book.title)
                       ? "Be-Thou-My-Vision"
                       : undefined,

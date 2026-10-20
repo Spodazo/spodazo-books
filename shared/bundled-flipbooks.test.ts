@@ -9,7 +9,7 @@ import {
 
 test("Rudolph uses the bundled static flipbook", () => {
   assert.equal(
-    bundledFlipbookSrc("Rudolph-The-Red-Nosed-Reindeer", "/"),
+    bundledFlipbookSrc("Rudolph", "/"),
     "/flipbooks/rudolph-the-red-nosed-reindeer/index.html",
   );
   assert.equal(bundledFlipbookSrc("willows-big-forest-adventure", "/"), "");
@@ -20,7 +20,11 @@ test("Rudolph catalog pages mirror the zip export", () => {
   assert.equal(pages.length, 20);
   assert.equal(pages[0].imageUrl, "/flipbooks/rudolph-the-red-nosed-reindeer/pages/p-01.jpg");
   assert.equal(pages[19].imageUrl, "/flipbooks/rudolph-the-red-nosed-reindeer/pages/p-20.jpg");
-  assert.equal(bundledFlipbookCoverUrl("Rudolph-The-Red-Nosed-Reindeer", "/"), pages[0].imageUrl);
+  assert.equal(bundledFlipbookCoverUrl("Rudolph", "/"), pages[0].imageUrl);
+  assert.equal(
+    bundledFlipbookSrc("Rudolph-The-Red-Nosed-Reindeer", "/"),
+    "/flipbooks/rudolph-the-red-nosed-reindeer/index.html",
+  );
 });
 
 test("Be Thou My Vision uses the bundled static flipbook", () => {

@@ -1,6 +1,9 @@
+import { RUDOLPH_LEGACY_SLUG, RUDOLPH_SLUG } from "./rudolph";
+
 /** Static flipbook bundles shipped under client/public/flipbooks (exact exports, not Spodazo reader). */
 export const BUNDLED_FLIPBOOKS = {
-  "Rudolph-The-Red-Nosed-Reindeer": { dir: "rudolph-the-red-nosed-reindeer", pageCount: 20 },
+  [RUDOLPH_SLUG]: { dir: "rudolph-the-red-nosed-reindeer", pageCount: 20 },
+  [RUDOLPH_LEGACY_SLUG]: { dir: "rudolph-the-red-nosed-reindeer", pageCount: 20 },
   "Be-Thou-My-Vision": { dir: "be-thou-my-vision", pageCount: 18 },
 } as const;
 
@@ -59,9 +62,9 @@ export function bundledFlipbookPages(slug: string, baseUrl = "/"): BookPageLike[
   return pages;
 }
 
-/** @deprecated Use bundledFlipbookPages("Rudolph-The-Red-Nosed-Reindeer") */
+/** @deprecated Use bundledFlipbookPages(RUDOLPH_SLUG) */
 export function rudolphFlipbookPages(baseUrl = "/"): BookPageLike[] {
-  return bundledFlipbookPages("Rudolph-The-Red-Nosed-Reindeer", baseUrl);
+  return bundledFlipbookPages(RUDOLPH_SLUG, baseUrl);
 }
 
 type BookPageLike = {
