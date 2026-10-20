@@ -7,7 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, isWillowBook, visibleStoryPages} from '@shared/reader-pages';
-import {WILLOW_SONG_AUDIO_URL, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
+import {WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
 import {isImportedPdfFacsimileBook,storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
@@ -133,15 +133,16 @@ function characterSrc(book, baseUrl) {
 
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
+  const cue = isWillowBook(book) ? cueAttr(WILLOW_SONG_END_CUE) : "";
   if (hasLayout(book.endLayout)) {
-    return laidOutPage("The end", book.endLayout, book, baseUrl, extras, " end-page").replace("<article", '<article data-source="end"');
+    return laidOutPage("The end", book.endLayout, book, baseUrl, extras, " end-page", "", cue).replace("<article", '<article data-source="end"');
   }
   const src = coverSrc(book, baseUrl);
   const character = characterSrc(book, baseUrl);
   const left = character
     ? `<div class="end-cover-wrap end-character-wrap"><img class="end-character" src="${character}" alt="" width="560" height="860"></div>`
     : (src ? `<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>` : "");
-  return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  return `<article class="page end-page" data-source="end"${cue} aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
 function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hintDesktop="Tap the right page to turn", hintMobile="Swipe left to turn the page"}={}) {

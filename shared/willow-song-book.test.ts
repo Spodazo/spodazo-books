@@ -3,6 +3,9 @@ import test from "node:test";
 import { visibleStoryPages } from "./reader-pages";
 import {
   WILLOW_SONG_AUDIO_URL,
+  WILLOW_SONG_END_CUE,
+  WILLOW_SONG_END_DELAY,
+  WILLOW_SONG_LAST_WORD_AT,
   WILLOW_SONG_PAGE_COUNT,
   WILLOW_SONG_PAGE_CUES,
   WILLOW_SONG_TITLE_CUE,
@@ -47,7 +50,11 @@ test("Willow sing-along cues follow the recorded lyrics", () => {
   for (let i = 1; i < WILLOW_SONG_PAGE_CUES.length; i += 1) {
     assert.ok(WILLOW_SONG_PAGE_CUES[i] > WILLOW_SONG_PAGE_CUES[i - 1]);
   }
-  assert.ok(WILLOW_SONG_PAGE_CUES[WILLOW_SONG_PAGE_CUES.length - 1] < 166);
+  assert.ok(WILLOW_SONG_PAGE_CUES[WILLOW_SONG_PAGE_CUES.length - 1] < WILLOW_SONG_LAST_WORD_AT);
+  assert.equal(WILLOW_SONG_LAST_WORD_AT, 163);
+  assert.equal(WILLOW_SONG_END_DELAY, 3);
+  assert.equal(WILLOW_SONG_END_CUE, 166);
+  assert.ok(WILLOW_SONG_END_CUE > WILLOW_SONG_LAST_WORD_AT);
 });
 
 test("needsWillowSongUpdate is true until the chorus pages are in place", () => {

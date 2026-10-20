@@ -13,6 +13,12 @@ export const WILLOW_SONG_TITLE_CUE = 0;
  * Matched to the recorded lyrics so Sing Along can turn the page with the song.
  */
 export const WILLOW_SONG_PAGE_CUES = [8, 30, 46, 60, 68, 83, 91, 106, 113, 128, 135, 153];
+/** Seconds when the last sung word (“more”) ends. */
+export const WILLOW_SONG_LAST_WORD_AT = 163;
+/** Seconds after that word before turning to THE END. */
+export const WILLOW_SONG_END_DELAY = 3;
+/** Seconds into the song when THE END should appear. */
+export const WILLOW_SONG_END_CUE = WILLOW_SONG_LAST_WORD_AT + WILLOW_SONG_END_DELAY;
 
 export function willowStoryPageCue(index: number): number | undefined {
   if (index < 0 || index >= WILLOW_SONG_PAGE_CUES.length) return undefined;

@@ -662,7 +662,7 @@ function songAudio(){
   src=btn&&btn.getAttribute('data-audio');
   if(!src)return null;
   song=new Audio(src);
-  song.addEventListener('ended',function(){syncSingAlong(false);});
+  song.addEventListener('ended',function(){syncSingAlong(false);followSong();});
   song.addEventListener('play',function(){syncSingAlong(true);followSong();});
   song.addEventListener('pause',function(){syncSingAlong(false);});
   song.addEventListener('timeupdate',followSong);
@@ -675,18 +675,21 @@ function cueFor(p){
   return Number(raw);
 }
 function pageForSongTime(t){
-  var best=-1,bestCue=-1,i,c;
+  var best=-1,bestCue=-1,i,c,lead;
   for(i=0;i<pages.length;i++){
     c=cueFor(pages[i]);
     if(isNaN(c))continue;
-    if(t+0.4>=c&&c>=bestCue){bestCue=c;best=i;}
+    lead=pages[i].classList.contains('end-page')?0:0.4;
+    if(t+lead>=c&&c>=bestCue){bestCue=c;best=i;}
   }
   return best;
 }
 function followSong(){
-  var target;
-  if(!song||song.paused||busy)return;
-  target=pageForSongTime(song.currentTime);
+  var target,t;
+  if(!song||busy)return;
+  if(song.paused&&!song.ended)return;
+  t=song.ended?Infinity:song.currentTime;
+  target=pageForSongTime(t);
   if(target<0||target<=index)return;
   if(target===index+1)go(1);
   else jumpTo(target);
