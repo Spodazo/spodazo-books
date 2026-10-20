@@ -159,8 +159,8 @@ body {
 <script>
 (function () {
   var IMAGES = 20, TOTAL = 20, RATIO = 705.12 / 450;
-  // [left, right]: page 1 on the left, page 2 on the right, and so on.
-  var SP = [[1,2],[3,4],[5,6],[7,8],[9,10],[11,12],[13,14],[15,16],[17,18],[19,20]];
+  // The cover (image 1) is shown alone. The first open spread is the credits page and the page after it.
+  var SP = [[2,3],[4,5],[6,7],[8,9],[10,11],[12,13],[14,15],[16,17],[18,19],[20,0]];
   var LAST = SP.length - 1;
 
   var stage = document.getElementById('stage'), book = document.getElementById('book');
@@ -235,7 +235,7 @@ body {
         idx = 0;
       } else {
         closed = false;
-        idx = Math.min(LAST, Math.floor(pg / 2));
+        idx = Math.min(LAST, Math.floor((pg - 1) / 2));
       }
     }
     single = nextSingle;
@@ -375,7 +375,7 @@ body {
         slotL.classList.remove('hide');
         slotR.style.left = '50%';
         slotR.style.width = '50%';
-        setPage(slotL, 1);
+        setPage(slotL, SP[0][0]);
       }
       // 1. put the leaf on screen at its starting angle, showing the same picture as the page under it
       leaf.style.display = 'block';
