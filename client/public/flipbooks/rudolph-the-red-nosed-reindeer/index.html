@@ -92,7 +92,9 @@ body {
 .stack.r { left: 100%; }
 .stackWrapL { position: absolute; left: 0; top: 0; height: 100%; width: 0; }
 .stackWrapR { position: absolute; right: 0; top: 0; height: 100%; width: 0; }
-#book.single .stack { display: none; }
+#book.single .stack, #book.closed .stack { display: none; }
+#book.closed .slot.R .page::after { background: none; }
+#book.settling { overflow: hidden; }
 
 /* navigation arrows: single-click turns, double-click jumps to start/end */
 .arrow {
@@ -174,14 +176,23 @@ body {
     var s = document.createElement('span'); s.className = 'again-label'; s.textContent = 'View Again...'; p.appendChild(s);
   });
 
-  var single = false, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, turnGen = 0, turnAnims = [];
+  var single = false, closed = true, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, turnGen = 0, turnAnims = [];
+  var wasSingle = false;
+
+  function clearSettle() {
+    book.classList.remove('settling');
+    book.style.transition = book.style.overflow = '';
+    slotL.style.left = slotL.style.width = '';
+    slotR.style.left = slotR.style.width = slotR.style.opacity = '';
+    stackL.style.transition = stackR.style.transition = '';
+  }
 
   function abortTurn() {
     turnGen++;
     turnAnims.forEach(function (x) { try { x.cancel(); } catch (e) {} });
     turnAnims = [];
     hideLeaf();
-    stackL.style.transition = stackR.style.transition = '';
+    clearSettle();
     busy = false;
   }
 
@@ -216,14 +227,22 @@ body {
 
   function layout() {
     var r = stage.getBoundingClientRect(), W = r.width, H = r.height;
-    var wasSingle = single;
-    single = decideMode(W, H);
-    if (single !== wasSingle) {
+    var nextSingle = decideMode(W, H);
+    if (nextSingle !== wasSingle) {
       resetViewZoom();
-      // Entering single-page mode: open on the left leaf of the spread (cover is page 1, not page 2).
-      if (single) { pg = Math.max(0, SP[idx][0] - 1); }
-      else { idx = Math.min(LAST, Math.floor(pg / 2)); }
+      if (nextSingle) {
+        pg = closed ? 0 : Math.max(0, SP[idx][0] - 1);
+        closed = false;
+      } else if (pg <= 0) {
+        closed = true;
+        idx = 0;
+      } else {
+        closed = false;
+        idx = Math.min(LAST, Math.floor(pg / 2));
+      }
     }
+    single = nextSingle;
+    wasSingle = single;
     var m = Math.max(12, Math.round(H * 0.03));          // slight margin top and bottom
     var avail = H - 2 * m;
     // desktop: leave room for a navigation button outside each side when there is space
@@ -232,16 +251,18 @@ body {
     pw = Math.floor(single ? Math.min(W, avail / RATIO) : Math.min((W - 2 * sideRoom) / 2, avail / RATIO));
     if (!single && pw < 200) pw = Math.floor(Math.min(W / 2, avail / RATIO));
     ph = Math.floor(pw * RATIO);
-    var bw = single ? pw : pw * 2;
+    var narrow = single || closed;
+    var bw = narrow ? pw : pw * 2;
     book.style.width = bw + 'px';
     book.style.height = ph + 'px';
     book.style.left = Math.round((W - bw) / 2) + 'px';
     book.style.top = Math.round((H - ph) / 2) + 'px';
     book.style.setProperty('--pw', pw + 'px');
     book.classList.toggle('single', single);
-    slotL.classList.toggle('hide', single);
-    slotR.style.left = single ? '0' : '50%';
-    slotR.style.width = single ? '100%' : '50%';
+    book.classList.toggle('closed', closed && !single);
+    slotL.classList.toggle('hide', narrow);
+    slotR.style.left = narrow ? '0' : '50%';
+    slotR.style.width = narrow ? '100%' : '50%';
     render();
   }
 
@@ -263,8 +284,8 @@ body {
   }
 
   function updateArrows() {
-    var atStart = single ? pg === 0 : idx === 0;
-    var atEnd = single ? pg === TOTAL - 1 : idx === LAST;
+    var atStart = single ? pg === 0 : closed;
+    var atEnd = single ? pg === TOTAL - 1 : idx === LAST && !closed;
     arrL.classList.toggle('off', atStart);
     arrR.classList.toggle('off', atEnd);
     if (closeBtn) {
@@ -278,6 +299,8 @@ body {
     var jobs = [];
     if (single) {
       jobs.push(setPage(slotR, pg + 1));
+    } else if (closed) {
+      jobs.push(setPage(slotR, 1));
     } else {
       jobs.push(setPage(slotL, SP[idx][0]));
       jobs.push(setPage(slotR, SP[idx][1]));
@@ -398,9 +421,84 @@ body {
     }).catch(function () { if (gen === turnGen) { busy = false; render(); } });
   }
 
+  function finishSettle(gen, nextClosed) {
+    if (gen !== turnGen) return;
+    closed = nextClosed;
+    idx = 0;
+    pg = 0;
+    clearSettle();
+    layout();
+    busy = false;
+  }
+
+  function openCover() {
+    if (busy || single || !closed) return;
+    busy = true;
+    var gen = turnGen;
+    var r = stage.getBoundingClientRect();
+    var startLeft = Math.round((r.width - pw) / 2);
+    var endLeft = Math.round((r.width - pw * 2) / 2);
+    Promise.all([setPage(slotL, 1), setPage(slotR, 2)]).then(function () {
+      if (gen !== turnGen) return;
+      book.classList.remove('closed');
+      book.classList.add('settling');
+      book.style.overflow = 'hidden';
+      book.style.transition = 'none';
+      book.style.width = pw + 'px';
+      book.style.left = startLeft + 'px';
+      slotL.classList.remove('hide');
+      slotL.style.left = '0';
+      slotL.style.width = pw + 'px';
+      slotR.style.left = pw + 'px';
+      slotR.style.width = pw + 'px';
+      void book.offsetWidth;
+      book.style.transition = 'left .72s cubic-bezier(.62,.04,.3,1), width .72s cubic-bezier(.62,.04,.3,1)';
+      book.style.left = endLeft + 'px';
+      book.style.width = (pw * 2) + 'px';
+      var w = stackWidths(0);
+      stackL.style.transition = stackR.style.transition = 'width .72s ease';
+      stackL.style.width = w[0] + 'px';
+      stackR.style.width = w[1] + 'px';
+      updateArrows();
+      setTimeout(function () { finishSettle(gen, false); }, 760);
+    });
+  }
+
+  function closeCover() {
+    if (busy || single || closed || idx !== 0) return;
+    busy = true;
+    var gen = turnGen;
+    var r = stage.getBoundingClientRect();
+    var startLeft = Math.round((r.width - pw * 2) / 2);
+    var endLeft = Math.round((r.width - pw) / 2);
+    book.classList.add('settling');
+    book.style.overflow = 'hidden';
+    book.style.transition = 'none';
+    book.style.width = (pw * 2) + 'px';
+    book.style.left = startLeft + 'px';
+    slotL.style.left = '0';
+    slotL.style.width = pw + 'px';
+    slotR.style.left = pw + 'px';
+    slotR.style.width = pw + 'px';
+    void book.offsetWidth;
+    book.style.transition = 'left .72s cubic-bezier(.62,.04,.3,1), width .72s cubic-bezier(.62,.04,.3,1)';
+    book.style.left = endLeft + 'px';
+    book.style.width = pw + 'px';
+    updateArrows();
+    setTimeout(function () { finishSettle(gen, true); }, 760);
+  }
+
   function go(dir) {
     if (busy) return;
     if (single) resetViewZoom();
+    if (!single && closed) {
+      if (dir > 0) openCover();
+      return;
+    }
+    if (!single && dir < 0 && idx === 0) {
+      closeCover();
+      return;
+    }
     if (single) {
       var n = pg + dir;
       if (n < 0 || n >= TOTAL) return;
@@ -419,12 +517,12 @@ body {
     busy = true;
     book.classList.add('fading');
     setTimeout(function () {
-      idx = 0; pg = 0;
-      applyState().then(function () {
-        hideLeaf();
-        book.classList.remove('fading');
-        busy = false;
-      });
+      idx = 0; pg = 0; closed = !single;
+      clearSettle();
+      layout();
+      hideLeaf();
+      book.classList.remove('fading');
+      busy = false;
     }, 380);
   }
 
@@ -434,7 +532,9 @@ body {
     hideLeaf();
     idx = 0;
     pg = 0;
-    applyState();
+    closed = !single;
+    clearSettle();
+    layout();
   }
 
   function goToEnd() {
@@ -443,7 +543,9 @@ body {
     hideLeaf();
     idx = LAST;
     pg = TOTAL - 1;
-    applyState();
+    closed = false;
+    clearSettle();
+    layout();
   }
 
   var mobileZoomCtl = null;
@@ -454,7 +556,7 @@ body {
     stage: stage,
     book: book,
     isSingle: function () { return single; },
-    layoutSize: function () { return { pw: pw, ph: ph, spread: !single }; },
+    layoutSize: function () { return { pw: pw, ph: ph, spread: !single && !closed }; },
     onTurn: function (dir) { go(dir); },
     ignoreTarget: function (el) {
       return el.closest && (el.closest('.flipbook-close') || el.closest('.arrow'));
