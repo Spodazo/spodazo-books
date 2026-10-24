@@ -315,6 +315,22 @@ test("noisy contents text still opens each named song", () => {
   assert.deepEqual(links.map((link) => link.page), [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]);
 });
 
+test("a preface page is not treated as a song", () => {
+  const rows = matchSongListToPages(
+    [
+      { text: "Preface", top: 12 },
+      { text: "01 Be Thou My Vision", top: 28 },
+    ],
+    [
+      { sourcePage: 3, title: "Preface" },
+      { sourcePage: 4, title: "Be Thou My Vision" },
+    ],
+  );
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].label, "Be Thou My Vision");
+  assert.equal(rows[0].page, 4);
+});
+
 test("a contents name that is not on the album is not given another song", () => {
   const rows = matchSongListToPages(
     [{ text: "05 Horsemens Praise", top: 40 }],
