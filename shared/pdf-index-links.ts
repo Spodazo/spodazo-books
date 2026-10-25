@@ -328,7 +328,7 @@ function repairContentsLine(text: string): string {
 function isSongTitle(title: string): boolean {
   const value = title.trim();
   if (!value || isNumberedPageLabel(value)) return false;
-  return !/^(lyrics|verse\b|forward|contents|songs?)$/i.test(value);
+  return !/^(lyrics|verse\b|forward|preface|contents|songs?)$/i.test(value);
 }
 
 export type MatchedContentsRow = { label: string; page: number; top: number };
