@@ -272,7 +272,7 @@ body {
     }
     single = nextSingle;
     wasSingle = single;
-    var m = Math.max(12, Math.round(H * 0.03));          // slight margin top and bottom
+    var m = single ? Math.max(12, Math.round(H * 0.03)) : 2;
     var avail = H - 2 * m;
     // desktop: leave room for a navigation button outside each side when there is space
     var btn = Math.min(44, Math.max(28, 0.075 * (H / RATIO)));

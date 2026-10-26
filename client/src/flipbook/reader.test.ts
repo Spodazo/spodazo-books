@@ -20,6 +20,14 @@ test("Willow title page has a Sing Along control wired to the song", async () =>
   assert.match(css, /\.sing-along/);
 });
 
+test("desktop and landscape flip books keep a 2px top and bottom margin", async () => {
+  const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
+  assert.match(css, /html:not\(\.mobile\) main\{\s*position:absolute;\s*inset:2px 20px;/);
+  assert.match(css, /--book-gap:2px;/);
+  const engine = await readFile(new URL("./facsimile-flipbook-engine.js", import.meta.url), "utf8");
+  assert.match(engine, /var m = single \? Math\.max\(12, Math\.round\(H \* 0\.03\)\) : 2;/);
+});
+
 test("the cover turns with the same leaf as the other pages", async () => {
   const runtime = await readFile(new URL("./reader-runtime.js", import.meta.url), "utf8");
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");

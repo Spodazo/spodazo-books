@@ -291,7 +291,7 @@
       }
       else { idx = pg === 0 ? 0 : Math.min(LAST, Math.ceil(pg / 2)); }
     }
-    var m = Math.max(12, Math.round(H * 0.03));
+    var m = single ? Math.max(12, Math.round(H * 0.03)) : 2;
     var avail = H - 2 * m;
     var btn = Math.min(44, Math.max(28, 0.075 * (H / RATIO)));
     var sideRoom = single ? 0 : Math.round(btn + 40);
