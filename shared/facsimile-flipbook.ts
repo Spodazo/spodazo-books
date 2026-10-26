@@ -1,4 +1,4 @@
-import { isBundledFlipbookSlug } from "./bundled-flipbooks";
+import { usesStaticBundledFlipbook } from "./bundled-flipbooks";
 import { isOneLeafPdfPage } from "./page-layout";
 import { facsimilePageLinks } from "./pdf-index-links";
 
@@ -25,8 +25,13 @@ function isStoryDeskDefault(color?: string | null): boolean {
   return !hexColor(color) || STORY_DESK_DEFAULTS.has(hexColor(color));
 }
 
-export function isFacsimileFlipbookListItem(book: { slug?: string; pdf?: string; pdfUrl?: string }): boolean {
-  if (book.slug && isBundledFlipbookSlug(book.slug)) return false;
+export function isFacsimileFlipbookListItem(book: {
+  slug?: string;
+  pdf?: string;
+  pdfUrl?: string;
+  pages?: Array<{ imageAsset?: string; fullPageAsset?: string; imageUrl?: string; fullPageUrl?: string }>;
+}): boolean {
+  if (usesStaticBundledFlipbook(book)) return false;
   return Boolean(String(book.pdfUrl || book.pdf || "").trim());
 }
 

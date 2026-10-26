@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { bundledFlipbookSrc, isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
+import { bundledFlipbookSrc, isBundledFlipbookSlug, usesStaticBundledFlipbook } from "@shared/bundled-flipbooks";
 import { currentAppBuild, subscribeAppBuild } from "../lib/appUpdate";
 import { shouldUseFacsimileFlipbook } from "@shared/facsimile-flipbook";
 import { ensureBookLayouts } from "@shared/page-layout";
@@ -77,7 +77,9 @@ export default function BookPage() {
 
   const [appBuild, setAppBuild] = useState(currentAppBuild);
   useEffect(() => subscribeAppBuild(setAppBuild), []);
-  const bundledSrc = book ? bundledFlipbookSrc(book.slug, import.meta.env.BASE_URL, appBuild) : "";
+  const bundledSrc = book && usesStaticBundledFlipbook(book)
+    ? bundledFlipbookSrc(book.slug, import.meta.env.BASE_URL, appBuild)
+    : "";
 
   useEffect(() => {
     const host = hostRef.current;

@@ -1,4 +1,4 @@
-import { isBundledFlipbookSlug } from "../shared/bundled-flipbooks";
+import { usesStaticBundledFlipbook } from "../shared/bundled-flipbooks";
 import { indexLinksEqual, matchSongListToPages, realignIndexLinksByOrder } from "../shared/pdf-index-links";
 import { shouldUseFacsimileFlipbook } from "../shared/facsimile-flipbook";
 import type { BookPage, PageJumpLink } from "../shared/types";
@@ -32,7 +32,7 @@ export async function refreshImportedPdfIndexLinks(store: BookStore): Promise<nu
   const list = await store.listBooks();
   let updated = 0;
   for (const item of list) {
-    if (isBundledFlipbookSlug(item.slug)) continue;
+    if (usesStaticBundledFlipbook(item)) continue;
     if (!shouldUseFacsimileFlipbook(item)) continue;
     const book = await store.getBookById(item.id);
     if (!book?.pdf || !book.pages.length) continue;

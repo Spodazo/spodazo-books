@@ -17,6 +17,37 @@ export function isBundledFlipbookSlug(slug: string): slug is BundledFlipbookSlug
   return slug in BUNDLED_FLIPBOOKS;
 }
 
+type BundlePageRef = {
+  imageAsset?: string;
+  fullPageAsset?: string;
+  imageUrl?: string;
+  fullPageUrl?: string;
+};
+
+function isStaticBundlePage(page: BundlePageRef): boolean {
+  const url = `${page.imageUrl || ""} ${page.fullPageUrl || ""}`;
+  if (url.includes("/flipbooks/")) return true;
+  const asset = String(page.fullPageAsset || page.imageAsset || "").split("/").pop()?.split("?")[0] || "";
+  return /^p-\d{2}\.(jpe?g|png|webp)$/i.test(asset);
+}
+
+/**
+ * The static HTML flipbook is only for the shipped export.
+ * An uploaded PDF on the same slug (Rudolph, Be Thou) opens that PDF instead.
+ */
+export function usesStaticBundledFlipbook(book: {
+  slug?: string;
+  pdf?: string;
+  pdfUrl?: string;
+  pages?: BundlePageRef[];
+}): boolean {
+  if (!book.slug || !isBundledFlipbookSlug(book.slug)) return false;
+  const pages = book.pages || [];
+  if (pages.length > 0 && pages.every((page) => isStaticBundlePage(page))) return true;
+  if (pages.length > 0) return false;
+  return !String(book.pdf || book.pdfUrl || "").trim();
+}
+
 function flipbookRoot(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 }
