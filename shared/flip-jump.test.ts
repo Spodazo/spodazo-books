@@ -114,6 +114,14 @@ test("Be Thou song-list jumps open the cover leaf (and lyrics for two-leaf songs
   assert.match(html, /pointerType === 'mouse' && Date\.now\(\) < suppressTurnsUntil/);
 });
 
+test("open flip books jump to the start or end on a double-click of either page", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const zoom = await readFile(new URL("../client/public/flipbooks/mobile-view-zoom.js", import.meta.url), "utf8");
+  assert.match(zoom, /!isSingle\(\) && viewScale <= 1 && opts\.onJump/);
+  assert.match(zoom, /localX < stageBox\.width \/ 2 \? -1 : 1/);
+  assert.match(zoom, /opts\.onJump\(half\)/);
+});
+
 test("in-app reader jumps on double-click zones and mobile edge taps", async () => {
   const { readFile } = await import("node:fs/promises");
   const runtime = await readFile(new URL("../client/src/flipbook/reader-runtime.js", import.meta.url), "utf8");
