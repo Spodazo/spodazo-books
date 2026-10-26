@@ -394,7 +394,7 @@
   }
 
   var FRAMES = {
-    front: [{ opacity: 0 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0.55 }],
+    front: [{ opacity: 0 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0 }],
     back: [{ opacity: 0.55 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0 }],
     castR: [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }],
     castL: [{ opacity: 0 }, { opacity: 0, offset: 0.35 }, { opacity: 1, offset: 0.85 }, { opacity: 0 }],
@@ -444,29 +444,23 @@
       anims.push(slotR.querySelector(".cast").animate(FRAMES.castR, opts));
       if (!single) anims.push(slotL.querySelector(".cast").animate(FRAMES.castL, opts));
       turnAnims = anims;
-      if (!single) {
-        var w = stackWidths(to);
-        stackL.style.transition = stackR.style.transition = "width " + dur + "ms ease";
-        stackL.style.width = w[0] + "px";
-        stackR.style.width = w[1] + "px";
-      }
+      stackL.style.transition = stackR.style.transition = "none";
       slotPlan.forEach(function (s) { setPage(s[0], s[1]); });
       if (single) pg = to; else idx = to;
       updateArrows();
-      return Promise.all(anims.map(function (x) { return x.finished; })).then(function () {
+      return Promise.all(anims.map(function (x) {
+        return Promise.race([
+          x.finished.catch(function () {}),
+          new Promise(function (res) { setTimeout(res, dur + 60); })
+        ]);
+      })).then(function () {
         if (gen !== turnGen) return;
-        return applyState().then(raf2).then(function () {
-          if (gen !== turnGen) return;
-          if (single) return;
-          var out = leaf.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: "linear", fill: "forwards" });
-          anims.push(out);
-          return out.finished;
-        }).then(function () {
+        stackL.style.transition = stackR.style.transition = "none";
+        return applyState().then(function () {
           if (gen !== turnGen) return;
           hideLeaf();
           anims.forEach(function (x) { try { x.cancel(); } catch (e) {} });
           turnAnims = [];
-          stackL.style.transition = stackR.style.transition = "";
           busy = false;
         });
       });

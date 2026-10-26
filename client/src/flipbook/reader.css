@@ -266,27 +266,54 @@ html:not(.mobile) .front-cover-leaf .cover-bit-image[data-id="cover-art"]{object
   .mobile .page.title-page .zone{display:none}
 }
 
-.page.title-page .reader-close,
-.page.front-cover .reader-close{
-  position:absolute;
+.reader-close{
+  position:fixed;
+  z-index:80;
+  top:max(10px,env(safe-area-inset-top));
   left:max(12px,env(safe-area-inset-left));
-  top:16px;
-  z-index:30;
   width:44px;
   height:44px;
   display:grid;
   place-items:center;
-  color:color-mix(in srgb,var(--title-ink,#203b2a) 34%,transparent);
-  background:transparent;
   border:0;
   border-radius:50%;
-  font:600 34px/1 Arial,sans-serif;
+  background:rgba(255,255,255,.12);
+  color:rgba(255,255,255,.88);
+  -webkit-text-fill-color:rgba(255,255,255,.88);
+  font:600 32px/1 system-ui,sans-serif;
   text-decoration:none;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
 }
-.page.title-page .reader-close:hover,
-.page.front-cover .reader-close:hover{
-  color:color-mix(in srgb,var(--title-ink,#203b2a) 55%,transparent);
+.reader-close:hover,
+.reader-close:focus-visible{
+  background:rgba(255,255,255,.22);
+  color:#fff;
+  -webkit-text-fill-color:#fff;
+  outline:none;
 }
+.reader-arrow{
+  position:fixed;
+  top:50%;
+  z-index:70;
+  width:44px;
+  aspect-ratio:1;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.30);
+  background:rgba(255,255,255,.10);
+  color:#fff;
+  opacity:.7;
+  transform:translateY(-50%);
+  cursor:pointer;
+  padding:0;
+}
+.reader-arrow svg{width:46%;height:46%;fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.reader-arrow-l{left:max(8px,env(safe-area-inset-left))}
+.reader-arrow-r{right:max(8px,env(safe-area-inset-right))}
+.reader-arrow.off{opacity:0;pointer-events:none}
+html.mobile .reader-arrow{display:none}
 .page.title-page .admin-login{
   position:absolute;
   top:16px;
@@ -1404,12 +1431,6 @@ html:not(.mobile) .front-cover-leaf{
 }
 html:not(.mobile).closed-book .front-cover-leaf{
   left:25%;
-}
-html:not(.mobile) .page.front-cover .reader-close{
-  left:calc(50% + 14px);
-}
-html:not(.mobile).closed-book .page.front-cover .reader-close{
-  left:calc(25% + 14px);
 }
 .mobile .front-cover-leaf{
   inset:0;

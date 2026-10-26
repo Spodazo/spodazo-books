@@ -375,7 +375,7 @@ body {
     };
   }
   var FRAMES = {
-    front: [{ opacity: 0 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0.55 }],
+    front: [{ opacity: 0 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0 }],
     back: [{ opacity: 0.55 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0 }],
     castR: [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }],
     castL: [{ opacity: 0 }, { opacity: 0, offset: 0.35 }, { opacity: 1, offset: 0.85 }, { opacity: 0 }]
@@ -426,22 +426,18 @@ body {
       anims.push(slotR.querySelector('.cast').animate(FRAMES.castR, opts));
       if (!single && !slotL.classList.contains('hide')) anims.push(slotL.querySelector('.cast').animate(FRAMES.castL, opts));
       turnAnims = anims;
-      if (!single) {
-        var w = stackWidths(to < 0 ? 0 : to);
-        stackL.style.transition = stackR.style.transition = 'width ' + dur + 'ms ease';
-        stackL.style.width = w[0] + 'px';
-        stackR.style.width = w[1] + 'px';
-        if (from < 0 || to < 0) {
-          if (from < 0) {
-            closed = false;
-            book.classList.remove('closed');
-          }
-          var stageBox = stage.getBoundingClientRect();
-          var centered = Math.round((stageBox.width - pw * 2) / 2);
-          var coverShift = centered - Math.round(pw / 2);
-          book.style.transition = 'left ' + dur + 'ms cubic-bezier(.62,.04,.3,1)';
-          book.style.left = (from < 0 ? centered : coverShift) + 'px';
+      stackL.style.transition = stackR.style.transition = 'none';
+      if (!single && (from < 0 || to < 0)) {
+        stackL.style.width = stackR.style.width = '0px';
+        if (from < 0) {
+          closed = false;
+          book.classList.remove('closed');
         }
+        var stageBox = stage.getBoundingClientRect();
+        var centered = Math.round((stageBox.width - pw * 2) / 2);
+        var coverShift = centered - Math.round(pw / 2);
+        book.style.transition = 'left ' + dur + 'ms cubic-bezier(.62,.04,.3,1)';
+        book.style.left = (from < 0 ? centered : coverShift) + 'px';
       }
       slotPlan.forEach(function (s) { setPage(s[0], s[1]); });   // same frame as the leaf appears
       if (single) pg = to;
@@ -456,23 +452,21 @@ body {
         else if (!single && to < 0) { closed = true; idx = 0; pg = 0; }
         layout();
       }, 1800);
-      return Promise.all(anims.map(function (x) { return x.finished; })).then(function () {
+      return Promise.all(anims.map(function (x) {
+        return Promise.race([
+          x.finished.catch(function () {}),
+          new Promise(function (res) { setTimeout(res, dur + 60); })
+        ]);
+      })).then(function () {
         if (gen !== turnGen) return;
         // paint the final pages underneath first, then lift the leaf, so nothing blinks
-        return applyState().then(raf2).then(function () {
+        stackL.style.transition = stackR.style.transition = 'none';
+        return applyState().then(function () {
           if (gen !== turnGen) return;
           if (!single && from < 0) slotL.classList.remove('hide');
-          // dissolve the leaf over the identical page beneath instead of cutting it away
-          if (single) return;
-          var out = leaf.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'linear', fill: 'forwards' });
-          anims.push(out);
-          return out.finished;
-        }).then(function () {
-          if (gen !== turnGen) return;
           hideLeaf();
           anims.forEach(function (x) { try { x.cancel(); } catch (e) {} });
           turnAnims = [];
-          stackL.style.transition = stackR.style.transition = '';
           book.style.transition = '';
           settled = true;
           if (!single && to < 0) {
