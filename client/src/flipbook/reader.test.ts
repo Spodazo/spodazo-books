@@ -28,6 +28,19 @@ test("desktop and landscape flip books keep a 2px top and bottom margin", async 
   assert.match(engine, /var m = single \? Math\.max\(12, Math\.round\(H \* 0\.03\)\) : 2;/);
 });
 
+test("Willow close button and arrows sit on the viewport", async () => {
+  const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
+  const runtime = await readFile(new URL("./reader-runtime.js", import.meta.url), "utf8");
+  assert.match(reader, /class="reader-close"/);
+  assert.match(reader, /class="reader-arrow reader-arrow-l"/);
+  assert.match(reader, /class="reader-arrow reader-arrow-r"/);
+  assert.match(css, /\.reader-close\{[^}]*position:fixed/);
+  assert.match(css, /html\.mobile \.reader-arrow\{display:none\}/);
+  assert.match(runtime, /function updateArrows/);
+  assert.match(runtime, /\.reader-arrow/);
+});
+
 test("the cover turns with the same leaf as the other pages", async () => {
   const runtime = await readFile(new URL("./reader-runtime.js", import.meta.url), "utf8");
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
