@@ -26,8 +26,23 @@ test("shouldUseFacsimileFlipbook is true for uploaded PDFs and false for bundled
   ];
   assert.equal(shouldUseFacsimileFlipbook({ pdf: "songbook.pdf", pages }), true);
   assert.equal(shouldUseFacsimileFlipbook({ pdfUrl: "/media/pdfs/songbook.pdf", pages }), true);
-  assert.equal(shouldUseFacsimileFlipbook({ slug: "Be-Thou-My-Vision", pdf: "x.pdf", pages }), false);
-  assert.equal(shouldUseFacsimileFlipbook({ slug: "Rudolph-The-Red-Nosed-Reindeer", pdfUrl: "/x.pdf" }), false);
+  assert.equal(shouldUseFacsimileFlipbook({ slug: "Be-Thou-My-Vision", pdf: "x.pdf", pages }), true);
+  assert.equal(
+    shouldUseFacsimileFlipbook({
+      slug: "Rudolph",
+      pdf: "Rudolph-revised.pdf",
+      pages,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldUseFacsimileFlipbook({
+      slug: "Rudolph",
+      pdf: "",
+      pages: [{ kind: "facsimile", imageAsset: "p-01.jpg", fullPageAsset: "p-01.jpg", imageUrl: "/flipbooks/rudolph-the-red-nosed-reindeer/pages/p-01.jpg" }],
+    }),
+    false,
+  );
   assert.equal(shouldUseFacsimileFlipbook({ pdf: "", pages }), false);
   assert.equal(
     shouldUseFacsimileFlipbook({
@@ -40,7 +55,22 @@ test("shouldUseFacsimileFlipbook is true for uploaded PDFs and false for bundled
 
 test("library cards treat a pdfUrl as a facsimile flipbook", () => {
   assert.equal(isFacsimileFlipbookListItem({ slug: "new-songbook", pdfUrl: "/media/pdfs/a.pdf" }), true);
-  assert.equal(isFacsimileFlipbookListItem({ slug: "Be-Thou-My-Vision", pdfUrl: "/x.pdf" }), false);
+  assert.equal(
+    isFacsimileFlipbookListItem({
+      slug: "Be-Thou-My-Vision",
+      pdfUrl: "",
+      pages: [{ imageAsset: "p-01.jpg", fullPageAsset: "p-01.jpg" }],
+    }),
+    false,
+  );
+  assert.equal(
+    isFacsimileFlipbookListItem({
+      slug: "Rudolph",
+      pdfUrl: "/media/pdfs/Rudolph-revised.pdf",
+      pages: [{ imageAsset: "page-001.jpg", fullPageAsset: "page-001.jpg", imageUrl: "/media/images/page-001.jpg" }],
+    }),
+    true,
+  );
   assert.equal(isFacsimileFlipbookListItem({ slug: "willow", pdfUrl: "" }), false);
 });
 
