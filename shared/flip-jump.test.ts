@@ -19,6 +19,42 @@ test("isDoubleTap requires the same edge within the window", () => {
   assert.equal(isDoubleTap(1000, 0, 1100, 0), false);
 });
 
+test("a phone turned sideways opens the two-page book and can pinch-zoom", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const zoom = await readFile(new URL("../client/public/flipbooks/mobile-view-zoom.js", import.meta.url), "utf8");
+  const start = zoom.indexOf("function decideFlipbookSingle");
+  const end = zoom.indexOf("function wireFlipArrows");
+  const decide = new Function(`${zoom.slice(start, end)}; return decideFlipbookSingle;`)() as (w: number, h: number) => boolean;
+  assert.equal(decide(844, 390), false);
+  assert.equal(decide(667, 375), false);
+  assert.equal(decide(932, 430), false);
+  assert.equal(decide(390, 844), true);
+  assert.equal(decide(768, 1024), true);
+  assert.equal(decide(1280, 800), false);
+  assert.equal(decide(0, 800), true);
+  assert.match(zoom, /touchPts\.size === 2/);
+  assert.doesNotMatch(zoom, /isSingle\(\) && touchPts\.size === 2/);
+  assert.doesNotMatch(zoom, /!isSingle\(\) \|\| viewScale <= 1/);
+  for (const file of [
+    "../client/public/flipbooks/be-thou-my-vision/index.html",
+    "../client/public/flipbooks/rudolph-the-red-nosed-reindeer/index.html",
+    "../client/src/flipbook/facsimile-flipbook-engine.js",
+  ]) {
+    const src = await readFile(new URL(file, import.meta.url), "utf8");
+    assert.match(src, /return decideFlipbookSingle\(W, H\)/);
+    assert.doesNotMatch(src, /H < 520/);
+    assert.match(src, /resetViewZoom\(\)/);
+    assert.doesNotMatch(src, /if \(single\) resetViewZoom/);
+  }
+  const runtime = await readFile(new URL("../client/src/flipbook/reader-runtime.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../client/src/flipbook/reader.css", import.meta.url), "utf8");
+  assert.match(runtime, /gesturePinch/);
+  assert.match(runtime, /function applyViewZoom/);
+  assert.match(runtime, /reader-zoomed/);
+  assert.match(css, /html\.reader-zoomed \.page-curl/);
+  assert.match(css, /pointer: coarse/);
+});
+
 test("bundled flipbooks jump on double-click arrows and mobile edges", async () => {
   const { readFile } = await import("node:fs/promises");
   const zoom = await readFile(new URL("../client/public/flipbooks/mobile-view-zoom.js", import.meta.url), "utf8");

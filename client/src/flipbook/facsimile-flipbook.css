@@ -1,4 +1,4 @@
-/* Layout: one full-viewport stage; a page-fit book whose spine sits on the viewport centre (desktop spreads) or a single page (mobile). */
+/* Layout: one full-viewport stage; a page-fit book whose spine sits on the viewport centre (landscape, including a phone turned sideways) or a single page (portrait). */
 :root {
   --ground: #021b3f;
   --ground-edge: #000d24;
