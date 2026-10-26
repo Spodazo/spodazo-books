@@ -1141,6 +1141,14 @@ main{
   overflow:hidden;
   isolation:isolate;
   clip-path:inset(0);
+  transform-origin:center center;
+}
+@media (pointer: coarse) {
+  html, body, main { touch-action: none; }
+}
+html.reader-zoomed .page-curl,
+html.reader-zoomed .book-spine{
+  visibility:hidden;
 }
 html.opening main>.page{
   visibility:hidden!important;

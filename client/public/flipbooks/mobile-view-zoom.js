@@ -1,11 +1,12 @@
 /**
- * Pinch/pan for bundled flipbooks (single-page / mobile mode).
+ * Pinch/pan for flipbooks on touch screens (one page or an open spread).
+ * - Landscape phones use the two-page book; portrait stays one page (decideFlipbookSingle)
  * - Double-tap resets zoom
  * - Pinch back to 1× clears pan
  * - While zoomed: one-finger drag pans (all directions); double-tap or pinch to 1× resets
  * - Page turns via swipe only at 1× zoom
  * - Pan is clamped to the scaled page bounds
- * - Double-tap a left/right edge (not zoomed) jumps to start/end
+ * - Double-tap a left/right edge (one-page mode, not zoomed) jumps to start/end
  */
 (function (global) {
   var EDGE_FRAC = 0.18;
@@ -18,6 +19,12 @@
     if (x <= band) return -1;
     if (x >= width - band) return 1;
     return 0;
+  }
+
+  /** Portrait and square viewports stay one page. A landscape phone opens the book. */
+  function decideFlipbookSingle(W, H) {
+    if (!(W > 0) || !(H > 0)) return true;
+    return W / H < 1.1;
   }
 
   function wireFlipArrows(arrL, arrR, handlers) {
@@ -129,7 +136,7 @@
     }
 
     function tryDoubleTapReset(x, y) {
-      if (!isSingle() || viewScale <= 1) return false;
+      if (viewScale <= 1) return false;
       var now = Date.now();
       if (now - lastZoomTap < 350 && Math.hypot(x - lastZoomTapX, y - lastZoomTapY) < 32) {
         reset();
@@ -168,7 +175,7 @@
       try {
         stage.setPointerCapture(e.pointerId);
       } catch (err) {}
-      if (isSingle() && touchPts.size === 2) {
+      if (touchPts.size === 2) {
         gesturePinch = true;
         panPending = false;
         sp = null;
@@ -177,7 +184,7 @@
         pinchRefScale = viewScale;
         return;
       }
-      if (isSingle() && viewScale > 1 && touchPts.size === 1) {
+      if (viewScale > 1 && touchPts.size === 1) {
         panPending = true;
         gesturePan = false;
         sp = null;
@@ -195,7 +202,7 @@
     stage.addEventListener("pointermove", function (e) {
       if (!touchPts.has(e.pointerId)) return;
       touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (isSingle() && gesturePinch && touchPts.size >= 2) {
+      if (gesturePinch && touchPts.size >= 2) {
         var pts = touchPointList();
         if (pts.length >= 2 && pinchRefDist > 0) {
           viewScale = clampZoom(pinchRefScale * (touchDist(pts[0], pts[1]) / pinchRefDist));
@@ -203,7 +210,7 @@
         }
         return;
       }
-      if (isSingle() && panPending && touchPts.size === 1 && viewScale > 1) {
+      if (panPending && touchPts.size === 1 && viewScale > 1) {
         var dx = e.clientX - panStartX;
         var dy = e.clientY - panStartY;
         if (!gesturePan) {
@@ -230,7 +237,6 @@
 
       if (gesturePinch || gesturePan || panPending) {
         if (
-          isSingle() &&
           viewScale > 1 &&
           !wasPan &&
           !wasPinch &&
@@ -260,7 +266,7 @@
       sp = null;
       var ax = Math.abs(dx);
       var ay = Math.abs(dy);
-      if (ax > 40 && ax > ay * 1.2 && (!isSingle() || viewScale <= 1)) {
+      if (ax > 40 && ax > ay * 1.2 && viewScale <= 1) {
         onTurn(dx < 0 ? 1 : -1);
         return;
       }
@@ -301,6 +307,7 @@
     return { reset: reset };
   }
 
+  global.decideFlipbookSingle = decideFlipbookSingle;
   global.attachFlipbookMobileZoom = attachFlipbookMobileZoom;
   global.wireFlipArrows = wireFlipArrows;
 })(typeof window !== "undefined" ? window : this);

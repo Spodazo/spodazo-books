@@ -265,8 +265,7 @@
   }
 
   function decideMode(W, H) {
-    var touch = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
-    return W < 700 || W / H < 1.1 || (touch && H < 520);
+    return decideFlipbookSingle(W, H);
   }
 
   function spreadIndexForPage(n) {
@@ -484,7 +483,7 @@
       landPage = 0;
     }
     if (busy) return;
-    if (single) resetViewZoom();
+    resetViewZoom();
     if (single) {
       var n = pg + dir;
       if (n < 0 || n >= TOTAL) return;

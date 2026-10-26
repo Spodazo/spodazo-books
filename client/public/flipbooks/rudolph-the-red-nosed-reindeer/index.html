@@ -251,8 +251,7 @@ body {
   }
 
   function decideMode(W, H) {
-    var touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-    return W < 700 || W / H < 1.1 || (touch && H < 520);
+    return decideFlipbookSingle(W, H);
   }
 
   function layout() {
@@ -500,7 +499,7 @@ body {
 
   function go(dir) {
     if (busy) return;
-    if (single) resetViewZoom();
+    resetViewZoom();
     if (!single && closed) {
       if (dir > 0) openCover();
       return;
