@@ -28,7 +28,7 @@ export function rudolphPdfPageForStoryPage(storyPage: number): number {
  * Matched to `Rudloph the Red Nosed Reindeer-BEST.mp3`.
  */
 export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
-  0, 39, 87, 125, 160, 186, 210, 223, 247, 287, 289, 318, 345, 356, 378, 412, 425, 446, 468,
+  0, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468,
 ];
 
 /** Seconds when the last sung words finish; outro plays on PDF pages 25–28. */

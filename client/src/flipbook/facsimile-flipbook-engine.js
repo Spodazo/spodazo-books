@@ -189,7 +189,7 @@
   function syncSongToManualPage() {
     if (!SING || !songPlaybackActive()) return;
     ensureSong();
-    var page = storySyncPdfPage();
+    var page = manualSyncPdfPage();
     var c;
     if (page < SING.firstPage) return;
     c = cueForPdfPage(page);
@@ -243,17 +243,32 @@
     placeSoundButton();
   }
 
+  function isPdfPageShown(n) {
+    if (!n) return true;
+    var pages = visiblePdfPages();
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i] === n) return true;
+    }
+    return false;
+  }
+
+  function manualSyncPdfPage() {
+    if (single) return pg + 1;
+    var pair = SP[idx] || [0, 0];
+    if (pair[0] >= SING.firstPage) return pair[0];
+    if (pair[1] >= SING.firstPage) return pair[1];
+    return 0;
+  }
+
   function followSong() {
     var target;
-    var cur;
     var ti;
     if (!SING || busy) return;
     var audio = ensureSong();
     if (!audio || (audio.paused && !audio.ended)) return;
     target = pdfPageForTime(audio.ended ? SING.duration : audio.currentTime);
     if (target < SING.firstPage) return;
-    cur = maxVisiblePdfPage();
-    if (target <= cur) return;
+    if (isPdfPageShown(target)) return;
     if (single) {
       if (pg + 1 < target) go(1, true);
       return;
