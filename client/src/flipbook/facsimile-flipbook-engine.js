@@ -54,10 +54,8 @@
   var turnAnims = [];
 
   var song = null;
-  var songMuted = false;
+  var songMuted = true;
   var songStarted = false;
-  var songWaitingGesture = false;
-  var songGesturePending = false;
   var soundBtn = document.getElementById("soundBtn");
 
   function songAudioUrl() {
@@ -126,32 +124,37 @@
     return song;
   }
 
+  function musicAudible() {
+    return !!(song && !songMuted && !song.paused && !song.ended);
+  }
+
   function syncSoundButton() {
     if (!soundBtn) return;
-    var playing = !songMuted && song && !song.paused && !song.ended;
-    soundBtn.classList.toggle("is-playing", playing);
-    soundBtn.setAttribute("aria-pressed", playing ? "true" : "false");
-    soundBtn.setAttribute("aria-label", playing ? "Turn sound off" : "Turn sound on");
+    var audible = musicAudible();
+    var label = audible ? "Silence Music" : "Start Music";
+    soundBtn.textContent = label;
+    soundBtn.classList.toggle("is-playing", audible);
+    soundBtn.setAttribute("aria-pressed", audible ? "true" : "false");
+    soundBtn.setAttribute("aria-label", label);
   }
 
   function placeSoundButton() {
     if (!soundBtn) return;
     var r = book.getBoundingClientRect();
     var sr = stage.getBoundingClientRect();
-    var size = 29;
     var gapAbove = 14;
     var sideGap = Math.max(10, Math.round(pw * 0.035));
     var compactLandscape = sr.width > sr.height && Math.min(sr.width, sr.height) < 520;
+    var w = soundBtn.offsetWidth || 132;
+    var h = soundBtn.offsetHeight || 36;
     var x;
     var y;
-    soundBtn.style.width = size + "px";
-    soundBtn.style.height = size + "px";
     if (compactLandscape) {
-      x = sr.width - size - Math.max(12, sideGap);
-      y = sr.height / 3 - size / 2;
+      x = sr.width - w - Math.max(12, sideGap);
+      y = sr.height / 3 - h / 2;
     } else {
-      x = r.left - sr.left + r.width / 2 - size / 2;
-      y = r.top - sr.top - size - gapAbove;
+      x = r.left - sr.left + r.width / 2 - w / 2;
+      y = r.top - sr.top - h - gapAbove;
     }
     soundBtn.style.left = Math.round(x) + "px";
     soundBtn.style.top = Math.round(Math.max(0, y)) + "px";
@@ -182,35 +185,35 @@
     else syncSongTimeToView();
   }
 
-  function tryStartSong(fromGesture) {
+  function toggleMusicButton() {
     if (!SING) return;
-    if (maxVisiblePdfPage() < SING.firstPage) return;
-    if (songStarted && !song.paused && !song.ended && !fromGesture) return;
     ensureSong();
-    primeSongTime();
-    var playAttempt = song.play();
-    if (!playAttempt || !playAttempt.then) return;
-    playAttempt.then(function () {
-      songStarted = true;
-      songWaitingGesture = false;
+    if (musicAudible()) {
+      songMuted = true;
+      song.muted = true;
       syncSoundButton();
-    }).catch(function () {
-      if (fromGesture) return;
-      songWaitingGesture = true;
-      songStarted = false;
-    });
-  }
-
-  function armSongGesture() {
-    if (!SING) return;
-    songGesturePending = true;
-  }
-
-  function flushSongGesture() {
-    if (!songGesturePending && !songWaitingGesture) return;
-    if (maxVisiblePdfPage() < SING.firstPage) return;
-    songGesturePending = false;
-    tryStartSong(true);
+      placeSoundButton();
+      return;
+    }
+    songMuted = false;
+    song.muted = false;
+    if (maxVisiblePdfPage() < SING.firstPage) {
+      syncSoundButton();
+      return;
+    }
+    primeSongTime();
+    if (song.paused || song.ended) {
+      var playAttempt = song.play();
+      if (!playAttempt || !playAttempt.then) return;
+      playAttempt.then(function () {
+        songStarted = true;
+        syncSoundButton();
+        placeSoundButton();
+      }).catch(function () {});
+      return;
+    }
+    syncSoundButton();
+    placeSoundButton();
   }
 
   function followSong() {
@@ -232,34 +235,29 @@
     if (ti > idx) go(1);
   }
 
-  function toggleSongMute() {
-    if (!SING) return;
-    ensureSong();
-    songMuted = !songMuted;
-    song.muted = songMuted;
-    if (!songStarted && maxVisiblePdfPage() >= SING.firstPage) tryStartSong(true);
-    else if (song.paused && !song.ended) tryStartSong(true);
-    syncSoundButton();
-  }
-
   function stopSong() {
     songStarted = false;
-    songWaitingGesture = false;
-    songGesturePending = false;
-    if (!song) return;
+    if (!song) {
+      syncSoundButton();
+      return;
+    }
     song.pause();
     try { song.currentTime = 0; } catch (e) {}
-    song.muted = false;
+    songMuted = true;
+    song.muted = true;
     syncSoundButton();
   }
 
   if (soundBtn && SING) {
+    soundBtn.addEventListener("pointerup", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMusicButton();
+    });
     soundBtn.addEventListener("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
-      toggleSongMute();
     });
-    soundBtn.addEventListener("pointerup", function (e) { e.stopPropagation(); });
   }
 
   function exitToLibrary() {
@@ -576,9 +574,7 @@
     }
     updateArrows();
     updateSoundButton();
-    tryStartSong(false);
-    flushSongGesture();
-    if (SING && song && !songMuted && !song.paused && storySyncPdfPage() >= SING.firstPage) {
+    if (SING && song && songStarted && !song.paused && storySyncPdfPage() >= SING.firstPage) {
       var syncCue = cueForPdfPage(storySyncPdfPage());
       if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
     }
@@ -736,7 +732,6 @@
     if (busy) return;
     busy = true;
     stopSong();
-    songMuted = false;
     book.classList.add("fading");
     setTimeout(function () {
       jumpPage = 0;
@@ -788,16 +783,10 @@
     if (e.pointerType === "mouse" && Date.now() < suppressTurnsUntil) return;
     suppressTurns = false;
     suppressTurnsUntil = 0;
-    if (SING && e.target && e.target.closest && !e.target.closest(".rudolph-sound")) armSongGesture();
-  }, true);
-  stage.addEventListener("pointerup", function (e) {
-    if (!SING || (e.target && e.target.closest && e.target.closest(".rudolph-sound"))) return;
-    flushSongGesture();
   }, true);
   function turn(dir) {
     suppressTurns = false;
     suppressTurnsUntil = 0;
-    armSongGesture();
     go(dir);
   }
   mobileZoomCtl = attachFlipbookMobileZoom({
@@ -805,7 +794,7 @@
     book: book,
     isSingle: function () { return single; },
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single }; },
-    onTurn: function (dir) { armSongGesture(); go(dir); },
+    onTurn: function (dir) { go(dir); },
     ignoreTarget: function (el) {
       return el.closest && (el.closest(".flipbook-close") || el.closest(".hot") || el.closest(".arrow") || el.closest(".rudolph-sound"));
     },
@@ -818,7 +807,6 @@
       } else if (atLastPage() && (single || onRight)) {
         restart();
       } else {
-        armSongGesture();
         go(onRight ? 1 : -1);
       }
     },

@@ -163,33 +163,34 @@ body {
 .rudolph-sound {
   position: absolute;
   z-index: 15;
+  appearance: none;
   box-sizing: border-box;
-  width: 29px;
-  height: 29px;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 18px;
+  margin: 0;
   border: 2px solid #fff;
-  border-radius: 50%;
+  border-radius: 999px;
   background-color: #1fa34a;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M3 9v6h4l5 5V4L7 9H3zm7 0v6c1.66 0 3-1.34 3-3s-1.34-3-3-3zm5 3c0 2.21-1.79 4-4 4v2c3.31 0 6-2.69 6-6h-2z'/%3E%3C/svg%3E");
+  color: #fff;
+  font: 600 13px Lexend, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.45s ease;
+  transition: opacity 0.45s ease, background-color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .rudolph-sound.is-visible { opacity: 1; pointer-events: auto; }
-.rudolph-sound.is-playing {
-  background-color: #d41919;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M3 9v6h4l5 5V4L7 9H3zm11.59 3.41L14.18 7l-1.41 1.41L13.36 9H14v6h-1.64l.59.59 1.41 1.41 2.83-2.83-2.83-2.83z'/%3E%3C/svg%3E");
-}
+.rudolph-sound.is-playing { background-color: #d41919; }
 </style>
 
 <div id="stage" aria-label="Rudolph the Red Nosed Reindeer flip book" role="application">
   <a id="closeBtn" class="flipbook-close left" href="/" target="_top" aria-label="Close">×</a>
-  <button type="button" id="soundBtn" class="rudolph-sound" hidden aria-label="Sound" aria-pressed="true"></button>
+  <button type="button" id="soundBtn" class="rudolph-sound" hidden aria-label="Start Music" aria-pressed="false">Start Music</button>
   <div id="book">
     <div class="stackWrapL"><div class="stack l" id="stackL"></div></div>
     <div class="stackWrapR"><div class="stack r" id="stackR"></div></div>
@@ -242,8 +243,7 @@ body {
   var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
   var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
-  var song = null, songMuted = false, songStarted = false;
-  var songWaitingGesture = false, songGesturePending = false;
+  var song = null, songMuted = true, songStarted = false;
   var soundBtn = document.getElementById('soundBtn');
 
   function songAudioUrl() {
@@ -299,12 +299,17 @@ body {
     song.addEventListener('pause', syncSoundButton);
     return song;
   }
+  function musicAudible() {
+    return !!(song && !songMuted && !song.paused && !song.ended);
+  }
   function syncSoundButton() {
     if (!soundBtn) return;
-    var playing = !songMuted && song && !song.paused && !song.ended;
-    soundBtn.classList.toggle('is-playing', playing);
-    soundBtn.setAttribute('aria-pressed', playing ? 'true' : 'false');
-    soundBtn.setAttribute('aria-label', playing ? 'Turn sound off' : 'Turn sound on');
+    var audible = musicAudible();
+    var label = audible ? 'Silence Music' : 'Start Music';
+    soundBtn.textContent = label;
+    soundBtn.classList.toggle('is-playing', audible);
+    soundBtn.setAttribute('aria-pressed', audible ? 'true' : 'false');
+    soundBtn.setAttribute('aria-label', label);
   }
   function updateSoundButton() {
     if (!soundBtn) return;
@@ -317,19 +322,18 @@ body {
   function placeSoundButton() {
     if (!soundBtn) return;
     var r = book.getBoundingClientRect(), sr = stage.getBoundingClientRect();
-    var size = 29;
     var gapAbove = 14;
     var sideGap = Math.max(10, Math.round(pw * 0.035));
     var compactLandscape = sr.width > sr.height && Math.min(sr.width, sr.height) < 520;
+    var w = soundBtn.offsetWidth || 132;
+    var h = soundBtn.offsetHeight || 36;
     var x, y;
-    soundBtn.style.width = size + 'px';
-    soundBtn.style.height = size + 'px';
     if (compactLandscape) {
-      x = sr.width - size - Math.max(12, sideGap);
-      y = sr.height / 3 - size / 2;
+      x = sr.width - w - Math.max(12, sideGap);
+      y = sr.height / 3 - h / 2;
     } else {
-      x = r.left - sr.left + r.width / 2 - size / 2;
-      y = r.top - sr.top - size - gapAbove;
+      x = r.left - sr.left + r.width / 2 - w / 2;
+      y = r.top - sr.top - h - gapAbove;
     }
     soundBtn.style.left = Math.round(x) + 'px';
     soundBtn.style.top = Math.round(Math.max(0, y)) + 'px';
@@ -346,29 +350,34 @@ body {
     if (storySyncImage() === SONG_FIRST && (!songStarted || song.currentTime < 0.25)) song.currentTime = 0;
     else syncSongTimeToView();
   }
-  function tryStartSong(fromGesture) {
-    if (maxVisibleImage() < SONG_FIRST) return;
-    if (songStarted && !song.paused && !song.ended && !fromGesture) return;
+  function toggleMusicButton() {
     ensureSong();
-    primeSongTime();
-    var playAttempt = song.play();
-    if (!playAttempt || !playAttempt.then) return;
-    playAttempt.then(function () {
-      songStarted = true;
-      songWaitingGesture = false;
+    if (musicAudible()) {
+      songMuted = true;
+      song.muted = true;
       syncSoundButton();
-    }).catch(function () {
-      if (fromGesture) return;
-      songWaitingGesture = true;
-      songStarted = false;
-    });
-  }
-  function armSongGesture() { songGesturePending = true; }
-  function flushSongGesture() {
-    if (!songGesturePending && !songWaitingGesture) return;
-    if (maxVisibleImage() < SONG_FIRST) return;
-    songGesturePending = false;
-    tryStartSong(true);
+      placeSoundButton();
+      return;
+    }
+    songMuted = false;
+    song.muted = false;
+    if (maxVisibleImage() < SONG_FIRST) {
+      syncSoundButton();
+      return;
+    }
+    primeSongTime();
+    if (song.paused || song.ended) {
+      var playAttempt = song.play();
+      if (!playAttempt || !playAttempt.then) return;
+      playAttempt.then(function () {
+        songStarted = true;
+        syncSoundButton();
+        placeSoundButton();
+      }).catch(function () {});
+      return;
+    }
+    syncSoundButton();
+    placeSoundButton();
   }
   function followSong() {
     var target, cur, ti, audio;
@@ -387,31 +396,26 @@ body {
     if (ti < 0) return;
     if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1);
   }
-  function toggleSongMute() {
-    ensureSong();
-    songMuted = !songMuted;
-    song.muted = songMuted;
-    if (!songStarted && maxVisibleImage() >= SONG_FIRST) tryStartSong(true);
-    else if (song.paused && !song.ended) tryStartSong(true);
-    syncSoundButton();
-  }
   function stopSong() {
     songStarted = false;
-    songWaitingGesture = false;
-    songGesturePending = false;
-    if (!song) return;
+    if (!song) {
+      syncSoundButton();
+      return;
+    }
     song.pause();
     try { song.currentTime = 0; } catch (e) {}
-    song.muted = false;
+    songMuted = true;
+    song.muted = true;
     syncSoundButton();
   }
   if (soundBtn) {
-    soundBtn.addEventListener('click', function (e) {
+    soundBtn.addEventListener('pointerup', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      toggleSongMute();
+      toggleMusicButton();
     });
-    soundBtn.addEventListener('pointerup', function (e) {
+    soundBtn.addEventListener('click', function (e) {
+      e.preventDefault();
       e.stopPropagation();
     });
   }
@@ -565,9 +569,7 @@ body {
     }
     updateArrows();
     updateSoundButton();
-    tryStartSong(false);
-    flushSongGesture();
-    if (song && !songMuted && !song.paused && storySyncImage() >= SONG_FIRST) {
+    if (song && songStarted && !song.paused && storySyncImage() >= SONG_FIRST) {
       var syncCue = cueForImage(storySyncImage());
       if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
     }
@@ -726,7 +728,6 @@ body {
 
   function go(dir) {
     if (busy) return;
-    armSongGesture();
     resetViewZoom();
     if (!single && closed) {
       if (dir > 0) openCover();
@@ -753,7 +754,6 @@ body {
     if (busy) return;
     busy = true;
     stopSong();
-    songMuted = false;
     book.classList.add('fading');
     setTimeout(function () {
       idx = 0; pg = 0; closed = !single;
@@ -787,14 +787,6 @@ body {
     layout();
   }
 
-  stage.addEventListener('pointerdown', function (e) {
-    if (e.target && e.target.closest && !e.target.closest('.rudolph-sound')) armSongGesture();
-  }, true);
-  stage.addEventListener('pointerup', function (e) {
-    if (e.target && e.target.closest && e.target.closest('.rudolph-sound')) return;
-    flushSongGesture();
-  }, true);
-
   var mobileZoomCtl = null;
   function resetViewZoom() {
     if (mobileZoomCtl) mobileZoomCtl.reset();
@@ -805,7 +797,7 @@ body {
     book: book,
     isSingle: function () { return single; },
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single && !closed }; },
-    onTurn: function (dir) { armSongGesture(); go(dir); },
+    onTurn: function (dir) { go(dir); },
     ignoreTarget: function (el) {
       return el.closest && (el.closest('.flipbook-close') || el.closest('.arrow') || el.closest('.rudolph-sound'));
     },
@@ -819,7 +811,6 @@ body {
         return;
       }
       if (type === 'touch') return;
-      armSongGesture();
       go(onRight ? 1 : -1);
     },
     onJump: function (dir) {
