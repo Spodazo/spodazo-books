@@ -132,6 +132,11 @@ function characterSrc(book, baseUrl) {
 }
 
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
+  if (isWillowBook(book)) {
+    const src = esc(safeURL("/media/images/willow-back-cover.webp", baseUrl));
+    const cue = cueAttr(WILLOW_SONG_END_CUE);
+    return `<article class="page end-page back-cover" data-source="end"${cue} aria-label="Back cover"><div class="back-cover-leaf"><img class="back-cover-art" src="${src}" alt=""><button type="button" class="read-again">Read again</button></div><button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  }
   const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
   const cue = isWillowBook(book) ? cueAttr(WILLOW_SONG_END_CUE) : "";
   if (hasLayout(book.endLayout)) {
