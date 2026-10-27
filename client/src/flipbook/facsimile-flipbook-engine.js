@@ -57,6 +57,8 @@
   var songMuted = true;
   var songStarted = false;
   var songFollowTurn = false;
+  var verselessSpreadIdx = -1;
+  var verselessSpreadAt = 0;
   var soundBtn = document.getElementById("soundBtn");
 
   function songAudioUrl() {
@@ -260,12 +262,39 @@
     return 0;
   }
 
+  function checkVerselessBriefAdvance() {
+    var brief;
+    var pair;
+    if (!SING || busy || !songPlaybackActive()) {
+      if (!SING || !SING.verselessBriefSpread) verselessSpreadIdx = -1;
+      return;
+    }
+    brief = SING.verselessBriefSpread;
+    if (!brief) return;
+    pair = SP[idx] || [0, 0];
+    if (pair[0] !== brief.left || pair[1] !== brief.right) {
+      verselessSpreadIdx = -1;
+      return;
+    }
+    if (verselessSpreadIdx !== idx) {
+      verselessSpreadIdx = idx;
+      verselessSpreadAt = Date.now();
+      return;
+    }
+    if (Date.now() - verselessSpreadAt >= brief.dwellMs) {
+      verselessSpreadIdx = -1;
+      go(1, true);
+    }
+  }
+
   function followSong() {
     var target;
     var ti;
     if (!SING || busy) return;
     var audio = ensureSong();
     if (!audio || (audio.paused && !audio.ended)) return;
+    checkVerselessBriefAdvance();
+    if (busy) return;
     target = pdfPageForTime(audio.ended ? SING.duration : audio.currentTime);
     if (target < SING.firstPage) return;
     if (isPdfPageShown(target)) return;
@@ -280,6 +309,7 @@
 
   function stopSong() {
     songStarted = false;
+    verselessSpreadIdx = -1;
     if (!song) {
       syncSoundButton();
       return;

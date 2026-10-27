@@ -257,6 +257,8 @@ body {
   var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
   var song = null, songMuted = true, songStarted = false, songFollowTurn = false;
+  var verselessSpreadIdx = -1, verselessSpreadAt = 0;
+  var VERSELESS_BRIEF = { left: 16, right: 17, dwellMs: 2000 };
   var soundBtn = document.getElementById('soundBtn');
 
   function songAudioUrl() {
@@ -426,11 +428,34 @@ body {
     if (pair[1] >= SONG_FIRST) return pair[1];
     return 0;
   }
+  function checkVerselessBriefAdvance() {
+    var pair;
+    if (busy || !songPlaybackActive()) {
+      if (!songPlaybackActive()) verselessSpreadIdx = -1;
+      return;
+    }
+    pair = SP[idx] || [0, 0];
+    if (pair[0] !== VERSELESS_BRIEF.left || pair[1] !== VERSELESS_BRIEF.right) {
+      verselessSpreadIdx = -1;
+      return;
+    }
+    if (verselessSpreadIdx !== idx) {
+      verselessSpreadIdx = idx;
+      verselessSpreadAt = Date.now();
+      return;
+    }
+    if (Date.now() - verselessSpreadAt >= VERSELESS_BRIEF.dwellMs) {
+      verselessSpreadIdx = -1;
+      go(1, true);
+    }
+  }
   function followSong() {
     var target, ti, audio;
     if (busy) return;
     audio = ensureSong();
     if (audio.paused && !audio.ended) return;
+    checkVerselessBriefAdvance();
+    if (busy) return;
     target = imageForTime(audio.ended ? SONG_DURATION : audio.currentTime);
     if (target < SONG_FIRST) return;
     if (isImageShown(target)) return;
@@ -444,6 +469,7 @@ body {
   }
   function stopSong() {
     songStarted = false;
+    verselessSpreadIdx = -1;
     if (!song) {
       syncSoundButton();
       return;
