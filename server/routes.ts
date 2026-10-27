@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import multer from "multer";
 import { readFlipbookIndex, sendFlipbookHtml } from "./flipbook-cache";
+import { revisedFlipbookForDir } from "./revised-flipbook";
 import { rudolphLegacyRedirect } from "../shared/rudolph";
 import { slugify, uniqueSlug } from "../shared/seed-data";
 import type { BookPage, PlayerSetup } from "../shared/types";
@@ -120,7 +121,17 @@ export function registerRoutes(app: Express): void {
     res.redirect(301, `${target}${query}`);
   });
 
-  app.get("/flipbooks/:dir/index.html", (req, res, next) => {
+  app.get("/flipbooks/:dir/index.html", async (req, res, next) => {
+    try {
+      const store = await getStore();
+      const revised = await revisedFlipbookForDir(store, req.params.dir);
+      if (revised) {
+        sendFlipbookHtml(res, revised);
+        return;
+      }
+    } catch (err) {
+      console.error("[flipbook] revised book failed:", err);
+    }
     const html = readFlipbookIndex(req.params.dir);
     if (!html) {
       next();
