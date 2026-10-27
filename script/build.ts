@@ -1,5 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
+import { readFileSync } from "fs";
 import { rm } from "fs/promises";
 
 async function buildAll() {
@@ -22,6 +23,8 @@ async function buildAll() {
     define: {
       "process.env.NODE_ENV": '"production"',
       "process.env.BUILD_ID": JSON.stringify(buildId),
+      "process.env.FACSIMILE_CSS": JSON.stringify(readFileSync("client/src/flipbook/facsimile-flipbook.css", "utf8")),
+      "process.env.FACSIMILE_ENGINE": JSON.stringify(readFileSync("client/src/flipbook/facsimile-flipbook-engine.js", "utf8")),
     },
     external: [
       "pg-native",
