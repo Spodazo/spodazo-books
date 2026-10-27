@@ -363,10 +363,12 @@ body {
     if (storySyncImage() === SONG_FIRST && (!songStarted || song.currentTime < 0.25)) song.currentTime = 0;
     else syncSongTimeToView();
   }
+  function songPlaybackActive() {
+    return !!(songStarted && song && !song.paused);
+  }
   function syncSongToManualPage() {
-    if (!songStarted) return;
+    if (!songPlaybackActive()) return;
     ensureSong();
-    if (song.paused && !song.ended) return;
     var img = storySyncImage(), c;
     if (img < SONG_FIRST) return;
     c = cueForImage(img);
@@ -421,18 +423,12 @@ body {
     cur = maxVisibleImage();
     if (target <= cur) return;
     if (single) {
-      if (pg + 1 < target) {
-        songFollowTurn = true;
-        go(1);
-      }
+      if (pg + 1 < target) go(1, true);
       return;
     }
     ti = spreadIndexForImage(target);
     if (ti < 0) return;
-    if (ti > idx || (ti === idx && SP[idx][1] < target)) {
-      songFollowTurn = true;
-      go(1);
-    }
+    if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1, true);
   }
   function stopSong() {
     songStarted = false;
@@ -827,24 +823,36 @@ body {
     run(-1, 0, -1);
   }
 
-  function go(dir) {
-    if (busy) return;
+  function go(dir, fromSongFollow) {
+    songFollowTurn = !!fromSongFollow;
+    if (busy) {
+      songFollowTurn = false;
+      return;
+    }
     resetViewZoom();
     if (!single && closed) {
       if (dir > 0) openCover();
+      else songFollowTurn = false;
       return;
     }
     if (!single && dir < 0 && idx === 0) {
       closeCover();
+      songFollowTurn = false;
       return;
     }
     if (single) {
       var n = pg + dir;
-      if (n < 0 || n >= TOTAL) return;
+      if (n < 0 || n >= TOTAL) {
+        songFollowTurn = false;
+        return;
+      }
       run(dir, pg, n);
     } else {
       var m = idx + dir;
-      if (m < 0 || m > LAST) return;
+      if (m < 0 || m > LAST) {
+        songFollowTurn = false;
+        return;
+      }
       run(dir, idx, m);
     }
   }

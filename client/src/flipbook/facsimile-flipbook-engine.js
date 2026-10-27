@@ -181,11 +181,14 @@
     if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
   }
 
-  /** Snap playback to the visible story page after a manual page turn. */
+  function songPlaybackActive() {
+    return !!(songStarted && song && !song.paused);
+  }
+
+  /** Snap playback to the visible story page after a manual page turn (keeps playing). */
   function syncSongToManualPage() {
-    if (!SING || !songStarted) return;
+    if (!SING || !songPlaybackActive()) return;
     ensureSong();
-    if (song.paused && !song.ended) return;
     var page = storySyncPdfPage();
     var c;
     if (page < SING.firstPage) return;
@@ -252,18 +255,12 @@
     cur = maxVisiblePdfPage();
     if (target <= cur) return;
     if (single) {
-      if (pg + 1 < target) {
-        songFollowTurn = true;
-        go(1);
-      }
+      if (pg + 1 < target) go(1, true);
       return;
     }
     ti = spreadIndexForPage(target);
     if (ti < 0) return;
-    if (ti > idx || (ti === idx && SP[idx][1] < target)) {
-      songFollowTurn = true;
-      go(1);
-    }
+    if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1, true);
   }
 
   function stopSong() {
@@ -794,8 +791,12 @@
     });
   }
 
-  function go(dir) {
-    if (turnsSuppressed()) return;
+  function go(dir, fromSongFollow) {
+    songFollowTurn = !!fromSongFollow;
+    if (turnsSuppressed()) {
+      songFollowTurn = false;
+      return;
+    }
     if (jumpPage || landPage) {
       var start = jumpPage || landPage;
       idx = spreadIndexForPage(start);
@@ -803,15 +804,24 @@
       jumpPage = 0;
       landPage = 0;
     }
-    if (busy) return;
+    if (busy) {
+      songFollowTurn = false;
+      return;
+    }
     resetViewZoom();
     if (single) {
       var n = pg + dir;
-      if (n < 0 || n >= TOTAL) return;
+      if (n < 0 || n >= TOTAL) {
+        songFollowTurn = false;
+        return;
+      }
       run(dir, pg, n);
     } else {
       var m = idx + dir;
-      if (m < 0 || m > LAST) return;
+      if (m < 0 || m > LAST) {
+        songFollowTurn = false;
+        return;
+      }
       run(dir, idx, m);
     }
   }
