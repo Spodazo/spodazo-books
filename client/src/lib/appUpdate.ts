@@ -28,9 +28,9 @@ function appOrigin(): string {
   return "https://books.spodazo.com";
 }
 
-export function buildReloadUrl(href: string, build: string): string {
+export function buildReloadUrl(href: string, revision: string): string {
   const url = new URL(href, appOrigin());
-  url.searchParams.set(BUILD_PARAM, build.slice(0, 16) || String(Date.now()));
+  url.searchParams.set(BUILD_PARAM, revision || String(Date.now()));
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
@@ -80,7 +80,7 @@ export function subscribeAppBuild(listener: BuildListener): () => void {
 export async function applyAppUpdate(info: AppVersionInfo): Promise<void> {
   clearHomeClientCache();
   writeStoredRevision(appRevisionKey(info));
-  window.location.replace(buildReloadUrl(window.location.href, String(info.build || Date.now())));
+  window.location.replace(buildReloadUrl(window.location.href, appRevisionKey(info)));
 }
 
 async function fetchAppVersion(): Promise<AppVersionInfo | null> {

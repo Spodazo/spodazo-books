@@ -57,10 +57,10 @@ export const HOME_CARD_WIDTH = 720;
 export const COLLECTION_COVER_WIDTH = 1200;
 const IMAGE_WIDTHS = new Set([360, HOME_CARD_WIDTH, COLLECTION_COVER_WIDTH]);
 
-export function imageUrl(filename: string, width?: number): string {
+export function imageUrl(filename: string, width?: number, version?: string): string {
   const name = decodeMediaFilename(filename);
   if (!name) return "";
-  const params = new URLSearchParams({ v: assetVersion() });
+  const params = new URLSearchParams({ v: String(version || assetVersion()) });
   if (width && IMAGE_WIDTHS.has(width)) params.set("w", String(width));
   return `/media/images/${encodeURIComponent(name)}?${params}`;
 }

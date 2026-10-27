@@ -12,9 +12,9 @@ test("shouldApplyUpdate detects revision changes", () => {
   assert.equal(shouldApplyUpdate("", "a|1"), false);
 });
 
-test("buildReloadUrl adds cache-bust query param", () => {
-  const url = buildReloadUrl("/Willow?x=1#read", "deploy-1234567890");
-  assert.match(url, /_spodazo=deploy-123456789/);
+test("buildReloadUrl adds a cache-bust query that includes the library time", () => {
+  const url = buildReloadUrl("/Willow?x=1#read", "abc|2026-09-25T00:00:00.000Z");
+  assert.match(url, /_spodazo=abc%7C2026-09-25T00%3A00%3A00\.000Z/);
   assert.match(url, /#read$/);
 });
 

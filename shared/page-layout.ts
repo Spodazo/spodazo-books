@@ -323,8 +323,26 @@ export function syncCoverLayoutWithArt(
 }
 
 export function libraryCoverLayout(
-  book: Pick<Book, "title" | "tagline" | "author" | "cover" | "coverLayout"> & { coverUrl: string },
+  book: Pick<Book, "title" | "tagline" | "author" | "cover" | "coverLayout"> & { coverUrl: string; pdfUrl?: string },
 ): PageLayout {
+  if (String(book.pdfUrl || "").trim() && book.coverUrl) {
+    return {
+      background: "",
+      elements: [
+        imageEl({
+          id: "cover-art",
+          x: 0,
+          y: 0,
+          w: 100,
+          h: 100,
+          z: 1,
+          imageAsset: book.cover,
+          imageUrl: book.coverUrl,
+          fit: "contain",
+        }),
+      ],
+    };
+  }
   if (!hasLayout(book.coverLayout)) return defaultCoverLayout(book, book.coverUrl);
   return syncCoverLayoutWithArt(book.coverLayout, book.cover, book.coverUrl);
 }
