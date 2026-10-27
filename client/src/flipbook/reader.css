@@ -679,10 +679,12 @@ html:not(.mobile) .front-cover-leaf .cover-bit-image[data-id="cover-art"]{object
   object-position:center center;
   background:var(--page-paper,#efdda6);
 }
-html:not(.mobile) .page.back-cover{
+html:not(.mobile) .page.back-cover.current,
+html:not(.mobile) .page.back-cover.leaf-copy,
+html:not(.mobile) .page.back-cover.fade-page{
   display:block!important;
   grid-template-columns:none!important;
-  background:transparent!important;
+  background:var(--page-paper,#efdda6)!important;
   box-shadow:none!important;
 }
 html:not(.mobile) .page.back-cover .back-cover-leaf{
@@ -711,7 +713,9 @@ html:not(.mobile) .page.back-cover .back-cover-leaf .end-legal{
   bottom:14%;
   padding:0;
 }
-.mobile .page.back-cover{
+.mobile .page.back-cover.current,
+.mobile .page.back-cover.leaf-copy,
+.mobile .page.back-cover.fade-page{
   display:flex;
   align-items:center;
   justify-content:center;
