@@ -185,6 +185,7 @@ html.book-closing .bundled-flipbook-host {
   z-index: 0;
   margin: 0;
   padding: 0;
+  min-width: 0;
 }
 .cover-link {
   display: block;
@@ -205,17 +206,22 @@ html.book-closing .bundled-flipbook-host {
   background: var(--portrait);
 }
 /* Full-page covers (uploaded PDF pages and Willow’s front cover) use the
-   picture’s own shape. An A4 frame made that artwork look taller. */
+   picture’s own shape. An A4 frame made that artwork look taller.
+   Size containment would ignore the picture and collapse the card to nothing. */
 .cover-face:has(.cover-pdf) {
   aspect-ratio: auto;
   height: auto;
+  min-width: 0;
   background: transparent;
+  container-type: normal;
 }
 .cover-pdf {
   position: relative;
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
+  min-width: 0;
   object-fit: contain;
   object-position: center center;
   background: transparent;

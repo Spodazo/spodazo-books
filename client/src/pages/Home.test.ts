@@ -13,4 +13,7 @@ test("home page uses Admin sortOrder and does not zoom covers on hover", async (
   assert.doesNotMatch(css, /scale\(1\.2\)/);
   assert.match(css, /\.library-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,/);
   assert.doesNotMatch(css, /minmax\(240px,\s*280px\)/);
+  assert.match(css, /\.cover-face:has\(\.cover-pdf\)\s*\{[^}]*aspect-ratio:\s*auto/);
+  assert.match(css, /\.cover-face:has\(\.cover-pdf\)\s*\{[^}]*container-type:\s*normal/);
+  assert.match(css, /\.book-card\s*\{[^}]*min-width:\s*0/);
 });
