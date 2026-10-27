@@ -816,6 +816,8 @@ function BookEditor({
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(false);
   const [pdfBusy, setPdfBusy] = useState<BookPdfKind | "">("");
+  const [revisedBusy, setRevisedBusy] = useState(false);
+  const revisedPdfRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -876,6 +878,63 @@ function BookEditor({
       </label>
       <p className="hint">{book.pageCount} pages. Slug: /{book.slug}</p>
       <div className="form-actions">
+        <button
+          type="button"
+          disabled={revisedBusy}
+          onClick={() => revisedPdfRef.current?.click()}
+        >
+          {revisedBusy ? "Replacing…" : "Upload a revised PDF"}
+        </button>
+        <input
+          ref={revisedPdfRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          hidden
+          onChange={async (event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = "";
+            if (!file) return;
+            if (!confirm(`Replace the pages of “${book.title.replace(/\n/g, " ")}” with this PDF? The address /${book.slug} stays the same.`)) return;
+            setRevisedBusy(true);
+            setError("");
+            try {
+              const imported = await importPdfOnServer(file);
+              const first = imported.book.pages[0];
+              const saved = await updateBook(book.id, {
+                pdfUrl: imported.book.pdfUrl,
+                pages: imported.book.pages,
+                coverUrl: first?.imageUrl || book.coverUrl,
+                pageTemplate: "one-up",
+                coverLayout: {
+                  background: book.spreadBackground || "#021b3f",
+                  elements: first
+                    ? [{
+                      id: "cover-art",
+                      type: "image",
+                      x: 0,
+                      y: 0,
+                      w: 100,
+                      h: 100,
+                      z: 1,
+                      imageAsset: first.imageAsset,
+                      imageUrl: first.imageUrl,
+                      fit: "cover",
+                      focusX: 50,
+                      focusY: 50,
+                      opacity: 100,
+                    }]
+                    : [],
+                },
+              });
+              await onSaved(saved);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Could not replace the book");
+            } finally {
+              setRevisedBusy(false);
+            }
+          }}
+        />
+        <p className="hint">Replaces this book’s pages with a new PDF. You do not need to delete it first.</p>
         <button
           type="button"
           onClick={async () => {
