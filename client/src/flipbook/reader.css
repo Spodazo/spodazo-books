@@ -646,6 +646,51 @@ a.viewport-close:hover{
 }
 .page.end-page .zone{display:block}
 .mobile .page.end-page .zone{display:none}
+html:not(.mobile) .page.back-cover.current,
+html:not(.mobile) .page.back-cover.leaf-copy,
+html:not(.mobile) .page.back-cover.fade-page{
+  display:block!important;
+  grid-template-columns:none!important;
+  background:var(--page-paper,#efdda6)!important;
+  box-shadow:none!important;
+}
+html:not(.mobile) .back-cover-leaf{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  width:50%;
+  overflow:hidden;
+}
+.mobile .page.back-cover.current,
+.mobile .page.back-cover.leaf-copy,
+.mobile .page.back-cover.fade-page{
+  display:block!important;
+}
+.mobile .back-cover-leaf{
+  position:absolute;
+  inset:0;
+}
+.back-cover-art{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center center;
+}
+.page.back-cover .read-again{
+  position:absolute;
+  z-index:40;
+  left:50%;
+  top:57%;
+  transform:translateX(-50%);
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  font:500 18px Story,sans-serif;
+  text-decoration:underline;
+  text-underline-offset:4px;
+}
 .page.end-page .end-cover-wrap{
   display:none;
 }
