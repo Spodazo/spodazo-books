@@ -8,6 +8,8 @@ import { DEFAULT_PLAYER_SETUP, sortBooksByAdminOrder } from "@shared/seed-data";
 import type { BookListItem, PlayerSetup } from "@shared/types";
 import { isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
 import { isFacsimileFlipbookListItem } from "@shared/facsimile-flipbook";
+import { isWillowBook } from "@shared/reader-pages";
+import { willowFrontCoverLayout } from "@shared/willow-song-book";
 import { fetchBook } from "../lib/api";
 import { markBookOpen } from "../lib/bookOpen";
 import { loadHomeBooks, loadHomeSetup, readCachedBooks, readCachedSetup } from "../lib/homeCache";
@@ -101,7 +103,7 @@ function LibraryBookCard({ book }: { book: BookListItem }) {
         }}
       >
         <CoverFace
-          layout={libraryCoverLayout(book)}
+          layout={isWillowBook(book) ? willowFrontCoverLayout() : libraryCoverLayout(book)}
           background={book.pageBackground || DEFAULT_PAGE_BACKGROUND}
           texture={book.pageTexture}
           font={book.textFont || DEFAULT_TEXT_FONT}

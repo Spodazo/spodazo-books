@@ -7,6 +7,8 @@ export const WILLOW_SONG_TAGLINE =
 export const WILLOW_SONG_MARKER = "Hugs for Willow, and hugs galore!";
 export const WILLOW_SONG_AUDIO_ASSET = "willows-forest-adventure.mp3";
 export const WILLOW_SONG_AUDIO_URL = `/media/audio/${WILLOW_SONG_AUDIO_ASSET}`;
+export const WILLOW_FRONT_COVER_ASSET = "willow-front-cover.webp";
+export const WILLOW_FRONT_COVER_URL = `/media/images/${WILLOW_FRONT_COVER_ASSET}`;
 /** Seconds into the song when the title page should be showing. */
 export const WILLOW_SONG_TITLE_CUE = 0;
 /**
@@ -20,6 +22,27 @@ export const WILLOW_SONG_LAST_WORD_AT = 163;
 export const WILLOW_SONG_END_DELAY = 3;
 /** Seconds into the song when THE END should appear. */
 export const WILLOW_SONG_END_CUE = WILLOW_SONG_LAST_WORD_AT + WILLOW_SONG_END_DELAY;
+
+export function willowFrontCoverLayout(): PageLayout {
+  return {
+    background: "",
+    elements: [{
+      id: "cover-art",
+      type: "image",
+      x: 0,
+      y: 0,
+      w: 100,
+      h: 100,
+      z: 1,
+      imageAsset: WILLOW_FRONT_COVER_ASSET,
+      imageUrl: WILLOW_FRONT_COVER_URL,
+      fit: "cover",
+      focusX: 50,
+      focusY: 50,
+      opacity: 100,
+    }],
+  };
+}
 
 export function willowStoryPageCue(index: number): number | undefined {
   if (index < 0 || index >= WILLOW_SONG_PAGE_CUES.length) return undefined;
