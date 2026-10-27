@@ -79,6 +79,13 @@
     return pages.length ? Math.max.apply(null, pages) : 0;
   }
 
+  /** Left / earliest story leaf on a spread — used so audio does not jump to verse 2. */
+  function storySyncPdfPage() {
+    if (!SING) return 0;
+    var story = visiblePdfPages().filter(function (n) { return n >= SING.firstPage; });
+    return story.length ? Math.min.apply(null, story) : 0;
+  }
+
   function pdfPageForTime(t) {
     if (!SING) return 0;
     var best = 0;
@@ -121,8 +128,8 @@
     if (!soundBtn) return;
     var r = book.getBoundingClientRect();
     var sr = stage.getBoundingClientRect();
-    var size = soundBtn.offsetWidth || 48;
-    var gap = Math.max(8, Math.round(ph * 0.025));
+    var size = soundBtn.offsetWidth || 30;
+    var gap = Math.max(14, Math.round(ph * 0.045));
     var x;
     var y;
     if (single && sr.width > sr.height) {
@@ -147,7 +154,7 @@
 
   function syncSongTimeToView() {
     if (!SING) return;
-    var page = maxVisiblePdfPage();
+    var page = storySyncPdfPage();
     var c;
     if (page < SING.firstPage) return;
     c = cueForPdfPage(page);
@@ -530,8 +537,8 @@
     updateArrows();
     updateSoundButton();
     tryStartSong();
-    if (SING && song && !songMuted && !song.paused && maxVisiblePdfPage() >= SING.firstPage) {
-      var syncCue = cueForPdfPage(maxVisiblePdfPage());
+    if (SING && song && !songMuted && !song.paused && storySyncPdfPage() >= SING.firstPage) {
+      var syncCue = cueForPdfPage(storySyncPdfPage());
       if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
     }
     return Promise.all(jobs);

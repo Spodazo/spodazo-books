@@ -129,12 +129,16 @@ body { background: var(--ground); color: #fff; }
 .rudolph-sound {
   position: absolute;
   z-index: 15;
-  width: clamp(44px, calc(var(--pw, 600px) * 0.11), 56px);
+  width: clamp(26px, calc(var(--pw, 600px) * 0.055), 32px);
   aspect-ratio: 1;
   border: 0;
   padding: 0;
   border-radius: 50%;
-  background: transparent center / contain no-repeat;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 92%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .92);
   cursor: pointer;
   opacity: 0;
   pointer-events: none;

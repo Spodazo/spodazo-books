@@ -164,12 +164,16 @@ body {
 .rudolph-sound {
   position: absolute;
   z-index: 15;
-  width: clamp(44px, calc(var(--pw, 600px) * 0.11), 56px);
+  width: clamp(26px, calc(var(--pw, 600px) * 0.055), 32px);
   aspect-ratio: 1;
   border: 0;
   padding: 0;
   border-radius: 50%;
-  background: transparent center / contain no-repeat;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 92%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .92);
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
@@ -252,6 +256,10 @@ body {
     var imgs = visibleImages();
     return imgs.length ? Math.max.apply(null, imgs) : 0;
   }
+  function storySyncImage() {
+    var story = visibleImages().filter(function (n) { return n >= SONG_FIRST; });
+    return story.length ? Math.min.apply(null, story) : 0;
+  }
   function imageForTime(t) {
     var best = 0, img, c, lead;
     for (img = SONG_FIRST; img <= SONG_END; img++) {
@@ -300,8 +308,8 @@ body {
   function placeSoundButton() {
     if (!soundBtn) return;
     var r = book.getBoundingClientRect(), sr = stage.getBoundingClientRect();
-    var size = soundBtn.offsetWidth || 48;
-    var gap = Math.max(8, Math.round(ph * 0.025));
+    var size = soundBtn.offsetWidth || 30;
+    var gap = Math.max(14, Math.round(ph * 0.045));
     var x, y;
     if (single && sr.width > sr.height) {
       x = r.right - sr.left + gap;
@@ -314,7 +322,7 @@ body {
     soundBtn.style.top = Math.round(Math.max(gap, y)) + 'px';
   }
   function syncSongTimeToView() {
-    var img = maxVisibleImage(), c;
+    var img = storySyncImage(), c;
     if (img < SONG_FIRST) return;
     c = cueForImage(img);
     if (isNaN(c)) return;
@@ -526,8 +534,8 @@ body {
     updateArrows();
     updateSoundButton();
     tryStartSong();
-    if (song && !songMuted && !song.paused && maxVisibleImage() >= SONG_FIRST) {
-      var syncCue = cueForImage(maxVisibleImage());
+    if (song && !songMuted && !song.paused && storySyncImage() >= SONG_FIRST) {
+      var syncCue = cueForImage(storySyncImage());
       if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
     }
     return Promise.all(jobs);
