@@ -12,7 +12,7 @@ declare global {
 globalThis.pdfjsWorker = pdfWorker;
 import { detectStoryLayout } from "../client/src/flipbook/layout.js";
 import { detectPdfIndexLinks, type PdfIndexPageInput, type PageJumpLink } from "../shared/pdf-index-links";
-import { imagesDir, uniqueFileName } from "./paths";
+import { imagesDir, revisionPageFileName, uniqueFileName } from "./paths";
 import { imageUrl, pdfUrl } from "./media";
 
 const MAX_PAGES = 100;
@@ -156,6 +156,7 @@ export async function importPdfOnServer(
   pdfPath: string,
   originalName: string,
   onProgress?: (page: number, total: number) => void,
+  revision = "",
 ): Promise<{ book: ImportedPdfBook; pdfAsset: string }> {
   const stat = await fs.stat(pdfPath);
   if (stat.size > MAX_BYTES) throw new Error("PDF exceeds the 80 MB import limit.");
@@ -200,7 +201,9 @@ export async function importPdfOnServer(
       await page.render({ canvasContext: ctx as unknown as CanvasRenderingContext2D, canvas: canvas as unknown as HTMLCanvasElement, viewport }).promise;
 
       const jpeg = canvas.toBuffer("image/jpeg", 91);
-      const fileName = `page-${String(i).padStart(3, "0")}.jpg`;
+      const fileName = revision
+        ? revisionPageFileName(revision, i)
+        : `page-${String(i).padStart(3, "0")}.jpg`;
       const dest = path.join(imagesDir(), uniqueFileName(imagesDir(), fileName));
       await fs.writeFile(dest, jpeg);
       const asset = path.basename(dest);

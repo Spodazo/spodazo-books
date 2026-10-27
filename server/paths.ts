@@ -61,3 +61,9 @@ export function uniqueFileName(dir: string, original: string): string {
   }
   return name;
 }
+
+/** A new file name for every revised upload, so page-001.jpg can never be reused. */
+export function revisionPageFileName(revision: string, pageNumber: number): string {
+  const stamp = String(revision || "rev").replace(/[^a-zA-Z0-9]/g, "") || "rev";
+  return `${stamp}-page-${String(Math.max(1, pageNumber)).padStart(3, "0")}.jpg`;
+}

@@ -17,6 +17,12 @@ test("imageUrl does not double-encode a stored filename", () => {
   assert.doesNotMatch(href, /%2520/);
 });
 
+test("revisionPageFileName never reuses page-001.jpg", async () => {
+  const { revisionPageFileName } = await import("./paths");
+  assert.equal(revisionPageFileName("rev1", 1), "rev1-page-001.jpg");
+  assert.notEqual(revisionPageFileName("rev1", 1), revisionPageFileName("rev2", 1));
+});
+
 test("audioUrl points at the bundled audio folder", () => {
   assert.match(audioUrl("willows-forest-adventure.mp3"), /\/media\/audio\/willows-forest-adventure\.mp3\?/);
 });
