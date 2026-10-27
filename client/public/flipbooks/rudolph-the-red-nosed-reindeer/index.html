@@ -164,16 +164,17 @@ body {
 .rudolph-sound {
   position: absolute;
   z-index: 15;
-  width: clamp(26px, calc(var(--pw, 600px) * 0.055), 32px);
-  aspect-ratio: 1;
-  border: 0;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
   padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, .95);
   border-radius: 50%;
   background-color: transparent;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 92%;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, .92);
+  background-size: 86%;
+  box-shadow: none;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
@@ -308,18 +309,22 @@ body {
   function placeSoundButton() {
     if (!soundBtn) return;
     var r = book.getBoundingClientRect(), sr = stage.getBoundingClientRect();
-    var size = soundBtn.offsetWidth || 30;
-    var gap = Math.max(14, Math.round(ph * 0.045));
+    var size = 24;
+    var gapAbove = 12;
+    var sideGap = Math.max(10, Math.round(pw * 0.035));
+    var landscape = single && sr.width > sr.height;
     var x, y;
-    if (single && sr.width > sr.height) {
-      x = r.right - sr.left + gap;
+    soundBtn.style.width = size + 'px';
+    soundBtn.style.height = size + 'px';
+    if (landscape) {
+      x = r.right - sr.left + sideGap;
       y = r.top - sr.top + (r.height - size) / 2;
     } else {
       x = r.left - sr.left + r.width / 2 - size / 2;
-      y = r.top - sr.top - size - gap;
+      y = r.top - sr.top - size - gapAbove;
     }
     soundBtn.style.left = Math.round(x) + 'px';
-    soundBtn.style.top = Math.round(Math.max(gap, y)) + 'px';
+    soundBtn.style.top = Math.round(Math.max(0, y)) + 'px';
   }
   function syncSongTimeToView() {
     var img = storySyncImage(), c;

@@ -128,19 +128,23 @@
     if (!soundBtn) return;
     var r = book.getBoundingClientRect();
     var sr = stage.getBoundingClientRect();
-    var size = soundBtn.offsetWidth || 30;
-    var gap = Math.max(14, Math.round(ph * 0.045));
+    var size = 24;
+    var gapAbove = 12;
+    var sideGap = Math.max(10, Math.round(pw * 0.035));
+    var landscape = single && sr.width > sr.height;
     var x;
     var y;
-    if (single && sr.width > sr.height) {
-      x = r.right - sr.left + gap;
+    soundBtn.style.width = size + "px";
+    soundBtn.style.height = size + "px";
+    if (landscape) {
+      x = r.right - sr.left + sideGap;
       y = r.top - sr.top + (r.height - size) / 2;
     } else {
       x = r.left - sr.left + r.width / 2 - size / 2;
-      y = r.top - sr.top - size - gap;
+      y = r.top - sr.top - size - gapAbove;
     }
     soundBtn.style.left = Math.round(x) + "px";
-    soundBtn.style.top = Math.round(Math.max(gap, y)) + "px";
+    soundBtn.style.top = Math.round(Math.max(0, y)) + "px";
   }
 
   function updateSoundButton() {
