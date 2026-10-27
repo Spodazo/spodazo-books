@@ -8,14 +8,14 @@ import {
   shouldUseFacsimileFlipbook,
 } from "./facsimile-flipbook";
 
-test("facsimileSpreads matches Be Thou My Vision pairing", () => {
+test("facsimileSpreads puts the back cover alone on the right", () => {
   assert.deepEqual(facsimileSpreads(18), [
     [0, 1], [2, 3], [4, 5], [6, 7], [8, 9],
-    [10, 11], [12, 13], [14, 15], [16, 17], [18, 0],
+    [10, 11], [12, 13], [14, 15], [16, 17], [0, 18],
   ]);
   assert.deepEqual(facsimileSpreads(1), [[0, 1]]);
-  assert.deepEqual(facsimileSpreads(2), [[0, 1], [2, 0]]);
-  assert.deepEqual(facsimileSpreads(5), [[0, 1], [2, 3], [4, 5]]);
+  assert.deepEqual(facsimileSpreads(2), [[0, 1], [0, 2]]);
+  assert.deepEqual(facsimileSpreads(5), [[0, 1], [2, 3], [4, 0], [0, 5]]);
   assert.deepEqual(facsimileSpreads(0), []);
 });
 

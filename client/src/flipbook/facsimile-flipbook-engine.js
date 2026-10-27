@@ -99,6 +99,7 @@
   }
 
   function sectionPagePair(n) {
+    if (n >= IMAGES) return [0, n];
     var right = n + 1;
     if (right > IMAGES || isSectionStart(right)) return [n, 0];
     return [n, right];
@@ -289,7 +290,7 @@
         if (jumpPage || landPage) pg = (jumpPage || landPage) - 1;
         else pg = Math.max(0, (SP[idx][0] || SP[idx][1]) - 1);
       }
-      else { idx = pg === 0 ? 0 : Math.min(LAST, Math.ceil(pg / 2)); }
+      else { idx = spreadIndexForPage(pg + 1); }
     }
     var m = single ? Math.max(12, Math.round(H * 0.03)) : 2;
     var avail = H - 2 * m;
@@ -317,8 +318,10 @@
   }
 
   function stackWidths(i) {
+    var pair = SP[i] || [0, 0];
+    if (!pair[0] && pair[1] === TOTAL) return [0, 0];
     var u = Math.max(0.9, pw / 520) * 8 / Math.max(1, LAST);
-    return [SP[i][0] ? i * u : 0, SP[i][1] ? (LAST - i) * u + u * 1.5 : 0];
+    return [pair[0] ? i * u : 0, pair[1] ? (LAST - i) * u + u * 1.5 : 0];
   }
 
   function updateArrows() {

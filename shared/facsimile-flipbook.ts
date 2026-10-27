@@ -55,14 +55,16 @@ export function shouldUseFacsimileFlipbook(book: {
   );
 }
 
-/** Cover on the right, then paired leaves, last even page alone on the left — same as Be Thou My Vision. */
+/** Cover on the right, then paired leaves. The back cover sits alone on the right, with no facing page. */
 export function facsimileSpreads(pageCount: number): [number, number][] {
   const n = Math.max(0, Math.floor(Number(pageCount) || 0));
   if (n < 1) return [];
   const spreads: [number, number][] = [[0, 1]];
-  for (let i = 2; i <= n; i += 2) {
-    spreads.push([i, i + 1 <= n ? i + 1 : 0]);
+  if (n === 1) return spreads;
+  for (let i = 2; i < n; i += 2) {
+    spreads.push([i, i + 1 < n ? i + 1 : 0]);
   }
+  spreads.push([0, n]);
   return spreads;
 }
 

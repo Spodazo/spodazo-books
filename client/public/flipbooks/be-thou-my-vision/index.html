@@ -152,7 +152,7 @@ body { background: var(--ground); color: #fff; }
 (function () {
   /* CONFIG */
   var IMAGES = 18, TOTAL = 18, RATIO = 842.16 / 595.44;   // TOTAL = IMAGES (link over last picture) or IMAGES+1 (extra link page)
-  var SP = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11],[12,13],[14,15],[16,17],[18,0]];   // [left, right] per spread, 0 = no page. e.g. [[1,2],[3,4],[5,6]]
+  var SP = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11],[12,13],[14,15],[16,17],[0,18]];   // [left, right] per spread, 0 = no page. The back cover is alone on the right.
   var LAST = SP.length - 1;
 
   var stage = document.getElementById('stage'), book = document.getElementById('book');
@@ -371,7 +371,7 @@ body { background: var(--ground); color: #fff; }
           if (curN !== leftN && curN !== rightN) pg = Math.max(0, (leftN || rightN) - 1);
         }
       } else {
-        idx = pg === 0 ? 0 : Math.min(LAST, Math.ceil(pg / 2));
+        idx = spreadIndexForPage(pg + 1);
       }
     }
     var m = single ? Math.max(12, Math.round(H * 0.03)) : 2;
@@ -400,8 +400,10 @@ body { background: var(--ground); color: #fff; }
   }
 
   function stackWidths(i) {
+    var pair = SP[i] || [0, 0];
+    if (!pair[0] && pair[1] === TOTAL) return [0, 0];
     var u = Math.max(0.9, pw / 520) * 8 / LAST;
-    return [SP[i][0] ? i * u : 0, SP[i][1] ? (LAST - i) * u + u * 1.5 : 0];
+    return [pair[0] ? i * u : 0, pair[1] ? (LAST - i) * u + u * 1.5 : 0];
   }
 
   function updateArrows() {
