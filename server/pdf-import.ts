@@ -12,7 +12,7 @@ declare global {
 globalThis.pdfjsWorker = pdfWorker;
 import { detectStoryLayout } from "../client/src/flipbook/layout.js";
 import { detectPdfIndexLinks, type PdfIndexPageInput, type PageJumpLink } from "../shared/pdf-index-links";
-import { imagesDir, revisionPageFileName, uniqueFileName } from "./paths";
+import { imagesDir, revisionPageFileName, writeExclusiveFile } from "./paths";
 import { imageUrl, pdfUrl } from "./media";
 
 const MAX_PAGES = 100;
@@ -204,9 +204,7 @@ export async function importPdfOnServer(
       const fileName = revision
         ? revisionPageFileName(revision, i)
         : `page-${String(i).padStart(3, "0")}.jpg`;
-      const dest = path.join(imagesDir(), uniqueFileName(imagesDir(), fileName));
-      await fs.writeFile(dest, jpeg);
-      const asset = path.basename(dest);
+      const asset = await writeExclusiveFile(imagesDir(), fileName, jpeg);
       const url = imageUrl(asset);
 
       pages.push({

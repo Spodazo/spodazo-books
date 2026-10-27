@@ -67,3 +67,28 @@ export function revisionPageFileName(revision: string, pageNumber: number): stri
   const stamp = String(revision || "rev").replace(/[^a-zA-Z0-9]/g, "") || "rev";
   return `${stamp}-page-${String(Math.max(1, pageNumber)).padStart(3, "0")}.jpg`;
 }
+
+/** Create a new file. An existing name is left untouched and the next free name is used. */
+export async function writeExclusiveFile(dir: string, preferred: string, data: Buffer): Promise<string> {
+  await fs.promises.mkdir(dir, { recursive: true });
+  const safe = safeFileName(preferred);
+  const ext = path.extname(safe);
+  const stem = ext ? safe.slice(0, -ext.length) : safe;
+  for (let attempt = 0; attempt < 1000; attempt += 1) {
+    const name = attempt === 0 ? safe : `${stem}-${attempt + 1}${ext}`;
+    const dest = path.join(dir, name);
+    try {
+      const handle = await fs.promises.open(dest, "wx");
+      try {
+        await handle.writeFile(data);
+      } finally {
+        await handle.close();
+      }
+      return name;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "EEXIST") continue;
+      throw err;
+    }
+  }
+  throw new Error("Could not store a new file.");
+}

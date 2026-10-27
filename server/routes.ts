@@ -497,7 +497,17 @@ export function registerRoutes(app: Express): void {
         res.status(404).json({ error: "Book not found" });
         return;
       }
-      sendNoStoreJson(res, updated);
+      const saved = await store.getBookById(current.id);
+      const savedFirst = saved?.pages[0]?.imageAsset || "";
+      const expectedFirst = first?.imageAsset || "";
+      if (!saved || saved.pdf !== imported.pdfAsset || savedFirst !== expectedFirst) {
+        res.status(500).json({ error: "The revised PDF was not saved onto this book." });
+        return;
+      }
+      if (expectedFirst) {
+        await fs.promises.access(path.join(imagesDir(), expectedFirst));
+      }
+      sendNoStoreJson(res, saved);
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Could not replace the book" });
     }
