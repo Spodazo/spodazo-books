@@ -76,7 +76,11 @@ export default function CoverFace({
     && layout.elements[0]?.h >= 99
     && Boolean(layout.elements[0]?.imageUrl);
   if (pdfCover && layout.elements[0]?.type === "image") {
-    return <img className="cover-pdf" src={layout.elements[0].imageUrl} alt="" />;
+    return (
+      <div className="cover-face">
+        <img className="cover-pdf" src={layout.elements[0].imageUrl} alt="" />
+      </div>
+    );
   }
   const fill = pageFill(layout.background, background);
   return (
