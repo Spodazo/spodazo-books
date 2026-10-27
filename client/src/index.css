@@ -204,6 +204,12 @@ html.book-closing .bundled-flipbook-host {
   container-type: size;
   background: var(--portrait);
 }
+.cover-pdf {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: transparent;
+}
 .cover-el {
   position: absolute;
   box-sizing: border-box;

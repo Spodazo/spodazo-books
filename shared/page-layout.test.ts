@@ -346,6 +346,45 @@ test("libraryCoverLayout uses book.cover when coverLayout art is stale", () => {
   assert.equal(art?.imageUrl, "/media/images/custom-cover.webp?v=1");
 });
 
+test("libraryCoverLayout shows an uploaded PDF cover in full", () => {
+  const layout = libraryCoverLayout({
+    title: "Rudolph",
+    tagline: "subtitle",
+    author: "Author",
+    cover: "page-001.jpg",
+    coverUrl: "/media/images/page-001.jpg?v=1",
+    pdfUrl: "/media/pdfs/rudolph.pdf",
+    coverLayout: {
+      background: "#000",
+      elements: [{
+        id: "cover-art",
+        type: "image",
+        x: 6,
+        y: 4,
+        w: 88,
+        h: 58,
+        z: 1,
+        imageAsset: "old.jpg",
+        fit: "cover",
+      }, {
+        id: "cover-title",
+        type: "text",
+        x: 8,
+        y: 70,
+        w: 84,
+        h: 10,
+        z: 2,
+        text: "Rudolph",
+      }],
+    },
+  });
+  assert.equal(layout.elements.length, 1);
+  assert.equal(layout.elements[0]?.fit, "contain");
+  assert.equal(layout.elements[0]?.w, 100);
+  assert.equal(layout.elements[0]?.h, 100);
+  assert.equal(layout.elements[0]?.imageUrl, "/media/images/page-001.jpg?v=1");
+});
+
 test("withTaglineText updates cover and title tagline boxes", () => {
   const layout = withTaglineText(
     { elements: [{ id: "cover-tagline", type: "text", x: 10, y: 80, w: 80, h: 8, z: 1, text: "old", role: "tagline" }] },

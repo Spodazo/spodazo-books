@@ -69,6 +69,15 @@ export default function CoverFace({
   font: string;
   ink: string;
 }) {
+  const pdfCover = layout.elements.length === 1
+    && layout.elements[0]?.type === "image"
+    && layout.elements[0]?.fit === "contain"
+    && layout.elements[0]?.w >= 99
+    && layout.elements[0]?.h >= 99
+    && Boolean(layout.elements[0]?.imageUrl);
+  if (pdfCover && layout.elements[0]?.type === "image") {
+    return <img className="cover-pdf" src={layout.elements[0].imageUrl} alt="" />;
+  }
   const fill = pageFill(layout.background, background);
   return (
     <div className="cover-face" style={paperSurfaceStyle(fill, texture)}>
