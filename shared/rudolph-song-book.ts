@@ -72,6 +72,24 @@ export function rudolphSongImageForTime(seconds: number): number {
   return rudolphSongPdfPageForTime(seconds);
 }
 
+export const RUDOLPH_SINGALONG_NOTE_PAGE = 2;
+export const RUDOLPH_SINGALONG_NOTE_TEXT = "This is a sing-along book.";
+
+export type RudolphSingalongNoteMetrics = {
+  topPct: number;
+  fontSizePct: number;
+  color: string;
+};
+
+/** Percentages are relative to the displayed page image (see imageContentBox in the flipbook engine). */
+export function rudolphSingalongNoteMetrics(imageWidth: number, imageHeight: number): RudolphSingalongNoteMetrics {
+  const ratio = imageWidth / imageHeight;
+  if (ratio < 0.75) {
+    return { topPct: 91.1, fontSizePct: 1.182, color: "#6b0f28" };
+  }
+  return { topPct: 43.52, fontSizePct: 1.481, color: "#6a111f" };
+}
+
 export type RudolphSingAlongConfig = {
   audio: string;
   firstPage: number;
@@ -83,6 +101,8 @@ export type RudolphSingAlongConfig = {
   outroCues: [number, number][];
   soundOnUrl: string;
   soundOffUrl: string;
+  singalongNotePage: number;
+  singalongNoteText: string;
 };
 
 /** Payload for facsimile / bundled flipbook engines. */
@@ -99,5 +119,7 @@ export function rudolphSingAlongConfig(baseUrl = "/"): RudolphSingAlongConfig {
     outroCues: [...RUDOLPH_SONG_OUTRO_CUES],
     soundOnUrl: `${root}flipbooks/rudolph-the-red-nosed-reindeer/sound-on.webp`,
     soundOffUrl: `${root}flipbooks/rudolph-the-red-nosed-reindeer/sound-off.webp`,
+    singalongNotePage: RUDOLPH_SINGALONG_NOTE_PAGE,
+    singalongNoteText: RUDOLPH_SINGALONG_NOTE_TEXT,
   };
 }

@@ -1,0 +1,13 @@
+/* Rudolph page 2 sing-along credit line (Lora matches the PDF artwork). */
+.rudolph-singalong-note {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-family: "Lora", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: nowrap;
+}

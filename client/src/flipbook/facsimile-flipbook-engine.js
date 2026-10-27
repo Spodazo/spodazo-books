@@ -350,6 +350,58 @@
     return { top: 0, left: (100 - w) / 2, width: w, height: 100 };
   }
 
+  function rudolphSingalongNoteMetrics(imageWidth, imageHeight) {
+    var ratio = imageWidth / imageHeight;
+    if (ratio < 0.75) {
+      return { topPct: 91.1, fontSizePct: 1.182, color: "#6b0f28" };
+    }
+    return { topPct: 43.52, fontSizePct: 1.481, color: "#6a111f" };
+  }
+
+  function placeRudolphSingalongNote(page) {
+    var el = page.querySelector(".rudolph-singalong-note");
+    if (!el || !SING) return;
+    var img = page.querySelector("img");
+    var box = imageContentBox(page);
+    var ph = page.clientHeight || 1;
+    var iw = img && img.naturalWidth ? img.naturalWidth : 900;
+    var ih = img && img.naturalHeight ? img.naturalHeight : 1080;
+    var metrics = rudolphSingalongNoteMetrics(iw, ih);
+    var imgDisplayH = (box.height / 100) * ph;
+    el.style.color = metrics.color;
+    el.style.fontSize = imgDisplayH * metrics.fontSizePct / 100 + "px";
+    el.style.top = box.top + metrics.topPct * box.height / 100 + "%";
+    el.style.left = box.left + box.width / 2 + "%";
+    el.style.transform = "translateX(-50%)";
+  }
+
+  function syncRudolphSingalongNote(host, n) {
+    if (!SING) return;
+    var notePage = Number(SING.singalongNotePage) || 2;
+    var noteText = SING.singalongNoteText || "This is a sing-along book.";
+    var p = pageEl(host);
+    var el = p.querySelector(".rudolph-singalong-note");
+    if (n !== notePage) {
+      if (el) el.remove();
+      return;
+    }
+    if (!el) {
+      el = document.createElement("p");
+      el.className = "rudolph-singalong-note";
+      p.appendChild(el);
+    }
+    el.textContent = noteText;
+    placeRudolphSingalongNote(p);
+  }
+
+  function repositionRudolphSingalongNotes() {
+    if (!SING) return;
+    var notes = document.querySelectorAll(".rudolph-singalong-note");
+    for (var i = 0; i < notes.length; i++) {
+      placeRudolphSingalongNote(notes[i].parentElement);
+    }
+  }
+
   var COVER_LINKS = [
     { kind: "again", label: "Read Again", top: 40.3, left: 36, width: 28, height: 5.2 },
     { kind: "close", label: "Close", top: 46.9, left: 40.5, width: 19, height: 5.2 },
@@ -455,13 +507,16 @@
     if (!n) {
       img.removeAttribute("src");
       p.classList.add(blankPaper ? "blank" : "empty");
+      syncRudolphSingalongNote(host, n);
       return Promise.resolve();
     }
     var s = src(n);
     if (img.getAttribute("src") !== s) img.setAttribute("src", s);
+    syncRudolphSingalongNote(host, n);
     return (img.decode ? img.decode().catch(function () {}) : Promise.resolve()).then(function () {
       if (n === TOTAL) placeCoverLinks(p);
       if (n && linksFor(n).length) mountIndexHots(p, n);
+      syncRudolphSingalongNote(host, n);
     });
   }
 
@@ -533,6 +588,7 @@
     slotR.style.width = single ? "100%" : "50%";
     render();
     updateSoundButton();
+    repositionRudolphSingalongNotes();
   }
 
   function stackWidths(i) {

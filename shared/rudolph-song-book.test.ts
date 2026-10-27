@@ -8,6 +8,7 @@ import {
   RUDOLPH_STORY_PAGE_OFFSET,
   rudolphPdfPageForStoryPage,
   rudolphSingAlongConfig,
+  rudolphSingalongNoteMetrics,
   rudolphSongCueForPdfPage,
   rudolphSongPdfPageForTime,
 } from "./rudolph-song-book";
@@ -32,4 +33,7 @@ test("Rudolph sing-along follows the recording through the outro", () => {
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 1), 25);
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 8), 26);
   assert.ok(rudolphSingAlongConfig("/").soundOffUrl.includes("sound-off.webp"));
+  assert.equal(rudolphSingAlongConfig("/").singalongNoteText, "This is a sing-along book.");
+  assert.equal(rudolphSingalongNoteMetrics(900, 1080).topPct, 43.52);
+  assert.equal(rudolphSingalongNoteMetrics(1188, 1861).topPct, 91.1);
 });

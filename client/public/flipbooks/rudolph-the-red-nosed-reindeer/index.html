@@ -3,6 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@400&display=swap">
 <style>
 /* Layout: one full-viewport stage; a page-fit book whose spine sits on the viewport centre (desktop spreads) or a single page (mobile). */
 :root {
@@ -186,6 +187,18 @@ body {
 }
 .rudolph-sound.is-visible { opacity: 1; pointer-events: auto; }
 .rudolph-sound.is-playing { background-color: #d41919; }
+.rudolph-singalong-note {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-family: "Lora", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: nowrap;
+}
 </style>
 
 <div id="stage" aria-label="Rudolph the Red Nosed Reindeer flip book" role="application">
@@ -441,16 +454,81 @@ body {
     return 'pages/p-' + (n < 10 ? '0' : '') + n + '.jpg';
   }
   function pageEl(host) { return host.querySelector('.page'); }
+  var SINGALONG_NOTE_PAGE = 2;
+  var SINGALONG_NOTE_TEXT = 'This is a sing-along book.';
+  function imageContentBox(page) {
+    var img = page.querySelector('img');
+    var pw = page.clientWidth || 1;
+    var ph = page.clientHeight || 1;
+    if (!img || !img.naturalWidth || !img.naturalHeight) {
+      return { top: 0, left: 0, width: 100, height: 100 };
+    }
+    var ir = img.naturalWidth / img.naturalHeight;
+    var pr = pw / ph;
+    if (ir > pr) {
+      var h = ((pw / ir) / ph) * 100;
+      return { top: (100 - h) / 2, left: 0, width: 100, height: h };
+    }
+    var w = ((ph * ir) / pw) * 100;
+    return { top: 0, left: (100 - w) / 2, width: w, height: 100 };
+  }
+  function rudolphSingalongNoteMetrics(imageWidth, imageHeight) {
+    var ratio = imageWidth / imageHeight;
+    if (ratio < 0.75) {
+      return { topPct: 91.1, fontSizePct: 1.182, color: '#6b0f28' };
+    }
+    return { topPct: 43.52, fontSizePct: 1.481, color: '#6a111f' };
+  }
+  function placeRudolphSingalongNote(page) {
+    var el = page.querySelector('.rudolph-singalong-note');
+    if (!el) return;
+    var img = page.querySelector('img');
+    var box = imageContentBox(page);
+    var ph = page.clientHeight || 1;
+    var iw = img && img.naturalWidth ? img.naturalWidth : 900;
+    var ih = img && img.naturalHeight ? img.naturalHeight : 1080;
+    var metrics = rudolphSingalongNoteMetrics(iw, ih);
+    var imgDisplayH = (box.height / 100) * ph;
+    el.style.color = metrics.color;
+    el.style.fontSize = (imgDisplayH * metrics.fontSizePct / 100) + 'px';
+    el.style.top = (box.top + metrics.topPct * box.height / 100) + '%';
+    el.style.left = (box.left + box.width / 2) + '%';
+    el.style.transform = 'translateX(-50%)';
+  }
+  function syncRudolphSingalongNote(host, n) {
+    var p = pageEl(host);
+    var el = p.querySelector('.rudolph-singalong-note');
+    if (n !== SINGALONG_NOTE_PAGE) {
+      if (el) el.remove();
+      return;
+    }
+    if (!el) {
+      el = document.createElement('p');
+      el.className = 'rudolph-singalong-note';
+      p.appendChild(el);
+    }
+    el.textContent = SINGALONG_NOTE_TEXT;
+    placeRudolphSingalongNote(p);
+  }
+  function repositionRudolphSingalongNotes() {
+    var notes = document.querySelectorAll('.rudolph-singalong-note');
+    for (var i = 0; i < notes.length; i++) {
+      placeRudolphSingalongNote(notes[i].parentElement);
+    }
+  }
   // returns a promise that resolves once the page image is decoded and ready to paint
   function setPage(host, n, blankPaper) {
     var p = pageEl(host), img = p.querySelector('img');
     p.classList.remove('empty', 'blank', 'again', 'link');
     if (n === TOTAL) p.classList.add('link');   // the closing page carries the View Again... link over its picture
-    if (n === TOTAL + 1) { img.removeAttribute('src'); p.classList.add('again'); return Promise.resolve(); }
-    if (!n) { img.removeAttribute('src'); p.classList.add(blankPaper ? 'blank' : 'empty'); return Promise.resolve(); }
+    if (n === TOTAL + 1) { img.removeAttribute('src'); p.classList.add('again'); syncRudolphSingalongNote(host, n); return Promise.resolve(); }
+    if (!n) { img.removeAttribute('src'); p.classList.add(blankPaper ? 'blank' : 'empty'); syncRudolphSingalongNote(host, n); return Promise.resolve(); }
     var s = src(n);
     if (img.getAttribute('src') !== s) img.setAttribute('src', s);
-    return img.decode ? img.decode().catch(function () {}) : Promise.resolve();
+    syncRudolphSingalongNote(host, n);
+    return (img.decode ? img.decode().catch(function () {}) : Promise.resolve()).then(function () {
+      syncRudolphSingalongNote(host, n);
+    });
   }
 
   // decode an image off-screen so it is ready when it is put on a page
@@ -519,6 +597,7 @@ body {
     slotR.style.width = single ? '100%' : '50%';
     render();
     updateSoundButton();
+    repositionRudolphSingalongNotes();
   }
 
   function stackWidths(i) {
