@@ -36,7 +36,7 @@ export function willowFrontCoverLayout(): PageLayout {
       z: 1,
       imageAsset: WILLOW_FRONT_COVER_ASSET,
       imageUrl: WILLOW_FRONT_COVER_URL,
-      fit: "cover",
+      fit: "contain",
       focusX: 50,
       focusY: 50,
       opacity: 100,

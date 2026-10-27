@@ -654,14 +654,23 @@ html:not(.mobile) .page.back-cover.fade-page{
   background:transparent!important;
   box-shadow:none!important;
 }
+html:not(.mobile):has(.page.back-cover.current) main{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+html:not(.mobile):has(.page.back-cover.current) main:before,
+html:not(.mobile):has(.page.back-cover.current) main:after,
+html:not(.mobile):has(.page.back-cover.current) .book-spine{
+  display:none!important;
+}
 html:not(.mobile) .back-cover-leaf{
   position:absolute;
   top:0;
   bottom:0;
-  left:50%;
+  left:0;
   width:50%;
   overflow:hidden;
-  border-radius:6px 16px 18px 6px;
+  border-radius:16px 6px 6px 18px;
   box-shadow:0 18px 40px #24180f66;
 }
 .mobile .page.back-cover.current,
@@ -712,6 +721,13 @@ html:not(.mobile) .back-cover-leaf{
   font:500 18px Story,sans-serif;
   text-decoration:underline;
   text-underline-offset:4px;
+}
+html:not(.mobile) .page.back-cover.end-page .end-legal,
+.page.back-cover .end-legal{
+  left:8%!important;
+  right:8%!important;
+  width:auto!important;
+  bottom:12px;
 }
 .page.nap-spread{
   background:var(--page-paper,#efdda6);

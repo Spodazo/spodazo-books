@@ -137,8 +137,9 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
     const src = esc(safeURL("/media/images/willow-back-cover.webp", baseUrl));
     const napCue = cueAttr(WILLOW_SONG_LAST_WORD_AT);
     const cue = cueAttr(WILLOW_SONG_END_CUE);
+    const legal = legalHtml(credits, copyright, logoUrl, baseUrl, book.date);
     const napPage = `<article class="page nap-spread" data-source="nap"${napCue} aria-label="A cozy nap"><div class="nap-leaf nap-leaf-blank"></div><div class="nap-leaf nap-leaf-art"><img class="nap-picture" src="${nap}" alt=""></div><button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
-    return `${napPage}<article class="page end-page back-cover" data-source="end"${cue} aria-label="Back cover"><div class="back-cover-leaf"><img class="back-cover-art" src="${src}" alt=""><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></div><button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+    return `${napPage}<article class="page end-page back-cover" data-source="end"${cue} aria-label="Back cover"><div class="back-cover-leaf"><img class="back-cover-art" src="${src}" alt=""><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button>${legal}</div><button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
   }
   const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
   const cue = isWillowBook(book) ? cueAttr(WILLOW_SONG_END_CUE) : "";
