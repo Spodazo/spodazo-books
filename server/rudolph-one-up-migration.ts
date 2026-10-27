@@ -8,7 +8,7 @@ export async function ensureRudolphOneUpDisplay(store: BookStore): Promise<void>
   if (!item) return;
 
   const book = await store.getBookBySlug(item.slug);
-  if (!book) return;
+  if (!book || String(book.pdf || "").trim()) return;
 
   if (book.pages.some((page) => String(page.imageUrl || "").includes("/flipbooks/"))) return;
 

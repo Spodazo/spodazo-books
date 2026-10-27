@@ -129,6 +129,16 @@ export function importPdfOnServer(file: File): Promise<ServerPdfImport> {
   );
 }
 
+export function replaceBookPdf(id: string, file: File): Promise<PublicBook> {
+  const data = new FormData();
+  data.append("file", file, file.name);
+  return fetch(`/api/admin/books/${encodeURIComponent(id)}/replace-pdf`, {
+    method: "POST",
+    body: data,
+    credentials: "same-origin",
+  }).then((res) => parse<PublicBook>(res));
+}
+
 export function uploadBookAsset(blob: Blob, filename: string): Promise<{ url: string; filename: string }> {
   const data = new FormData();
   data.append("file", blob, filename);

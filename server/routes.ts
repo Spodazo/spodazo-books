@@ -5,7 +5,7 @@ import multer from "multer";
 import { readFlipbookIndex, sendFlipbookHtml } from "./flipbook-cache";
 import { revisedFlipbookForDir } from "./revised-flipbook";
 import { rudolphLegacyRedirect } from "../shared/rudolph";
-import { slugify, uniqueSlug } from "../shared/seed-data";
+import { normalizeBookPage, slugify, uniqueSlug } from "../shared/seed-data";
 import type { BookPage, PlayerSetup } from "../shared/types";
 import { loginAdmin, logoutAdmin, requireAdmin } from "./auth";
 import { curatorPasswordMatches, curatorRecoveryError, hashPassword, MIN_PASSWORD_LENGTH } from "./password";
@@ -443,6 +443,73 @@ export function registerRoutes(app: Express): void {
       res.json(imported);
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Import failed" });
+    }
+  });
+
+  app.post("/api/admin/books/:id/replace-pdf", requireAdmin, upload.single("file"), async (req, res) => {
+    const file = req.file;
+    if (!file || !isPdfUpload(file)) {
+      res.status(400).json({ error: "Choose a PDF file." });
+      return;
+    }
+    try {
+      req.setTimeout(10 * 60 * 1000);
+      res.setTimeout(10 * 60 * 1000);
+      const store = await getStore();
+      const current = await store.getBookById(req.params.id);
+      if (!current) {
+        res.status(404).json({ error: "Book not found" });
+        return;
+      }
+      const revision = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+      const stampedName = uniqueFileName(pdfsDir(), `${revision}.pdf`);
+      const stampedPath = path.join(pdfsDir(), stampedName);
+      await fs.promises.rename(file.path, stampedPath);
+      const imported = await importPdfOnServer(stampedPath, file.originalname, undefined, revision);
+      const first = imported.book.pages[0];
+      const updated = await store.updateBook(current.id, {
+        pdf: imported.pdfAsset,
+        pages: imported.book.pages.map((page, index) => normalizeBookPage(page, index)),
+        cover: first?.imageAsset || current.cover,
+        pageTemplate: "one-up",
+        coverLayout: {
+          background: current.spreadBackground || "#021b3f",
+          elements: first
+            ? [{
+              id: "cover-art",
+              type: "image" as const,
+              x: 0,
+              y: 0,
+              w: 100,
+              h: 100,
+              z: 1,
+              imageAsset: first.imageAsset,
+              imageUrl: first.imageUrl,
+              fit: "contain" as const,
+              focusX: 50,
+              focusY: 50,
+              opacity: 100,
+            }]
+            : [],
+        },
+      });
+      if (!updated) {
+        res.status(404).json({ error: "Book not found" });
+        return;
+      }
+      const saved = await store.getBookById(current.id);
+      const savedFirst = saved?.pages[0]?.imageAsset || "";
+      const expectedFirst = first?.imageAsset || "";
+      if (!saved || saved.pdf !== imported.pdfAsset || savedFirst !== expectedFirst) {
+        res.status(500).json({ error: "The revised PDF was not saved onto this book." });
+        return;
+      }
+      if (expectedFirst) {
+        await fs.promises.access(path.join(imagesDir(), expectedFirst));
+      }
+      sendNoStoreJson(res, saved);
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : "Could not replace the book" });
     }
   });
 

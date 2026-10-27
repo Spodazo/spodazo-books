@@ -8,6 +8,7 @@ import {
   adminMe,
   createBook,
   importPdfOnServer,
+  replaceBookPdf,
   deleteBook,
   generateAiImage,
   generateAiOutline,
@@ -817,6 +818,7 @@ function BookEditor({
   const [preview, setPreview] = useState(false);
   const [pdfBusy, setPdfBusy] = useState<BookPdfKind | "">("");
   const [revisedBusy, setRevisedBusy] = useState(false);
+  const [revisedNote, setRevisedNote] = useState("");
   const revisedPdfRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -898,34 +900,10 @@ function BookEditor({
             setRevisedBusy(true);
             setError("");
             try {
-              const imported = await importPdfOnServer(file);
-              const first = imported.book.pages[0];
-              const saved = await updateBook(book.id, {
-                pdfUrl: imported.book.pdfUrl,
-                pages: imported.book.pages,
-                coverUrl: first?.imageUrl || book.coverUrl,
-                pageTemplate: "one-up",
-                coverLayout: {
-                  background: book.spreadBackground || "#021b3f",
-                  elements: first
-                    ? [{
-                      id: "cover-art",
-                      type: "image",
-                      x: 0,
-                      y: 0,
-                      w: 100,
-                      h: 100,
-                      z: 1,
-                      imageAsset: first.imageAsset,
-                      imageUrl: first.imageUrl,
-                      fit: "contain",
-                      focusX: 50,
-                      focusY: 50,
-                      opacity: 100,
-                    }]
-                    : [],
-                },
-              });
+              const saved = await replaceBookPdf(book.id, file);
+              const firstPage = saved.pages?.[0]?.imageAsset || saved.cover || "";
+              setError("");
+              setRevisedNote(`Saved ${saved.pageCount} new pages${firstPage ? ` (${firstPage})` : ""}. Open the book to read this PDF.`);
               await onSaved(saved);
             } catch (err) {
               setError(err instanceof Error ? err.message : "Could not replace the book");
@@ -935,6 +913,7 @@ function BookEditor({
           }}
         />
         <p className="hint">Replaces this book’s pages with a new PDF. You do not need to delete it first.</p>
+        {revisedNote ? <p className="hint">{revisedNote}</p> : null}
         <button
           type="button"
           onClick={async () => {
