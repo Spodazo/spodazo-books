@@ -59,6 +59,7 @@
   var songFollowTurn = false;
   var verselessSpreadKey = "";
   var verselessSpreadAt = 0;
+  var songFollowPoll = null;
   var soundBtn = document.getElementById("soundBtn");
 
   function songAudioUrl() {
@@ -141,10 +142,33 @@
     song.muted = songMuted;
     song.setAttribute("playsinline", "");
     song.addEventListener("timeupdate", followSong);
-    song.addEventListener("ended", function () { syncSoundButton(); followSong(); });
-    song.addEventListener("play", syncSoundButton);
-    song.addEventListener("pause", syncSoundButton);
+    song.addEventListener("ended", function () {
+      disarmSongFollowPoll();
+      syncSoundButton();
+      followSong();
+    });
+    song.addEventListener("play", function () {
+      armSongFollowPoll();
+      syncSoundButton();
+    });
+    song.addEventListener("pause", function () {
+      disarmSongFollowPoll();
+      syncSoundButton();
+    });
     return song;
+  }
+
+  function armSongFollowPoll() {
+    if (songFollowPoll || !SING) return;
+    songFollowPoll = setInterval(function () {
+      if (songPlaybackActive()) followSong();
+    }, 350);
+  }
+
+  function disarmSongFollowPoll() {
+    if (!songFollowPoll) return;
+    clearInterval(songFollowPoll);
+    songFollowPoll = null;
   }
 
   function musicAudible() {
@@ -200,7 +224,7 @@
     c = cueForPdfPage(page);
     if (isNaN(c)) return;
     ensureSong();
-    if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
+    if (song.currentTime < c - 0.5) song.currentTime = c;
   }
 
   function songPlaybackActive() {
@@ -338,7 +362,8 @@
 
   function followSong() {
     var target;
-    var ti;
+    var needIdx;
+    var pair;
     if (!SING || busy) return;
     var audio = ensureSong();
     if (!audio || (audio.paused && !audio.ended)) return;
@@ -346,19 +371,26 @@
     if (busy) return;
     target = pdfPageForTime(audio.ended ? SING.duration : audio.currentTime);
     if (target < SING.firstPage) return;
-    var visibleMax = storyMaxVisiblePdfPage();
-    if (target <= visibleMax && isPdfPageShown(target)) return;
+    if (target > TOTAL) target = TOTAL;
     if (single) {
       if (pg + 1 < target) go(1, true);
       return;
     }
-    ti = spreadIndexForPage(target);
-    if (ti < 0) return;
-    if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1, true);
+    needIdx = spreadIndexForTargetPage(target);
+    if (needIdx < 0) return;
+    if (needIdx > idx) {
+      go(1, true);
+      return;
+    }
+    if (needIdx === idx) {
+      pair = SP[idx] || [0, 0];
+      if (pair[1] > 0 && pair[1] < target) go(1, true);
+    }
   }
 
   function stopSong() {
     songStarted = false;
+    disarmSongFollowPoll();
     verselessSpreadKey = "";
     if (!song) {
       syncSoundButton();
@@ -660,6 +692,23 @@
       if (SP[i][0] === n || SP[i][1] === n) return i;
     }
     return -1;
+  }
+
+  /** Spread that should be visible for this PDF page (story or outro leaf). */
+  function spreadIndexForTargetPage(target) {
+    var ti;
+    var i;
+    var pair;
+    var maxP;
+    if (!target || target < 1) return -1;
+    ti = spreadIndexForPage(target);
+    if (ti >= 0) return ti;
+    for (i = 0; i <= LAST; i++) {
+      pair = SP[i];
+      maxP = Math.max(pair[0], pair[1]);
+      if (maxP >= target) return i;
+    }
+    return LAST;
   }
 
   function layout() {

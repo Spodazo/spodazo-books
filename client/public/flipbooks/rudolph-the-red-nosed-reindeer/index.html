@@ -256,7 +256,7 @@ body {
   var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
   var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 288, 318, 353, 356, 398, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
-  var song = null, songMuted = true, songStarted = false, songFollowTurn = false;
+  var song = null, songMuted = true, songStarted = false, songFollowTurn = false, songFollowPoll = null;
   var verselessSpreadKey = '', verselessSpreadAt = 0;
   var VERSELESS_BRIEF_SPREADS = [
     { left: 16, right: 17, dwellMs: 3000 }
@@ -319,6 +319,29 @@ body {
     }
     return -1;
   }
+  function spreadIndexForTargetImage(target) {
+    var ti, i, pair, maxI;
+    if (!target || target < 1) return -1;
+    ti = spreadIndexForImage(target);
+    if (ti >= 0) return ti;
+    for (i = 0; i < SP.length; i++) {
+      pair = SP[i];
+      maxI = Math.max(pair[0], pair[1]);
+      if (maxI >= target) return i;
+    }
+    return LAST;
+  }
+  function armSongFollowPoll() {
+    if (songFollowPoll) return;
+    songFollowPoll = setInterval(function () {
+      if (songPlaybackActive()) followSong();
+    }, 350);
+  }
+  function disarmSongFollowPoll() {
+    if (!songFollowPoll) return;
+    clearInterval(songFollowPoll);
+    songFollowPoll = null;
+  }
   function ensureSong() {
     if (song) return song;
     song = new Audio(songAudioUrl());
@@ -326,9 +349,9 @@ body {
     song.muted = songMuted;
     song.setAttribute('playsinline', '');
     song.addEventListener('timeupdate', followSong);
-    song.addEventListener('ended', function () { syncSoundButton(); followSong(); });
-    song.addEventListener('play', syncSoundButton);
-    song.addEventListener('pause', syncSoundButton);
+    song.addEventListener('ended', function () { disarmSongFollowPoll(); syncSoundButton(); followSong(); });
+    song.addEventListener('play', function () { armSongFollowPoll(); syncSoundButton(); });
+    song.addEventListener('pause', function () { disarmSongFollowPoll(); syncSoundButton(); });
     return song;
   }
   function musicAudible() {
@@ -376,7 +399,7 @@ body {
     c = cueForImage(img);
     if (isNaN(c)) return;
     ensureSong();
-    if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
+    if (song.currentTime < c - 0.5) song.currentTime = c;
   }
   function primeSongTime() {
     if (storySyncImage() === SONG_FIRST && (!songStarted || song.currentTime < 0.25)) song.currentTime = 0;
@@ -484,7 +507,7 @@ body {
     }
   }
   function followSong() {
-    var target, ti, audio;
+    var target, needIdx, pair, audio;
     if (busy) return;
     audio = ensureSong();
     if (audio.paused && !audio.ended) return;
@@ -492,18 +515,25 @@ body {
     if (busy) return;
     target = imageForTime(audio.ended ? SONG_DURATION : audio.currentTime);
     if (target < SONG_FIRST) return;
-    var visibleMax = storyMaxVisibleImage();
-    if (target <= visibleMax && isImageShown(target)) return;
+    if (target > IMAGES) target = IMAGES;
     if (single) {
       if (pg + 1 < target) go(1, true);
       return;
     }
-    ti = spreadIndexForImage(target);
-    if (ti < 0) return;
-    if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1, true);
+    needIdx = spreadIndexForTargetImage(target);
+    if (needIdx < 0) return;
+    if (needIdx > idx) {
+      go(1, true);
+      return;
+    }
+    if (needIdx === idx) {
+      pair = SP[idx] || [0, 0];
+      if (pair[1] > 0 && pair[1] < target) go(1, true);
+    }
   }
   function stopSong() {
     songStarted = false;
+    disarmSongFollowPoll();
     verselessSpreadKey = '';
     if (!song) {
       syncSoundButton();
