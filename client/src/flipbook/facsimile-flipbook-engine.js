@@ -240,8 +240,13 @@
     if (page < SING.firstPage) return;
     c = cueForPdfPage(page);
     if (isNaN(c)) return;
-    if (page === SING.firstPage && c < 0.5) song.currentTime = 0;
-    else song.currentTime = c;
+    if (page === SING.firstPage && c < 0.5) {
+      song.currentTime = 0;
+      return;
+    }
+    // A forward jump of more than a few seconds was landing in the finale.
+    if (c > song.currentTime + 4) return;
+    song.currentTime = c;
   }
 
   function afterTurnSongSync() {

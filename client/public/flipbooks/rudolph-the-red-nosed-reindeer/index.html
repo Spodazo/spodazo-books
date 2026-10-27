@@ -254,7 +254,7 @@ body {
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
   var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3';
   var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
-  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 288, 318, 353, 356, 398, 412, 425, 446, 468];
+  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 288, 291, 294, 296, 308, 338, 396, 428, 450];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
   var song = null, songMuted = true, songStarted = false, songFollowTurn = false, songFollowPoll = null;
   var verselessSpreadKey = '', verselessSpreadAt = 0;
@@ -415,8 +415,12 @@ body {
     if (img < SONG_FIRST) return;
     c = cueForImage(img);
     if (isNaN(c)) return;
-    if (img === SONG_FIRST && c < 0.5) song.currentTime = 0;
-    else song.currentTime = c;
+    if (img === SONG_FIRST && c < 0.5) {
+      song.currentTime = 0;
+      return;
+    }
+    if (c > song.currentTime + 4) return;
+    song.currentTime = c;
   }
   function afterTurnSongSync() {
     if (songFollowTurn) {
