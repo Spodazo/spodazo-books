@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { WILLOW_SONG_MARKER, WILLOW_SONG_PAGE_COUNT, willowSongPages } from "../shared/willow-song-book";
+import { WILLOW_AUTHOR, WILLOW_SONG_MARKER, WILLOW_SONG_PAGE_COUNT, willowSongPages } from "../shared/willow-song-book";
 import { JsonBookStore, resetStoreForTests } from "./storage";
 import { ensureWillowSongBook } from "./willow-song-book";
 
@@ -42,6 +42,23 @@ test("ensureWillowSongBook rewrites Willow once and stays put", async () => {
   const kept = await store.getBookBySlug(created.slug);
   assert.equal(kept?.tagline, "A custom subtitle from Admin");
   assert.equal(kept?.coverLayout.elements.find((item) => item.role === "tagline")?.text, "A custom subtitle from Admin");
+
+  await store.updateBook(kept!.id, {
+    author: "Wernard Broodryk",
+    titleLayout: {
+      elements: [
+        { id: "title-tagline", type: "text", x: 54, y: 50, w: 40, h: 16, z: 1, text: "A custom subtitle from Admin", role: "tagline" },
+        { id: "title-author", type: "text", x: 70, y: 84, w: 11, h: 8, z: 4, text: "Wernard Broodryk", role: "author" },
+        { id: "title-date", type: "text", x: 71, y: 87, w: 8, h: 8, z: 5, text: "19 Sept 2026", role: "date" },
+      ],
+    },
+  });
+  await ensureWillowSongBook(store);
+  const named = await store.getBookBySlug(created.slug);
+  assert.equal(named?.author, WILLOW_AUTHOR);
+  assert.equal(named?.titleLayout.elements.find((item) => item.role === "author")?.text, WILLOW_AUTHOR);
+  assert.equal(named?.titleLayout.elements.find((item) => item.role === "author")?.w, 44);
+  assert.equal(named?.tagline, "A custom subtitle from Admin");
 
   delete process.env.BOOKS_DATA_DIR;
   resetStoreForTests();

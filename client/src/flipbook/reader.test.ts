@@ -96,12 +96,25 @@ test("Willow’s front cover sits on the dark brown stage", async () => {
 
 test("Willow’s title page keeps the author and date apart", async () => {
   const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
+  const runtime = await readFile(new URL("./reader-runtime.js", import.meta.url), "utf8");
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
+  const song = await readFile(new URL("../../../shared/willow-song-book.ts", import.meta.url), "utf8");
   assert.match(reader, /function separatedTitleCredits/);
+  assert.match(reader, /withWillowTitleCredits/);
   assert.match(reader, /willow-title/);
-  assert.match(reader, /author\.y = 78/);
-  assert.match(reader, /date\.y = 88/);
-  assert.match(css, /page\.willow-title>\.el-text\[data-role="author"\][\s\S]{0,700}top:78%!important/);
-  assert.match(css, /page\.willow-title>\.el-text\[data-role="date"\][\s\S]{0,400}top:88%!important/);
-  assert.match(css, /white-space:nowrap/);
+  assert.match(song, /Wernard A\. Broodryk/);
+  assert.match(song, /author\.y = 82/);
+  assert.match(song, /date\.y = 89/);
+  assert.match(css, /page\.willow-title>\.el-text\[data-role="author"\][\s\S]{0,500}bottom:calc\(5\.5% \+ 1\.8em\)!important/);
+  assert.match(css, /page\.willow-title>\.el-text\[data-role="date"\][\s\S]{0,300}bottom:5\.5%!important/);
+  assert.match(css, /white-space:nowrap!important/);
+  assert.match(css, /page\.willow-title \.zone\[data-dir="1"\]/);
+  assert.match(reader, /id="arrL"/);
+  assert.match(reader, /id="arrR"/);
+  assert.match(reader, /aria-label',String\(book\.title/);
+  assert.doesNotMatch(reader, /frame\.title=/);
+  assert.match(runtime, /function updateArrows/);
+  assert.match(runtime, /bindArrow/);
+  assert.match(css, /\.book-frame \.arrow\.l\{right:calc\(100% \+ 26px\)\}/);
+  assert.match(css, /\.arrow\.off\{opacity:0/);
 });

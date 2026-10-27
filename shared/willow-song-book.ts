@@ -7,6 +7,8 @@ export const WILLOW_SONG_TAGLINE =
 export const WILLOW_SONG_MARKER = "Hugs for Willow, and hugs galore!";
 export const WILLOW_SONG_AUDIO_ASSET = "willows-forest-adventure.mp3";
 export const WILLOW_SONG_AUDIO_URL = `/media/audio/${WILLOW_SONG_AUDIO_ASSET}`;
+/** Printed on Willow’s title page. Kept on one line above the date. */
+export const WILLOW_AUTHOR = "Wernard A. Broodryk";
 export const WILLOW_FRONT_COVER_ASSET = "willow-front-cover.webp";
 export const WILLOW_FRONT_COVER_URL = `/media/images/${WILLOW_FRONT_COVER_ASSET}`;
 /** Seconds into the song when the title page should be showing. */
@@ -338,6 +340,51 @@ export function isWillowSongBook(book: Pick<Book, "slug" | "title" | "pages" | "
     ) &&
     !book.pages.some((item) => item.imageAsset === "willow-chorus-puff.webp")
   );
+}
+
+export function willowAuthorLine(text?: string | null): string {
+  const current = String(text || "").replace(/\s+/g, " ").trim();
+  if (!current || current === "Wernard Broodryk") return WILLOW_AUTHOR;
+  return current;
+}
+
+/** Widen the title-page name so it stays one line, just above the date. */
+export function withWillowTitleCredits(book: Pick<Book, "author" | "titleLayout">): { author: string; titleLayout?: PageLayout } {
+  const authorName = willowAuthorLine(book.author);
+  const layout = book.titleLayout;
+  if (!layout?.elements?.length) return { author: authorName };
+  const elements = layout.elements.map((el) => ({ ...el }));
+  const author = elements.find((el) => el.role === "author" || el.id === "title-author");
+  const date = elements.find((el) => el.role === "date" || el.id === "title-date");
+  if (author) {
+    if (!author.role) author.role = "author";
+    author.text = willowAuthorLine(author.text || book.author);
+    author.align = "center";
+    author.x = 52;
+    author.w = 44;
+    author.y = 82;
+    author.h = 6;
+  }
+  if (date) {
+    if (!date.role) date.role = "date";
+    date.align = "center";
+    date.x = 52;
+    date.w = 44;
+    date.y = 89;
+    date.h = 5;
+  }
+  return { author: author ? willowAuthorLine(author.text) : authorName, titleLayout: { ...layout, elements } };
+}
+
+export function needsWillowTitleCredits(book: Pick<Book, "slug" | "title" | "author" | "titleLayout">): boolean {
+  if (!isWillowBook(book)) return false;
+  const name = String(book.author || "").replace(/\s+/g, " ").trim();
+  if (name === "Wernard Broodryk") return true;
+  const author = book.titleLayout?.elements?.find((el) => el.role === "author" || el.id === "title-author");
+  if (!author) return false;
+  const text = String(author.text || "").replace(/\s+/g, " ").trim();
+  if (text === "Wernard Broodryk") return true;
+  return (Number(author.w) || 0) < 30 && (text === WILLOW_AUTHOR || text === name);
 }
 
 export function withWillowSongTagline(layout: PageLayout | undefined): PageLayout {

@@ -168,7 +168,8 @@ html:not(.mobile) .front-cover-leaf .cover-bit-image[data-id="cover-art"]{object
   padding:8px 22px;
   border-radius:999px;
   cursor:pointer;
-  z-index:21;
+  position:relative;
+  z-index:30;
   pointer-events:auto;
 }
 .page.title-page .sing-along.is-playing,
@@ -1749,18 +1750,33 @@ html:not(.mobile) .page.willow-title>.el-text[data-role="author"],
 html:not(.mobile) .page.willow-title>.el-text[data-id="title-author"],
 html:not(.mobile) .page.willow-title>.el-text[data-role="date"],
 html:not(.mobile) .page.willow-title>.el-text[data-id="title-date"]{
-  left:54%!important;
-  width:40%!important;
+  left:52%!important;
+  width:44%!important;
   height:auto!important;
   overflow:visible;
+  font-size:clamp(16px,2.4cqh,26px)!important;
 }
 html:not(.mobile) .page.willow-title>.el-text[data-role="author"],
 html:not(.mobile) .page.willow-title>.el-text[data-id="title-author"]{
-  top:78%!important;
+  top:auto!important;
+  bottom:calc(5.5% + 1.8em)!important;
 }
 html:not(.mobile) .page.willow-title>.el-text[data-role="date"],
 html:not(.mobile) .page.willow-title>.el-text[data-id="title-date"]{
-  top:88%!important;
+  top:auto!important;
+  bottom:5.5%!important;
+}
+html:not(.mobile) .page.willow-title .zone[data-dir="1"]{
+  left:50%;
+  width:50%;
+}
+html:not(.mobile) .page.willow-title>.el-text[data-role="tagline"]{
+  z-index:31!important;
+  pointer-events:none;
+}
+.page.willow-title>.el-text,
+.page.willow-title>.el-text p{
+  pointer-events:none;
 }
 .page.willow-title>.el-text[data-role="author"] p,
 .page.willow-title>.el-text[data-role="date"] p,
@@ -1769,7 +1785,49 @@ html:not(.mobile) .page.willow-title>.el-text[data-id="title-date"]{
   margin:0!important;
   line-height:1.2;
   text-align:center;
-  white-space:nowrap;
+  white-space:nowrap!important;
+  font-size:inherit!important;
+}
+.book-frame{
+  position:absolute;
+  z-index:40;
+  pointer-events:none;
+}
+html:not(.mobile) .book-frame{
+  top:max(2px, calc((100dvh - var(--book-h)) / 2));
+  left:calc(50% - var(--book-w) / 2);
+  width:var(--book-w);
+  height:var(--book-h);
+}
+.mobile .book-frame{display:none}
+.book-frame .arrow{
+  position:absolute;
+  top:50%;
+  z-index:10;
+  pointer-events:auto;
+  cursor:pointer;
+  width:clamp(28px, calc(var(--book-w, 800px) * 0.0375), 44px);
+  aspect-ratio:1;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.30);
+  opacity:.7;
+  transform:translateY(-50%);
+  transition:opacity .3s ease;
+}
+.book-frame .arrow.l{right:calc(100% + 26px)}
+.book-frame .arrow.r{left:calc(100% + 26px)}
+.book-frame .arrow.off{opacity:0;pointer-events:none}
+.book-frame .arrow svg{
+  width:46%;
+  height:46%;
+  fill:none;
+  stroke:#fff;
+  stroke-width:2.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 .mobile .page.willow-title>.el-text[data-role="author"],
 .mobile .page.willow-title>.el-text[data-role="date"]{

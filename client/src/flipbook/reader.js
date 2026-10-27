@@ -7,7 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref, localFontFaceCss} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, isWillowBook, visibleStoryPages} from '@shared/reader-pages';
-import {WILLOW_FRONT_COVER_URL, WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
+import {WILLOW_FRONT_COVER_URL, WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_TITLE_CUE, willowStoryPageCue, withWillowTitleCredits} from '@shared/willow-song-book';
 import {isImportedPdfFacsimileBook,storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
@@ -39,6 +39,10 @@ function subtitleHtml(tagline) {
 
 function pageCurlHtml(baseUrl) {
   return `<div class="page-curl" hidden aria-hidden="true"><div class="page-curl-peek"></div><img class="page-curl-flap" src="${esc(safeURL("/media/images/page-curl.png", baseUrl))}" alt=""></div>`;
+}
+
+function readerArrowsHtml() {
+  return `<div class="book-frame"><div class="arrow l off" id="arrL" aria-label="Previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></div><div class="arrow r" id="arrR" aria-label="Next page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></div></div>`;
 }
 
 function pageFill(page, book) {
@@ -177,25 +181,8 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   return `<article class="page end-page" data-source="end" aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
 }
 
-function separatedTitleCredits(layout) {
-  const elements = (layout?.elements || []).map((el) => ({ ...el }));
-  const author = elements.find((el) => el.role === "author" || el.id === "title-author");
-  const date = elements.find((el) => el.role === "date" || el.id === "title-date");
-  if (author) {
-    if (!author.role) author.role = "author";
-    author.x = 54;
-    author.w = 42;
-    author.y = 78;
-    author.h = 8;
-  }
-  if (date) {
-    if (!date.role) date.role = "date";
-    date.x = 54;
-    date.w = 42;
-    date.y = 88;
-    date.h = 7;
-  }
-  return { ...(layout || {}), elements };
+function separatedTitleCredits(book) {
+  return withWillowTitleCredits(book).titleLayout || book.titleLayout;
 }
 
 function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hintDesktop="Tap the right page to turn", hintMobile="Swipe left to turn the page"}={}) {
@@ -229,7 +216,7 @@ function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
   const sing = singAlongHtml(book, baseUrl);
   const willowTitle = isWillowBook(book) ? " willow-title" : "";
   if (hasLayout(book.titleLayout)) {
-    const layout = isWillowBook(book) ? separatedTitleCredits(book.titleLayout) : book.titleLayout;
+    const layout = isWillowBook(book) ? separatedTitleCredits(book) : book.titleLayout;
     return laidOutPage("Title page", layout, book, baseUrl, chrome, ` title-page${current}${willowTitle}`, sing, isWillowBook(book) ? cueAttr(WILLOW_SONG_TITLE_CUE) : "").replace("<article", '<article data-source="title"');
   }
   const src = coverSrc(book, baseUrl);
@@ -264,10 +251,10 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const templateAttr=oneLeaf?' data-page-template="one-up"':'';
   const htmlClass=` class="${fadeOpen?"opening":"booting"}${isWillowBook(book)?" willow":""}"`;
   const faces=localFontFaceCss((href)=>safeURL(href,baseUrl));
-  return `<!doctype html><html${htmlClass}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${faces}${css}</style></head><body><a class="reader-close viewport-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr}${templateAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html${htmlClass}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>Book</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${faces}${css}</style></head><body><a class="reader-close viewport-close" href="${esc(safeURL(libraryUrl,baseUrl))}" target="_top" aria-label="Close">×</a><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}${readerArrowsHtml()}<main${openAttr}${templateAttr} aria-label="Book">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
-  const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';
+  const frame=document.createElement('iframe');frame.setAttribute('aria-label',String(book.title||'Book').replace(/\n/g,' '));frame.style.cssText='width:100%;height:100%;border:0;display:block';
   // Generated script is trusted application code; imported PDF text is HTML-escaped.
   frame.srcdoc=createReaderDocument(book,options);container.replaceChildren(frame);
   return {frame,destroy(){frame.remove();}};

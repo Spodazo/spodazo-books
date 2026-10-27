@@ -50,10 +50,20 @@ function fitBoxFont(el){
   }
 }
 function fitPageText(root){
-  var nodes=(root||book).querySelectorAll('.el-text, .cover-bit-text'),i;
-  for(i=0;i<nodes.length;i++)fitBoxFont(nodes[i]);
+  var nodes=(root||book).querySelectorAll('.el-text, .cover-bit-text'),i,el,role;
+  for(i=0;i<nodes.length;i++){
+    el=nodes[i];
+    role=el.getAttribute('data-role');
+    if(el.closest('.willow-title')&&(role==='author'||role==='date'))continue;
+    fitBoxFont(el);
+  }
 }
-function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});document.documentElement.classList.toggle('closed-book',!mobile&&!!(pages[index]&&pages[index].classList.contains('front-cover')));count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();}
+function updateArrows(){
+  var left=document.getElementById('arrL'),right=document.getElementById('arrR');
+  if(left)left.classList.toggle('off',index<=0);
+  if(right)right.classList.toggle('off',index>=pages.length-1);
+}
+function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});document.documentElement.classList.toggle('closed-book',!mobile&&!!(pages[index]&&pages[index].classList.contains('front-cover')));count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();updateArrows();}
 function isPicturePage(p){
   return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('end-page')&&!p.classList.contains('cover-page')&&p.querySelector('img'));
 }
@@ -878,6 +888,30 @@ function watchImages(){
 function bootPages(){
   watchImages();
 }
+function bindArrow(el,dir){
+  if(!el)return;
+  var timer=0;
+  el.addEventListener('click',function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    if(el.classList.contains('off')||busy)return;
+    if(e.detail>=2){
+      clearTimeout(timer);
+      timer=0;
+      if(dir<0)goToStart();
+      else goToEnd();
+      return;
+    }
+    clearTimeout(timer);
+    timer=setTimeout(function(){
+      timer=0;
+      if(el.classList.contains('off'))return;
+      go(dir);
+    },400);
+  });
+}
+bindArrow(document.getElementById('arrL'),-1);
+bindArrow(document.getElementById('arrR'),1);
 rebuild();
 bootPages();
 requestAnimationFrame(function(){requestAnimationFrame(function(){curlHold=false;if(!busy)updateCurl();});});
