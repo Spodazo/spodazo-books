@@ -7,7 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, isWillowBook, visibleStoryPages} from '@shared/reader-pages';
-import {WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
+import {WILLOW_FRONT_COVER_URL, WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_LAST_WORD_AT, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
 import {isImportedPdfFacsimileBook,storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
@@ -133,9 +133,12 @@ function characterSrc(book, baseUrl) {
 
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   if (isWillowBook(book)) {
+    const nap = esc(safeURL("/media/images/willow-bear-nap.webp", baseUrl));
     const src = esc(safeURL("/media/images/willow-back-cover.webp", baseUrl));
+    const napCue = cueAttr(WILLOW_SONG_LAST_WORD_AT);
     const cue = cueAttr(WILLOW_SONG_END_CUE);
-    return `<article class="page end-page back-cover" data-source="end"${cue} aria-label="Back cover"><div class="back-cover-leaf"><img class="back-cover-art" src="${src}" alt=""><button type="button" class="read-again">Read again</button></div><button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+    const napPage = `<article class="page nap-spread" data-source="nap"${napCue} aria-label="A cozy nap"><div class="nap-leaf nap-leaf-blank"></div><div class="nap-leaf nap-leaf-art"><img class="nap-picture" src="${nap}" alt=""></div><button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
+    return `${napPage}<article class="page end-page back-cover" data-source="end"${cue} aria-label="Back cover"><div class="back-cover-leaf"><img class="back-cover-art" src="${src}" alt=""><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></div><button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
   }
   const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
   const cue = isWillowBook(book) ? cueAttr(WILLOW_SONG_END_CUE) : "";
@@ -157,11 +160,16 @@ function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hin
 }
 
 function frontCoverHtml(book, baseUrl, libraryUrl) {
+  const chrome = readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"});
+  if (isWillowBook(book)) {
+    const src = esc(safeURL(WILLOW_FRONT_COVER_URL, baseUrl));
+    return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${chrome}<div class="front-cover-leaf"><img class="front-cover-art" src="${src}" alt=""></div></article>`;
+  }
   if (!hasLayout(book.coverLayout)) return "";
   const layout = book.coverLayout;
   const fill = pageFill(layout, book);
   const items = (layout.elements || []).slice().sort((a, b) => (a.z || 0) - (b.z || 0)).map((el) => elementHtml(el, baseUrl, book).replaceAll('class="el el-', 'class="cover-bit cover-bit-')).join("");
-  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"})}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
+  return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${chrome}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
 }
 
 function singAlongHtml(book, baseUrl) {
@@ -185,7 +193,7 @@ function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
 export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,credits='',copyright='',logoUrl='',fadeOpen=false}={}) {
   if(!book.pages?.length)throw new Error('This book has no pages.');
   const palette=paletteById(book.color);
-  const preload=coverSrc(book,baseUrl);
+  const preload=isWillowBook(book)?esc(safeURL(WILLOW_FRONT_COVER_URL,baseUrl)):coverSrc(book,baseUrl);
   const characterPreload=characterSrc(book,baseUrl);
   const storyPages=visibleStoryPages(book);
   const skipCover=storyPages.length !== (book.pages||[]).length;

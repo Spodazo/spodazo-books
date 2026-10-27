@@ -651,16 +651,18 @@ html:not(.mobile) .page.back-cover.leaf-copy,
 html:not(.mobile) .page.back-cover.fade-page{
   display:block!important;
   grid-template-columns:none!important;
-  background:var(--page-paper,#efdda6)!important;
+  background:transparent!important;
   box-shadow:none!important;
 }
 html:not(.mobile) .back-cover-leaf{
   position:absolute;
   top:0;
   bottom:0;
-  left:0;
+  left:50%;
   width:50%;
   overflow:hidden;
+  border-radius:6px 16px 18px 6px;
+  box-shadow:0 18px 40px #24180f66;
 }
 .mobile .page.back-cover.current,
 .mobile .page.back-cover.leaf-copy,
@@ -679,6 +681,26 @@ html:not(.mobile) .back-cover-leaf{
   object-fit:cover;
   object-position:center center;
 }
+.page.back-cover .end-title{
+  position:absolute;
+  z-index:30;
+  left:18%;
+  right:18%;
+  top:40%;
+  height:14%;
+  margin:0;
+  display:flex!important;
+  align-items:center;
+  justify-content:center;
+  background:#a94300;
+  color:#fff8e6!important;
+  -webkit-text-fill-color:#fff8e6!important;
+  font:700 clamp(28px,4.2vw,56px)/1 Story,sans-serif;
+  letter-spacing:.12em;
+  text-align:center;
+  text-shadow:none!important;
+  pointer-events:none;
+}
 .page.back-cover .read-again{
   position:absolute;
   z-index:40;
@@ -690,6 +712,70 @@ html:not(.mobile) .back-cover-leaf{
   font:500 18px Story,sans-serif;
   text-decoration:underline;
   text-underline-offset:4px;
+}
+.page.nap-spread{
+  background:var(--page-paper,#efdda6);
+}
+html:not(.mobile) .nap-leaf-blank{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  width:50%;
+}
+html:not(.mobile) .nap-leaf-art{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:50%;
+  width:50%;
+  overflow:hidden;
+}
+.nap-picture{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center center;
+}
+.mobile .page.nap-spread.current:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile),
+.mobile .leaf-copy.nap-spread:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile){
+  display:block!important;
+  padding:0!important;
+  background:var(--page-paper,#efdda6)!important;
+}
+.mobile .nap-leaf-blank{display:none!important}
+.mobile .page.nap-spread .nap-leaf-art,
+.mobile .leaf-copy.nap-spread .nap-leaf-art{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+.mobile .page.nap-spread .nap-picture,
+.mobile .leaf-copy.nap-spread .nap-picture{
+  object-fit:contain;
+}
+@media(max-width:700px) and (orientation:portrait),(pointer:coarse) and (max-width:1100px) and (orientation:portrait){
+  .page.nap-spread.current:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile),
+  .leaf-copy.nap-spread:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile){
+    display:block!important;
+    padding:0!important;
+    background:var(--page-paper,#efdda6)!important;
+  }
+  .nap-leaf-blank{display:none!important}
+  .page.nap-spread .nap-leaf-art,
+  .leaf-copy.nap-spread .nap-leaf-art{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+  }
+  .page.nap-spread .nap-picture,
+  .leaf-copy.nap-spread .nap-picture{
+    object-fit:contain;
+  }
 }
 .page.end-page .end-cover-wrap{
   display:none;
@@ -1483,6 +1569,15 @@ html:not(.mobile).closed-book .page.front-cover .reader-close{
 }
 .mobile .front-cover-leaf{
   inset:0;
+}
+.front-cover-art{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center center;
+  pointer-events:none;
 }
 .page.front-cover .zone[data-dir="1"]{
   left:50%;
