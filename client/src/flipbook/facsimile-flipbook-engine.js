@@ -232,7 +232,8 @@
       return;
     }
     ti = spreadIndexForPage(target);
-    if (ti > idx) go(1);
+    if (ti < 0) return;
+    if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1);
   }
 
   function stopSong() {
@@ -536,7 +537,7 @@
     for (var i = 0; i <= LAST; i++) {
       if (SP[i][0] === n || SP[i][1] === n) return i;
     }
-    return 0;
+    return -1;
   }
 
   function layout() {
@@ -630,10 +631,6 @@
     }
     updateArrows();
     updateSoundButton();
-    if (SING && song && songStarted && !song.paused && storySyncPdfPage() >= SING.firstPage) {
-      var syncCue = cueForPdfPage(storySyncPdfPage());
-      if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
-    }
     return Promise.all(jobs);
   }
 
@@ -755,9 +752,10 @@
           turnAnims = [];
           stackL.style.transition = stackR.style.transition = "";
           busy = false;
+          followSong();
         });
       });
-    }).catch(function () { if (gen === turnGen) { busy = false; render(); } });
+    }).catch(function () { if (gen === turnGen) { busy = false; render(); followSong(); } });
   }
 
   function go(dir) {

@@ -254,7 +254,7 @@ body {
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
   var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3';
   var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
-  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468];
+  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 287, 289, 318, 345, 356, 378, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
   var song = null, songMuted = true, songStarted = false;
   var soundBtn = document.getElementById('soundBtn');
@@ -648,10 +648,6 @@ body {
     }
     updateArrows();
     updateSoundButton();
-    if (song && songStarted && !song.paused && storySyncImage() >= SONG_FIRST) {
-      var syncCue = cueForImage(storySyncImage());
-      if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
-    }
     return Promise.all(jobs);
   }
   function hideLeaf() { slotL.style.opacity = ''; leaf.style.display = 'none'; front.style.cssText = ''; back.style.cssText = ''; }
@@ -790,9 +786,10 @@ body {
             slotL.classList.remove('hide');
           }
           busy = false;
+          followSong();
         });
       });
-    }).catch(function () { if (gen === turnGen) { busy = false; render(); } });
+    }).catch(function () { if (gen === turnGen) { busy = false; render(); followSong(); } });
   }
 
   function openCover() {
