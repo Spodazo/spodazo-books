@@ -667,10 +667,10 @@ html:not(.mobile) .back-cover-leaf{
   position:absolute;
   top:0;
   bottom:0;
-  left:0;
+  left:50%;
   width:50%;
   overflow:hidden;
-  border-radius:16px 6px 6px 18px;
+  border-radius:6px 16px 18px 6px;
   box-shadow:0 18px 40px #24180f66;
 }
 .mobile .page.back-cover.current,
@@ -690,7 +690,7 @@ html:not(.mobile) .back-cover-leaf{
   object-fit:cover;
   object-position:center center;
 }
-.page.back-cover .end-title{
+.page.back-cover .back-cover-leaf > .end-title{
   position:absolute;
   z-index:30;
   left:18%;
@@ -710,7 +710,7 @@ html:not(.mobile) .back-cover-leaf{
   text-shadow:none!important;
   pointer-events:none;
 }
-.page.back-cover .read-again{
+.page.back-cover .back-cover-leaf > .read-again{
   position:absolute;
   z-index:40;
   left:50%;

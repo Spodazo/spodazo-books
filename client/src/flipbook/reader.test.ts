@@ -57,7 +57,7 @@ test("Willow’s front cover is the supplied page", async () => {
   assert.match(css, /\.front-cover-art\{[^}]*object-fit:cover/);
 });
 
-test("Willow’s back cover is a single left leaf with The End", async () => {
+test("Willow’s back cover is a single right leaf with The End", async () => {
   const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
   assert.match(reader, /willow-bear-nap\.webp/);
@@ -68,10 +68,10 @@ test("Willow’s back cover is a single left leaf with The End", async () => {
   assert.match(reader, /class="end-title">THE END/);
   assert.match(reader, /class="read-again">Read again/);
   assert.match(reader, /legalHtml\(credits, copyright, logoUrl, baseUrl, book\.date\)/);
-  assert.match(css, /html:not\(\.mobile\) \.back-cover-leaf\{[^}]*left:0;/);
-  assert.doesNotMatch(css, /html:not\(\.mobile\) \.back-cover-leaf\{[^}]*left:50%/);
+  assert.match(css, /html:not\(\.mobile\) \.back-cover-leaf\{[^}]*left:50%;/);
+  assert.doesNotMatch(css, /html:not\(\.mobile\) \.back-cover-leaf\{[^}]*left:0;/);
   assert.match(css, /\.mobile \.back-cover-leaf\{[^}]*inset:0/);
   assert.match(css, /html:not\(\.mobile\) \.nap-leaf-art\{[^}]*left:50%/);
   assert.match(css, /\.nap-picture\{[^}]*object-fit:cover/);
-  assert.match(css, /\.page\.back-cover \.read-again\{[^}]*top:57%/);
+  assert.match(css, /\.page\.back-cover \.back-cover-leaf > \.read-again\{[^}]*top:57%/);
 });

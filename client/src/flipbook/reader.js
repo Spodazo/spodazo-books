@@ -7,7 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, isWillowBook, visibleStoryPages} from '@shared/reader-pages';
-import {WILLOW_FRONT_COVER_URL, WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_LAST_WORD_AT, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
+import {WILLOW_FRONT_COVER_URL, WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
 import {isImportedPdfFacsimileBook,storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
@@ -62,7 +62,7 @@ function elementFrameInk(el, book) {
 
 function bookFontFamilies(book) {
   const ids = [book?.textFont];
-  for (const layout of [book?.coverLayout, book?.titleLayout, book?.endLayout, ...(book?.pages || [])]) {
+  for (const layout of [book?.coverLayout, book?.backCoverLayout, book?.titleLayout, book?.endLayout, ...(book?.pages || [])]) {
     for (const el of layout?.elements || []) {
       if (el.fontFamily) ids.push(el.fontFamily);
     }
@@ -141,17 +141,19 @@ function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
     const napPage = `<article class="page nap-spread" data-source="nap"${napCue} aria-label="A cozy nap"><div class="nap-leaf nap-leaf-blank"></div><div class="nap-leaf nap-leaf-art"><img class="nap-picture" src="${nap}" alt=""></div><button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
     return `${napPage}<article class="page end-page back-cover" data-source="end"${cue} aria-label="Back cover"><div class="back-cover-leaf"><img class="back-cover-art" src="${src}" alt=""><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button>${legal}</div><button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
   }
-  const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
+  const legal = legalHtml(credits, copyright, logoUrl, baseUrl, book.date);
+  const zone = `<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
   const cue = isWillowBook(book) ? cueAttr(WILLOW_SONG_END_CUE) : "";
   if (hasLayout(book.endLayout)) {
-    return laidOutPage("The end", book.endLayout, book, baseUrl, extras, " end-page", "", cue).replace("<article", '<article data-source="end"');
+    const page = laidOutPage("The end", book.endLayout, book, baseUrl, legal, " end-page back-cover", "", cue).replace("<article", '<article data-source="end"');
+    return page.replace(/(<article[^>]*>)/, "$1<div class=\"back-cover-leaf\">").replace("</article>", `</div>${zone}</article>`);
   }
   const src = coverSrc(book, baseUrl);
   const character = characterSrc(book, baseUrl);
   const left = character
     ? `<div class="end-cover-wrap end-character-wrap"><img class="end-character" src="${character}" alt="" width="560" height="860"></div>`
     : (src ? `<div class="end-cover-wrap"><img class="end-cover" src="${src}" alt=""></div>` : "");
-  return `<article class="page end-page" data-source="end"${cue} aria-label="The end">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  return `<article class="page end-page back-cover" data-source="end"${cue} aria-label="The end"><div class="back-cover-leaf">${left}<section class="end-meta"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button></section>${legal}</div>${zone}</article>`;
 }
 
 function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hintDesktop="Tap the right page to turn", hintMobile="Swipe left to turn the page"}={}) {

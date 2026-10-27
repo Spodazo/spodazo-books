@@ -1,5 +1,5 @@
 ---
-description: Finalize Spodazo Books work on main, then ask before pushing main to Railway
+description: Finish Spodazo Books work by pushing main so Railway can deploy
 alwaysApply: true
 ---
 
@@ -11,21 +11,21 @@ Railway production (`https://books.spodazo.com`) deploys from **`main` only**.
 
 Check out `main` and pull `origin/main`. Stay on `main` for the whole job. Do not create a feature branch. A new chat must switch to `main` itself before editing so every chat in this repo ends up on `main`.
 
-## After every change set
+## Finish in the same turn
 
-1. **Finalize** the work on `main` (implement, verify locally if needed, commit locally if the change is complete).
-2. **Do not** push `main`, and do not treat the site as updated, until the user agrees to publish.
-3. **Tell them clearly** the work is done but **not live on Railway yet**.
-4. **Ask once**: whether to publish to Railway now.
+A change is not done until `git push origin main`.
 
-Leave those commits on local `main` until they say `pp`. Do not invent a feature branch to hold them.
+1. Implement and verify on `main`.
+2. Commit on `main` when the change is complete.
+3. `git push origin main` in that same turn. No pull request. No merge step.
+4. Confirm the Railway / GitHub deployment for that commit is pending or succeeded.
+5. Say whether it is live yet, and give the commit short SHA.
+
+Do not leave the commit only on local `main`. Do not invent a feature branch. Do not ask for a separate publish step before the push.
 
 ## When they say yes / publish / pp
 
-1. Commit if there are unpublished local changes for this work.
-2. `git push origin main`. No pull request. No merge step.
-3. Confirm the Railway / GitHub deployment for that commit succeeded.
-4. Reply with: **live on Railway** + the commit short SHA.
+If the push has not happened yet, commit any remaining work and `git push origin main`. No extra confirmation.
 
 ## Never
 
@@ -34,5 +34,5 @@ Leave those commits on local `main` until they say `pp`. Do not invent a feature
 - Skip hooks.
 - Open a pull request or merge a pull request as the normal publish path.
 - Say or imply changes are “published” / “live” before `main` is pushed and the deploy for that commit has succeeded.
-- Skip the ask and push `main` on your own.
+- Stop at a local commit.
 - Leave them unsure whether production updated — always state live vs not live.
