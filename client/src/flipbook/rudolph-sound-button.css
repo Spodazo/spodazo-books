@@ -1,4 +1,4 @@
-/* Rudolph music pill — Start Music / Silence Music */
+/* Rudolph music control — Start Music / Silence Music */
 .rudolph-sound {
   position: absolute;
   z-index: 15;
@@ -7,14 +7,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 8px 18px;
+  min-height: 29px;
+  padding: 6px 10px;
   margin: 0;
   border: 2px solid #fff;
-  border-radius: 999px;
+  border-radius: 3px;
   background-color: #1fa34a;
   color: #fff;
-  font: 600 13px Lexend, system-ui, sans-serif;
+  font: 600 10px Lexend, system-ui, sans-serif;
   letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: pointer;

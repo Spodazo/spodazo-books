@@ -145,8 +145,8 @@
     var gapAbove = 14;
     var sideGap = Math.max(10, Math.round(pw * 0.035));
     var compactLandscape = sr.width > sr.height && Math.min(sr.width, sr.height) < 520;
-    var w = soundBtn.offsetWidth || 132;
-    var h = soundBtn.offsetHeight || 36;
+    var w = soundBtn.offsetWidth || 106;
+    var h = soundBtn.offsetHeight || 29;
     var x;
     var y;
     if (compactLandscape) {
