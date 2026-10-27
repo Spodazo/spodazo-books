@@ -43,6 +43,8 @@ export async function refreshImportedPdfIndexLinks(store: BookStore): Promise<nu
       await realignImageContents(book.pages, found);
       if (!found.size && !book.pages.some((page) => (page.links || []).length)) continue;
       if (!linksChanged(book.pages, found)) continue;
+      const latest = await store.getBookById(book.id);
+      if (!latest || latest.pdf !== book.pdf) continue;
       const pages = book.pages.map((page) => ({
         ...page,
         links: found.get(page.sourcePage) || [],

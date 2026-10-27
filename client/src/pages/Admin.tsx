@@ -899,6 +899,7 @@ function BookEditor({
             if (!confirm(`Replace the pages of “${book.title.replace(/\n/g, " ")}” with this PDF? The address /${book.slug} stays the same.`)) return;
             setRevisedBusy(true);
             setError("");
+            setRevisedNote("Saving the new pages. This can take a minute.");
             try {
               const saved = await replaceBookPdf(book.id, file);
               const firstPage = saved.pages?.[0]?.imageAsset || saved.cover || "";

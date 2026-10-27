@@ -129,14 +129,34 @@ export function importPdfOnServer(file: File): Promise<ServerPdfImport> {
   );
 }
 
-export function replaceBookPdf(id: string, file: File): Promise<PublicBook> {
+type PdfReplaceStart = PublicBook | { status: "running"; bookId: string };
+type PdfReplacePoll =
+  | { status: "running" }
+  | { status: "idle" }
+  | { status: "done"; book: PublicBook }
+  | { status: "error"; error?: string };
+
+export async function replaceBookPdf(id: string, file: File): Promise<PublicBook> {
   const data = new FormData();
   data.append("file", file, file.name);
-  return fetch(`/api/admin/books/${encodeURIComponent(id)}/replace-pdf`, {
+  const started = await fetch(`/api/admin/books/${encodeURIComponent(id)}/replace-pdf`, {
     method: "POST",
     body: data,
     credentials: "same-origin",
-  }).then((res) => parse<PublicBook>(res));
+  }).then((res) => parse<PdfReplaceStart>(res));
+  if (!("status" in started) || started.status !== "running") return started as PublicBook;
+  const deadline = Date.now() + 10 * 60 * 1000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const job = await fetch(`/api/admin/books/${encodeURIComponent(id)}/replace-pdf-status`, {
+      credentials: "same-origin",
+      cache: "no-store",
+    }).then((res) => parse<PdfReplacePoll>(res));
+    if (job.status === "done") return job.book;
+    if (job.status === "error") throw new Error(job.error || "Could not replace the book");
+    if (job.status === "idle") throw new Error("The revised PDF did not finish saving. Please upload it again.");
+  }
+  throw new Error("The new PDF is still being prepared. Wait a minute, then open the book.");
 }
 
 export function uploadBookAsset(blob: Blob, filename: string): Promise<{ url: string; filename: string }> {

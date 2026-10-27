@@ -12,6 +12,7 @@ import { ensureEchoesContentsList } from "./echoes-contents-list";
 import { refreshImportedPdfIndexLinks } from "./pdf-index-links-refresh";
 import { ensureRudolphOneUpDisplay } from "./rudolph-one-up-migration";
 import { ensureRudolphPublicSlug } from "./rudolph-slug";
+import { ensureRudolphCurrentPdf } from "./rudolph-current-pdf";
 import { ensureWillowSongBook } from "./willow-song-book";
 import { getStore } from "./storage";
 
@@ -159,6 +160,9 @@ async function start() {
 
   app.listen(port, "0.0.0.0", () => {
     console.log(`[spodazo-books] listening on ${port}`);
+    void ensureRudolphCurrentPdf(store).catch((err) => {
+      console.error("[catalog] Rudolph PDF update failed:", err);
+    });
   });
 }
 

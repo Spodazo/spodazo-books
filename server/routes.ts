@@ -37,6 +37,7 @@ import {
   parseOutlineRequest,
 } from "./ai-book";
 import { importPdfOnServer } from "./pdf-import";
+import { pdfReplaceStatus, startPdfReplace } from "./replace-book-pdf";
 import { withTaglineText, withTitleText } from "../shared/page-layout";
 
 function isPdfUpload(file: { fieldname: string; mimetype: string; originalname: string }): boolean {
@@ -453,64 +454,45 @@ export function registerRoutes(app: Express): void {
       return;
     }
     try {
-      req.setTimeout(10 * 60 * 1000);
-      res.setTimeout(10 * 60 * 1000);
       const store = await getStore();
       const current = await store.getBookById(req.params.id);
       if (!current) {
         res.status(404).json({ error: "Book not found" });
         return;
       }
+      const running = pdfReplaceStatus(current.id);
+      if (running?.status === "running") {
+        res.status(409).json({ error: "A revised PDF is already being saved for this book." });
+        return;
+      }
       const revision = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
       const stampedName = uniqueFileName(pdfsDir(), `${revision}.pdf`);
       const stampedPath = path.join(pdfsDir(), stampedName);
       await fs.promises.rename(file.path, stampedPath);
-      const imported = await importPdfOnServer(stampedPath, file.originalname, undefined, revision);
-      const first = imported.book.pages[0];
-      const updated = await store.updateBook(current.id, {
-        pdf: imported.pdfAsset,
-        pages: imported.book.pages.map((page, index) => normalizeBookPage(page, index)),
-        cover: first?.imageAsset || current.cover,
-        pageTemplate: "one-up",
-        coverLayout: {
-          background: current.spreadBackground || "#021b3f",
-          elements: first
-            ? [{
-              id: "cover-art",
-              type: "image" as const,
-              x: 0,
-              y: 0,
-              w: 100,
-              h: 100,
-              z: 1,
-              imageAsset: first.imageAsset,
-              imageUrl: first.imageUrl,
-              fit: "contain" as const,
-              focusX: 50,
-              focusY: 50,
-              opacity: 100,
-            }]
-            : [],
-        },
-      });
-      if (!updated) {
-        res.status(404).json({ error: "Book not found" });
-        return;
-      }
-      const saved = await store.getBookById(current.id);
-      const savedFirst = saved?.pages[0]?.imageAsset || "";
-      const expectedFirst = first?.imageAsset || "";
-      if (!saved || saved.pdf !== imported.pdfAsset || savedFirst !== expectedFirst) {
-        res.status(500).json({ error: "The revised PDF was not saved onto this book." });
-        return;
-      }
-      if (expectedFirst) {
-        await fs.promises.access(path.join(imagesDir(), expectedFirst));
-      }
-      sendNoStoreJson(res, saved);
+      // Rendering every page can take longer than the proxy will hold the request open.
+      // Save the file, answer now, and finish the pages after this response.
+      startPdfReplace(store, current.id, stampedPath, file.originalname, revision);
+      sendNoStoreJson(res, { status: "running", bookId: current.id });
     } catch (err) {
       res.status(400).json({ error: err instanceof Error ? err.message : "Could not replace the book" });
     }
+  });
+
+  app.get("/api/admin/books/:id/replace-pdf-status", requireAdmin, async (req, res) => {
+    const job = pdfReplaceStatus(req.params.id);
+    if (!job) {
+      sendNoStoreJson(res, { status: "idle" });
+      return;
+    }
+    if (job.status === "done") {
+      sendNoStoreJson(res, { status: "done", book: job.book });
+      return;
+    }
+    if (job.status === "error") {
+      sendNoStoreJson(res, { status: "error", error: job.error });
+      return;
+    }
+    sendNoStoreJson(res, { status: "running" });
   });
 
   app.post("/api/admin/books", requireAdmin, upload.fields([{ name: "cover", maxCount: 1 }, { name: "pdf", maxCount: 1 }]), async (req, res) => {
