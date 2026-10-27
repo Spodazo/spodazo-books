@@ -607,7 +607,7 @@ export function registerRoutes(app: Express): void {
     try {
       const file = await preparedImagePath(full, width);
       res.sendFile(path.resolve(file), {
-        headers: { "Cache-Control": "public, max-age=86400" },
+        headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache", Expires: "0" },
       });
     } catch {
       res.sendFile(path.resolve(full));

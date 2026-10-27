@@ -29,7 +29,7 @@ import {
 } from "../shared/seed-data";
 import { normalizePaletteId } from "../shared/palettes";
 import type { Book, BookListItem, BookPage, Curator, CuratorRecord, PlayerSetup, PublicBook } from "../shared/types";
-import { COLLECTION_COVER_WIDTH, HOME_CARD_WIDTH, imageUrl, pdfUrl } from "./media";
+import { COLLECTION_COVER_WIDTH, HOME_CARD_WIDTH, assetVersion, imageUrl, pdfUrl } from "./media";
 import { catalogPath, ensureDataDirs } from "./paths";
 
 export type BookInput = {
@@ -85,28 +85,34 @@ function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-function hydrateElements(elements: BookPage["elements"]): BookPage["elements"] {
+function hydrateElements(elements: BookPage["elements"], version?: string): BookPage["elements"] {
   return elements.map((item) => ({
     ...item,
-    imageUrl: item.imageAsset ? imageUrl(item.imageAsset) : item.imageUrl || "",
+    imageUrl: item.imageAsset ? imageUrl(item.imageAsset, undefined, version) : item.imageUrl || "",
   }));
 }
 
-function hydratePages(pages: BookPage[]): BookPage[] {
+function hydratePages(pages: BookPage[], version?: string): BookPage[] {
   return pages.map((page) => ({
     ...page,
-    imageUrl: imageUrl(page.imageAsset),
-    fullPageUrl: imageUrl(page.fullPageAsset || page.imageAsset),
-    elements: hydrateElements(page.elements || []),
+    imageUrl: imageUrl(page.imageAsset, undefined, version),
+    fullPageUrl: imageUrl(page.fullPageAsset || page.imageAsset, undefined, version),
+    elements: hydrateElements(page.elements || [], version),
   }));
+}
+
+function bookContentVersion(book: Book): string {
+  const updated = book.updatedAt ? new Date(book.updatedAt).getTime() : 0;
+  return updated ? `${assetVersion()}-${updated}` : assetVersion();
 }
 
 function hydrateBook(book: Book): PublicBook {
-  const pages = hydratePages(book.pages);
+  const version = bookContentVersion(book);
+  const pages = hydratePages(book.pages, version);
   const coverAsset = book.cover || pages[0]?.imageAsset || pages[0]?.fullPageAsset || "";
-  const coverUrl = imageUrl(coverAsset, HOME_CARD_WIDTH);
+  const coverUrl = imageUrl(coverAsset, HOME_CARD_WIDTH, version);
   const coverLayout = syncCoverLayoutWithArt(
-    { ...book.coverLayout, elements: hydrateElements(book.coverLayout?.elements || []) },
+    { ...book.coverLayout, elements: hydrateElements(book.coverLayout?.elements || [], version) },
     coverAsset,
     coverUrl,
   );
@@ -117,10 +123,10 @@ function hydrateBook(book: Book): PublicBook {
     coverUrl,
     pdfUrl: pdfUrl(book.pdf),
     pageCount: pages.length,
-    titleLayout: { ...book.titleLayout, elements: hydrateElements(book.titleLayout.elements) },
+    titleLayout: { ...book.titleLayout, elements: hydrateElements(book.titleLayout.elements, version) },
     coverLayout,
-    backCoverLayout: { ...book.backCoverLayout, elements: hydrateElements(book.backCoverLayout?.elements || []) },
-    endLayout: { ...book.endLayout, elements: hydrateElements(book.endLayout.elements) },
+    backCoverLayout: { ...book.backCoverLayout, elements: hydrateElements(book.backCoverLayout?.elements || [], version) },
+    endLayout: { ...book.endLayout, elements: hydrateElements(book.endLayout.elements, version) },
   };
 }
 
