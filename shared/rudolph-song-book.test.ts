@@ -39,7 +39,7 @@ test("Rudolph sing-along follows the recording through the outro", () => {
   assert.deepEqual(rudolphSingAlongConfig("/").verselessBriefSpread, {
     left: 16,
     right: 17,
-    dwellMs: 2000,
+    dwellMs: 3000,
   });
   assert.equal(rudolphSingalongNoteMetrics(900, 1080).topPct, 43.52);
   assert.equal(rudolphSingalongNoteMetrics(1188, 1861).topPct, 91.1);
