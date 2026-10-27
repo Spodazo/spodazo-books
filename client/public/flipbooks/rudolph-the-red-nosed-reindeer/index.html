@@ -256,7 +256,7 @@ body {
   var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
   var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 287, 289, 318, 345, 356, 378, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
-  var song = null, songMuted = true, songStarted = false;
+  var song = null, songMuted = true, songStarted = false, songFollowTurn = false;
   var soundBtn = document.getElementById('soundBtn');
 
   function songAudioUrl() {
@@ -363,6 +363,25 @@ body {
     if (storySyncImage() === SONG_FIRST && (!songStarted || song.currentTime < 0.25)) song.currentTime = 0;
     else syncSongTimeToView();
   }
+  function syncSongToManualPage() {
+    if (!songStarted) return;
+    ensureSong();
+    if (song.paused && !song.ended) return;
+    var img = storySyncImage(), c;
+    if (img < SONG_FIRST) return;
+    c = cueForImage(img);
+    if (isNaN(c)) return;
+    if (img === SONG_FIRST && c < 0.5) song.currentTime = 0;
+    else song.currentTime = c;
+  }
+  function afterTurnSongSync() {
+    if (songFollowTurn) {
+      songFollowTurn = false;
+      followSong();
+      return;
+    }
+    syncSongToManualPage();
+  }
   function toggleMusicButton() {
     ensureSong();
     if (musicAudible()) {
@@ -402,12 +421,18 @@ body {
     cur = maxVisibleImage();
     if (target <= cur) return;
     if (single) {
-      if (pg + 1 < target) go(1);
+      if (pg + 1 < target) {
+        songFollowTurn = true;
+        go(1);
+      }
       return;
     }
     ti = spreadIndexForImage(target);
     if (ti < 0) return;
-    if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1);
+    if (ti > idx || (ti === idx && SP[idx][1] < target)) {
+      songFollowTurn = true;
+      go(1);
+    }
   }
   function stopSong() {
     songStarted = false;
@@ -786,10 +811,10 @@ body {
             slotL.classList.remove('hide');
           }
           busy = false;
-          followSong();
+          afterTurnSongSync();
         });
       });
-    }).catch(function () { if (gen === turnGen) { busy = false; render(); followSong(); } });
+    }).catch(function () { if (gen === turnGen) { busy = false; render(); afterTurnSongSync(); } });
   }
 
   function openCover() {
@@ -850,6 +875,7 @@ body {
     closed = !single;
     clearSettle();
     layout();
+    afterTurnSongSync();
   }
 
   function goToEnd() {
@@ -861,6 +887,7 @@ body {
     closed = false;
     clearSettle();
     layout();
+    afterTurnSongSync();
   }
 
   var mobileZoomCtl = null;

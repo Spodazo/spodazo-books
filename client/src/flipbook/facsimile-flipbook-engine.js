@@ -56,6 +56,7 @@
   var song = null;
   var songMuted = true;
   var songStarted = false;
+  var songFollowTurn = false;
   var soundBtn = document.getElementById("soundBtn");
 
   function songAudioUrl() {
@@ -180,6 +181,29 @@
     if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
   }
 
+  /** Snap playback to the visible story page after a manual page turn. */
+  function syncSongToManualPage() {
+    if (!SING || !songStarted) return;
+    ensureSong();
+    if (song.paused && !song.ended) return;
+    var page = storySyncPdfPage();
+    var c;
+    if (page < SING.firstPage) return;
+    c = cueForPdfPage(page);
+    if (isNaN(c)) return;
+    if (page === SING.firstPage && c < 0.5) song.currentTime = 0;
+    else song.currentTime = c;
+  }
+
+  function afterTurnSongSync() {
+    if (songFollowTurn) {
+      songFollowTurn = false;
+      followSong();
+      return;
+    }
+    syncSongToManualPage();
+  }
+
   function primeSongTime() {
     if (storySyncPdfPage() === SING.firstPage && (!songStarted || song.currentTime < 0.25)) song.currentTime = 0;
     else syncSongTimeToView();
@@ -228,12 +252,18 @@
     cur = maxVisiblePdfPage();
     if (target <= cur) return;
     if (single) {
-      if (pg + 1 < target) go(1);
+      if (pg + 1 < target) {
+        songFollowTurn = true;
+        go(1);
+      }
       return;
     }
     ti = spreadIndexForPage(target);
     if (ti < 0) return;
-    if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1);
+    if (ti > idx || (ti === idx && SP[idx][1] < target)) {
+      songFollowTurn = true;
+      go(1);
+    }
   }
 
   function stopSong() {
@@ -325,7 +355,7 @@
     idx = spreadIndexForPage(n);
     suppressTurns = true;
     suppressTurnsUntil = Date.now() + 900;
-    applyState();
+    applyState().then(afterTurnSongSync);
   }
 
   function clearIndexHots(page) {
@@ -752,10 +782,16 @@
           turnAnims = [];
           stackL.style.transition = stackR.style.transition = "";
           busy = false;
-          followSong();
+          afterTurnSongSync();
         });
       });
-    }).catch(function () { if (gen === turnGen) { busy = false; render(); followSong(); } });
+    }).catch(function () {
+      if (gen === turnGen) {
+        busy = false;
+        render();
+        afterTurnSongSync();
+      }
+    });
   }
 
   function go(dir) {
@@ -812,7 +848,7 @@
     suppressTurnsUntil = 0;
     idx = 0;
     pg = 0;
-    applyState();
+    applyState().then(afterTurnSongSync);
   }
 
   function goToEnd() {
@@ -825,7 +861,7 @@
     suppressTurnsUntil = 0;
     idx = LAST;
     pg = TOTAL - 1;
-    applyState();
+    applyState().then(afterTurnSongSync);
   }
 
   var mobileZoomCtl = null;
