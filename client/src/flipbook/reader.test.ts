@@ -28,11 +28,13 @@ test("desktop and landscape flip books keep a 2px top and bottom margin", async 
   const engine = await readFile(new URL("./facsimile-flipbook-engine.js", import.meta.url), "utf8");
   assert.match(engine, /var m = single \? Math\.max\(12, Math\.round\(H \* 0\.03\)\) : 2;/);
   assert.match(engine, /ph = avail;/);
-  assert.doesNotMatch(engine, /sideRoom/);
+  assert.match(engine, /var sideRoom = Math\.round\(btn \+ 40\)/);
   const rudolph = await readFile(new URL("../../public/flipbooks/rudolph-the-red-nosed-reindeer/index.html", import.meta.url), "utf8");
   const beThou = await readFile(new URL("../../public/flipbooks/be-thou-my-vision/index.html", import.meta.url), "utf8");
   assert.match(rudolph, /ph = avail;/);
+  assert.match(rudolph, /var sideRoom = Math\.round\(btn \+ 40\)/);
   assert.match(beThou, /ph = avail;/);
+  assert.match(beThou, /var sideRoom = Math\.round\(btn \+ 40\)/);
   assert.match(css, /a\.viewport-close/);
   assert.match(css, /html\.mobile main/);
   assert.doesNotMatch(css, /--book-w:calc\(var\(--book-h\) \* 1\.6\)/);

@@ -379,12 +379,21 @@ body { background: var(--ground); color: #fff; }
     if (single) {
       pw = Math.floor(Math.min(W, avail / RATIO));
       ph = Math.floor(pw * RATIO);
-    } else if ((avail / RATIO) * 2 <= W) {
-      ph = avail;
-      pw = ph / RATIO;
     } else {
-      pw = W / 2;
-      ph = pw * RATIO;
+      // The arrow sits 26px outside the page and is at most 44px wide. Keep the full height when that gutter already fits; otherwise scale the spread down.
+      var btn = Math.min(44, Math.max(28, 0.075 * (avail / RATIO)));
+      var sideRoom = Math.round(btn + 40);
+      var fitPw = avail / RATIO;
+      if (fitPw * 2 <= W - 2 * sideRoom) {
+        ph = avail;
+        pw = fitPw;
+      } else if ((W - 2 * sideRoom) / 2 >= 200) {
+        pw = (W - 2 * sideRoom) / 2;
+        ph = pw * RATIO;
+      } else {
+        pw = Math.min(W / 2, fitPw);
+        ph = pw * RATIO;
+      }
     }
     var bw = single ? pw : pw * 2;
     book.style.width = bw + 'px';
