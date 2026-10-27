@@ -109,6 +109,7 @@
     if (song) return song;
     song = new Audio(SING.audio);
     song.preload = "auto";
+    song.muted = songMuted;
     song.addEventListener("timeupdate", followSong);
     song.addEventListener("ended", function () { syncSoundButton(); followSong(); });
     song.addEventListener("play", syncSoundButton);
@@ -168,7 +169,7 @@
   }
 
   function tryStartSong() {
-    if (!SING || songMuted || songStarted || maxVisiblePdfPage() < SING.firstPage) return;
+    if (!SING || songStarted || maxVisiblePdfPage() < SING.firstPage) return;
     ensureSong();
     syncSongTimeToView();
     songStarted = true;
@@ -179,7 +180,7 @@
     var target;
     var cur;
     var ti;
-    if (!SING || songMuted || busy) return;
+    if (!SING || busy) return;
     var audio = ensureSong();
     if (!audio || (audio.paused && !audio.ended)) return;
     target = pdfPageForTime(audio.ended ? SING.duration : audio.currentTime);
@@ -197,15 +198,10 @@
   function toggleSongMute() {
     if (!SING) return;
     ensureSong();
-    if (songMuted) {
-      songMuted = false;
-      syncSongTimeToView();
-      song.play().catch(function () {});
-      songStarted = true;
-    } else {
-      songMuted = true;
-      song.pause();
-    }
+    songMuted = !songMuted;
+    song.muted = songMuted;
+    if (!songStarted && maxVisiblePdfPage() >= SING.firstPage) tryStartSong();
+    else if (song.paused && !song.ended) song.play().catch(function () {});
     syncSoundButton();
   }
 
@@ -214,6 +210,7 @@
     if (!song) return;
     song.pause();
     try { song.currentTime = 0; } catch (e) {}
+    song.muted = false;
     syncSoundButton();
   }
 

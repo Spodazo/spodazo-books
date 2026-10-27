@@ -285,6 +285,7 @@ body {
     if (song) return song;
     song = new Audio(SONG_SRC);
     song.preload = 'auto';
+    song.muted = songMuted;
     song.addEventListener('timeupdate', followSong);
     song.addEventListener('ended', function () { syncSoundButton(); followSong(); });
     song.addEventListener('play', syncSoundButton);
@@ -335,7 +336,7 @@ body {
     if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
   }
   function tryStartSong() {
-    if (songMuted || songStarted || maxVisibleImage() < SONG_FIRST) return;
+    if (songStarted || maxVisibleImage() < SONG_FIRST) return;
     ensureSong();
     syncSongTimeToView();
     songStarted = true;
@@ -343,7 +344,7 @@ body {
   }
   function followSong() {
     var target, cur, ti, audio;
-    if (songMuted || busy) return;
+    if (busy) return;
     audio = ensureSong();
     if (audio.paused && !audio.ended) return;
     target = imageForTime(audio.ended ? SONG_DURATION : audio.currentTime);
@@ -360,15 +361,10 @@ body {
   }
   function toggleSongMute() {
     ensureSong();
-    if (songMuted) {
-      songMuted = false;
-      syncSongTimeToView();
-      song.play().catch(function () {});
-      songStarted = true;
-    } else {
-      songMuted = true;
-      song.pause();
-    }
+    songMuted = !songMuted;
+    song.muted = songMuted;
+    if (!songStarted && maxVisibleImage() >= SONG_FIRST) tryStartSong();
+    else if (song.paused && !song.ended) song.play().catch(function () {});
     syncSoundButton();
   }
   function stopSong() {
@@ -376,6 +372,7 @@ body {
     if (!song) return;
     song.pause();
     try { song.currentTime = 0; } catch (e) {}
+    song.muted = false;
     syncSoundButton();
   }
   if (soundBtn) {
