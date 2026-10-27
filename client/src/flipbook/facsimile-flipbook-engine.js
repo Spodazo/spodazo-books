@@ -56,7 +56,20 @@
   var song = null;
   var songMuted = false;
   var songStarted = false;
+  var songWaitingGesture = false;
+  var songGesturePending = false;
   var soundBtn = document.getElementById("soundBtn");
+
+  function songAudioUrl() {
+    if (!SING) return "";
+    var src = SING.audio;
+    if (/^https?:\/\//i.test(src)) return src;
+    try {
+      return new URL(src, window.location.href).href;
+    } catch (e) {
+      return src;
+    }
+  }
 
   function cueForPdfPage(n) {
     if (!SING || n < SING.firstPage || n > SING.endPage) return NaN;
@@ -102,9 +115,10 @@
   function ensureSong() {
     if (!SING) return null;
     if (song) return song;
-    song = new Audio(SING.audio);
+    song = new Audio(songAudioUrl());
     song.preload = "auto";
     song.muted = songMuted;
+    song.setAttribute("playsinline", "");
     song.addEventListener("timeupdate", followSong);
     song.addEventListener("ended", function () { syncSoundButton(); followSong(); });
     song.addEventListener("play", syncSoundButton);
@@ -163,13 +177,40 @@
     if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
   }
 
-  function tryStartSong() {
-    if (!SING || songStarted || maxVisiblePdfPage() < SING.firstPage) return;
-    ensureSong();
-    if (storySyncPdfPage() === SING.firstPage) song.currentTime = 0;
+  function primeSongTime() {
+    if (storySyncPdfPage() === SING.firstPage && (!songStarted || song.currentTime < 0.25)) song.currentTime = 0;
     else syncSongTimeToView();
-    songStarted = true;
-    song.play().catch(function () { songStarted = false; });
+  }
+
+  function tryStartSong(fromGesture) {
+    if (!SING) return;
+    if (maxVisiblePdfPage() < SING.firstPage) return;
+    if (songStarted && !song.paused && !song.ended && !fromGesture) return;
+    ensureSong();
+    primeSongTime();
+    var playAttempt = song.play();
+    if (!playAttempt || !playAttempt.then) return;
+    playAttempt.then(function () {
+      songStarted = true;
+      songWaitingGesture = false;
+      syncSoundButton();
+    }).catch(function () {
+      if (fromGesture) return;
+      songWaitingGesture = true;
+      songStarted = false;
+    });
+  }
+
+  function armSongGesture() {
+    if (!SING) return;
+    songGesturePending = true;
+  }
+
+  function flushSongGesture() {
+    if (!songGesturePending && !songWaitingGesture) return;
+    if (maxVisiblePdfPage() < SING.firstPage) return;
+    songGesturePending = false;
+    tryStartSong(true);
   }
 
   function followSong() {
@@ -196,13 +237,15 @@
     ensureSong();
     songMuted = !songMuted;
     song.muted = songMuted;
-    if (!songStarted && maxVisiblePdfPage() >= SING.firstPage) tryStartSong();
-    else if (song.paused && !song.ended) song.play().catch(function () {});
+    if (!songStarted && maxVisiblePdfPage() >= SING.firstPage) tryStartSong(true);
+    else if (song.paused && !song.ended) tryStartSong(true);
     syncSoundButton();
   }
 
   function stopSong() {
     songStarted = false;
+    songWaitingGesture = false;
+    songGesturePending = false;
     if (!song) return;
     song.pause();
     try { song.currentTime = 0; } catch (e) {}
@@ -533,7 +576,8 @@
     }
     updateArrows();
     updateSoundButton();
-    tryStartSong();
+    tryStartSong(false);
+    flushSongGesture();
     if (SING && song && !songMuted && !song.paused && storySyncPdfPage() >= SING.firstPage) {
       var syncCue = cueForPdfPage(storySyncPdfPage());
       if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
@@ -744,10 +788,16 @@
     if (e.pointerType === "mouse" && Date.now() < suppressTurnsUntil) return;
     suppressTurns = false;
     suppressTurnsUntil = 0;
+    if (SING && e.target && e.target.closest && !e.target.closest(".rudolph-sound")) armSongGesture();
+  }, true);
+  stage.addEventListener("pointerup", function (e) {
+    if (!SING || (e.target && e.target.closest && e.target.closest(".rudolph-sound"))) return;
+    flushSongGesture();
   }, true);
   function turn(dir) {
     suppressTurns = false;
     suppressTurnsUntil = 0;
+    armSongGesture();
     go(dir);
   }
   mobileZoomCtl = attachFlipbookMobileZoom({
@@ -755,7 +805,7 @@
     book: book,
     isSingle: function () { return single; },
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single }; },
-    onTurn: function (dir) { go(dir); },
+    onTurn: function (dir) { armSongGesture(); go(dir); },
     ignoreTarget: function (el) {
       return el.closest && (el.closest(".flipbook-close") || el.closest(".hot") || el.closest(".arrow") || el.closest(".rudolph-sound"));
     },
@@ -768,6 +818,7 @@
       } else if (atLastPage() && (single || onRight)) {
         restart();
       } else {
+        armSongGesture();
         go(onRight ? 1 : -1);
       }
     },

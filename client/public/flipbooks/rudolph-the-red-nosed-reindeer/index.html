@@ -243,7 +243,12 @@ body {
   var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
   var song = null, songMuted = false, songStarted = false;
+  var songWaitingGesture = false, songGesturePending = false;
   var soundBtn = document.getElementById('soundBtn');
+
+  function songAudioUrl() {
+    try { return new URL(SONG_SRC, window.location.href).href; } catch (e) { return SONG_SRC; }
+  }
 
   function cueForImage(n) {
     if (n < SONG_FIRST || n > SONG_END) return NaN;
@@ -284,9 +289,10 @@ body {
   }
   function ensureSong() {
     if (song) return song;
-    song = new Audio(SONG_SRC);
+    song = new Audio(songAudioUrl());
     song.preload = 'auto';
     song.muted = songMuted;
+    song.setAttribute('playsinline', '');
     song.addEventListener('timeupdate', followSong);
     song.addEventListener('ended', function () { syncSoundButton(); followSong(); });
     song.addEventListener('play', syncSoundButton);
@@ -336,13 +342,33 @@ body {
     ensureSong();
     if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
   }
-  function tryStartSong() {
-    if (songStarted || maxVisibleImage() < SONG_FIRST) return;
-    ensureSong();
-    if (storySyncImage() === SONG_FIRST) song.currentTime = 0;
+  function primeSongTime() {
+    if (storySyncImage() === SONG_FIRST && (!songStarted || song.currentTime < 0.25)) song.currentTime = 0;
     else syncSongTimeToView();
-    songStarted = true;
-    song.play().catch(function () { songStarted = false; });
+  }
+  function tryStartSong(fromGesture) {
+    if (maxVisibleImage() < SONG_FIRST) return;
+    if (songStarted && !song.paused && !song.ended && !fromGesture) return;
+    ensureSong();
+    primeSongTime();
+    var playAttempt = song.play();
+    if (!playAttempt || !playAttempt.then) return;
+    playAttempt.then(function () {
+      songStarted = true;
+      songWaitingGesture = false;
+      syncSoundButton();
+    }).catch(function () {
+      if (fromGesture) return;
+      songWaitingGesture = true;
+      songStarted = false;
+    });
+  }
+  function armSongGesture() { songGesturePending = true; }
+  function flushSongGesture() {
+    if (!songGesturePending && !songWaitingGesture) return;
+    if (maxVisibleImage() < SONG_FIRST) return;
+    songGesturePending = false;
+    tryStartSong(true);
   }
   function followSong() {
     var target, cur, ti, audio;
@@ -365,12 +391,14 @@ body {
     ensureSong();
     songMuted = !songMuted;
     song.muted = songMuted;
-    if (!songStarted && maxVisibleImage() >= SONG_FIRST) tryStartSong();
-    else if (song.paused && !song.ended) song.play().catch(function () {});
+    if (!songStarted && maxVisibleImage() >= SONG_FIRST) tryStartSong(true);
+    else if (song.paused && !song.ended) tryStartSong(true);
     syncSoundButton();
   }
   function stopSong() {
     songStarted = false;
+    songWaitingGesture = false;
+    songGesturePending = false;
     if (!song) return;
     song.pause();
     try { song.currentTime = 0; } catch (e) {}
@@ -537,7 +565,8 @@ body {
     }
     updateArrows();
     updateSoundButton();
-    tryStartSong();
+    tryStartSong(false);
+    flushSongGesture();
     if (song && !songMuted && !song.paused && storySyncImage() >= SONG_FIRST) {
       var syncCue = cueForImage(storySyncImage());
       if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
@@ -697,6 +726,7 @@ body {
 
   function go(dir) {
     if (busy) return;
+    armSongGesture();
     resetViewZoom();
     if (!single && closed) {
       if (dir > 0) openCover();
@@ -757,6 +787,14 @@ body {
     layout();
   }
 
+  stage.addEventListener('pointerdown', function (e) {
+    if (e.target && e.target.closest && !e.target.closest('.rudolph-sound')) armSongGesture();
+  }, true);
+  stage.addEventListener('pointerup', function (e) {
+    if (e.target && e.target.closest && e.target.closest('.rudolph-sound')) return;
+    flushSongGesture();
+  }, true);
+
   var mobileZoomCtl = null;
   function resetViewZoom() {
     if (mobileZoomCtl) mobileZoomCtl.reset();
@@ -767,7 +805,7 @@ body {
     book: book,
     isSingle: function () { return single; },
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single && !closed }; },
-    onTurn: function (dir) { go(dir); },
+    onTurn: function (dir) { armSongGesture(); go(dir); },
     ignoreTarget: function (el) {
       return el.closest && (el.closest('.flipbook-close') || el.closest('.arrow') || el.closest('.rudolph-sound'));
     },
@@ -781,6 +819,7 @@ body {
         return;
       }
       if (type === 'touch') return;
+      armSongGesture();
       go(onRight ? 1 : -1);
     },
     onJump: function (dir) {
