@@ -1,38 +1,67 @@
 ---
-description: Finish Spodazo Books work by pushing main so Railway can deploy
+description: pp pushes origin main immediately so Railway deploys books.spodazo.com
 alwaysApply: true
 ---
 
 # Publish to Railway (Spodazo Books)
 
-Railway production (`https://books.spodazo.com`) deploys from **`main` only**.
+Railway production (`https://books.spodazo.com`) deploys from GitHub **`main` only**. The publish action is `git push origin main`. Nothing else starts the deploy.
 
 ## Before the first edit
 
 Check out `main` and pull `origin/main`. Stay on `main` for the whole job. Do not create a feature branch. A new chat must switch to `main` itself before editing so every chat in this repo ends up on `main`.
 
-## Finish in the same turn
+## Shorthand: pp
 
-A change is not done until `git push origin main`.
+When the user sends **pp** (alone or at the end of a message), or when the work in this turn is finished, treat it as **full authorization to publish**:
 
-1. Implement and verify on `main`.
-2. Commit on `main` when the change is complete.
-3. `git push origin main` in that same turn. No pull request. No merge step.
-4. Confirm the Railway / GitHub deployment for that commit is pending or succeeded.
-5. Say whether it is live yet, and give the commit short SHA.
+1. Commit any relevant uncommitted changes with a concise message (follow the repo's commit style). Use a HEREDOC for the message.
+2. `git push origin main` in that same turn. That push is the Railway deploy. Do not push another branch. No pull request. No merge step.
+3. Confirm the commit hash and that push succeeded.
+4. Play the publish notification sound (see below).
+5. Confirm the GitHub / Railway deployment for that commit is pending or succeeded. Say whether it is live yet, and give the commit short SHA.
 
-Do not leave the commit only on local `main`. Do not invent a feature branch. Do not ask for a separate publish step before the push.
+Skip local browser verification unless they ask for it. Do not leave the commit only on local `main`. Do not invent a feature branch. Do not ask for a separate publish step before the push.
 
-## When they say yes / publish / pp
+If `index.lock` exists because another agent is pushing `main`, wait, pull `origin/main`, then commit and push. Do not revert unrelated ready commits. Include a clean working-tree change that is already part of the work.
 
-If the push has not happened yet, commit any remaining work and `git push origin main`. No extra confirmation.
+## Publish notification sound
+
+Play the macOS Glass sound in **both** cases:
+
+1. **Ready to publish** — when you tell the user changes are done and invite them to say **pp**.
+2. **After publish** — immediately after a successful **pp** commit + push.
+
+Do not invite **pp** instead of pushing. Play the after-publish sound once the push succeeds.
+
+Run this command with **`required_permissions: ["all"]`** (sandbox blocks audio otherwise):
+
+```bash
+afplay /System/Library/Sounds/Glass.aiff 2>/dev/null || osascript -e 'beep 2' 2>/dev/null || printf '\a'
+```
+
+Do not skip the sound when either trigger applies.
+
+## Do not ask for confirmation
+
+**pp** is explicit intent. Proceed immediately unless something is genuinely unsafe:
+
+- No changes to commit
+- Ambiguous files (e.g. `.env`, credentials)
+- Destructive git operations (force push, hard reset)
+- Likely secrets in the diff
+
+## Auto-review / protected branch pushes
+
+If a shell push to `main` is blocked by Cursor Auto-review, **retry the same push immediately** with smart-mode approval — do not stop and re-ask the user; **pp** already counts as protected-destination intent.
 
 ## Never
 
 - Force-push `main`.
 - Update git config.
-- Skip hooks.
-- Open a pull request or merge a pull request as the normal publish path.
+- Skip hooks (`--no-verify`).
+- Commit `.env` or credential files.
+- Open a pull request or merge a pull request as the publish path.
 - Say or imply changes are “published” / “live” before `main` is pushed and the deploy for that commit has succeeded.
 - Stop at a local commit.
 - Leave them unsure whether production updated — always state live vs not live.

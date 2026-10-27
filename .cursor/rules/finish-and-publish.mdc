@@ -1,16 +1,62 @@
 ---
-description: Finish the full job on main by pushing origin main in the same turn
+description: pp means commit and push origin main immediately so Railway deploys
 alwaysApply: true
 ---
 
-# Finish means push origin main
+# Finish means the Team Melanie pp procedure
 
 Work only on `main`. At the start of any work in this repo, check out `main` and pull `origin/main` before the first edit. Stay on `main`. Do not create a feature branch.
 
-A change is not done until `git push origin main`. Railway (`https://books.spodazo.com`) deploys from `main` only. A local commit that has not been pushed is not live.
+Railway production (`https://books.spodazo.com`) deploys from GitHub `main` only. `git push origin main` is what starts that deploy. A local commit that has not been pushed leaves Railway idle.
 
-Finish in the same turn: implement, verify, commit on `main`, then `git push origin main`. No pull request. No merge step. Do not stop after a local commit and ask whether to publish.
+Finish in the same turn by running the **pp** procedure below. Do not open a pull request. Do not wait for a second message. Do not stop after a local commit and ask whether to publish.
 
-When they say `pp`, that is the same publish step if the push has not happened yet. Do not ask for extra confirmation.
+# Shorthand: pp
 
-Never force-push `main`. Never update git config. Never skip hooks.
+When the user sends **pp** (alone or at the end of a message), treat it as **full authorization to publish**:
+
+1. Commit any relevant uncommitted changes with a concise message (follow the repo's commit style).
+2. Push to `origin/main`. That push starts the Railway deploy of `https://books.spodazo.com`. Do not push another branch.
+3. Confirm the commit hash and that push succeeded.
+4. Play the publish notification sound (see below).
+5. Confirm the GitHub / Railway deployment for that commit is pending or succeeded, and say whether it is live yet.
+
+Run those same five steps at the end of the turn when the work is finished, even if the user did not type **pp** again. Waiting, a feature branch, or a pull request does not deploy.
+
+## Publish notification sound
+
+Play the macOS Glass sound in **both** cases:
+
+1. **Ready to publish** — when you tell the user changes are done and invite them to say **pp**.
+2. **After publish** — immediately after a successful **pp** commit + push.
+
+Do not invite **pp** instead of pushing. The push is the publish. Play the after-publish sound once `git push origin main` succeeds.
+
+Run this command with **`required_permissions: ["all"]`** (sandbox blocks audio otherwise):
+
+```bash
+afplay /System/Library/Sounds/Glass.aiff 2>/dev/null || osascript -e 'beep 2' 2>/dev/null || printf '\a'
+```
+
+Do not skip the sound when either trigger applies.
+
+## Do not ask for confirmation
+
+**pp** is explicit intent. Proceed immediately unless something is genuinely unsafe:
+
+- No changes to commit
+- Ambiguous files (e.g. `.env`, credentials)
+- Destructive git operations (force push, hard reset)
+- Likely secrets in the diff
+
+## Auto-review / protected branch pushes
+
+If a shell push to `main` is blocked by Cursor Auto-review, **retry the same push immediately** with smart-mode approval — do not stop and re-ask the user; **pp** already counts as protected-destination intent.
+
+## Still avoid without explicit request
+
+- Force push to `main`/`master`
+- `--no-verify` or skipping hooks
+- Updating git config
+- Committing `.env` or credential files
+- Opening a pull request or creating a feature branch
