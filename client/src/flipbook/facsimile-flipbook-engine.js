@@ -95,6 +95,26 @@
     return story.length ? Math.min.apply(null, story) : 0;
   }
 
+  function storyMaxVisiblePdfPage() {
+    if (!SING) return 0;
+    var story = visiblePdfPages().filter(function (n) { return n >= SING.firstPage; });
+    return story.length ? Math.max.apply(null, story) : 0;
+  }
+
+  /** Rewind anchor: left page until the right-hand verse has started (e.g. page 13 then page 14). */
+  function storySyncAnchorPdfPage() {
+    if (!SING) return 0;
+    var story = visiblePdfPages().filter(function (n) { return n >= SING.firstPage; });
+    if (!story.length) return 0;
+    var minP = Math.min.apply(null, story);
+    var maxP = Math.max.apply(null, story);
+    if (minP === maxP) return minP;
+    var cMax = cueForPdfPage(maxP);
+    var t = song ? song.currentTime : 0;
+    if (!isNaN(cMax) && t + 0.05 >= cMax) return maxP;
+    return minP;
+  }
+
   function pdfPageForTime(t) {
     if (!SING) return 0;
     var best = 0;
@@ -174,7 +194,7 @@
 
   function syncSongTimeToView() {
     if (!SING) return;
-    var page = storySyncPdfPage();
+    var page = storySyncAnchorPdfPage();
     var c;
     if (page < SING.firstPage) return;
     c = cueForPdfPage(page);
@@ -326,7 +346,8 @@
     if (busy) return;
     target = pdfPageForTime(audio.ended ? SING.duration : audio.currentTime);
     if (target < SING.firstPage) return;
-    if (isPdfPageShown(target)) return;
+    var visibleMax = storyMaxVisiblePdfPage();
+    if (target <= visibleMax && isPdfPageShown(target)) return;
     if (single) {
       if (pg + 1 < target) go(1, true);
       return;
