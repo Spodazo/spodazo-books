@@ -4,7 +4,7 @@ import {escapeHTML as esc, safeURL} from './layout.js';
 import {DEFAULT_SPREAD_BACKGROUND, elementTextHtml, imageObjectFit, imageObjectPosition, isOneLeafPdfPage, normalizeColor, publishedLabel} from '@shared/page-layout';
 import {normalizePaperTexture, paperTexture, paperTextureUrl} from '@shared/paper';
 import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames';
-import {fontStack, fontsUsed, googleFontsHref} from '@shared/book-fonts';
+import {fontStack, fontsUsed, googleFontsHref, localFontFaceCss} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, isWillowBook, visibleStoryPages} from '@shared/reader-pages';
 import {WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_TITLE_CUE, willowStoryPageCue} from '@shared/willow-song-book';
@@ -131,9 +131,19 @@ function characterSrc(book, baseUrl) {
   return url ? esc(safeURL(url, baseUrl)) : "";
 }
 
+function willowEndingHtml(book, baseUrl, credits, copyright, logoUrl) {
+  const nap = esc(safeURL(`/media/images/${"willow-bear-nap.webp"}`, baseUrl));
+  const cue = cueAttr(WILLOW_SONG_END_CUE);
+  const legal = legalHtml(credits, copyright, logoUrl, baseUrl, book.date);
+  const napPage = `<article class="page nap-page" data-source="end"${cue} aria-label="A cozy nap"><img class="nap-picture" src="${nap}" alt=""><button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
+  const back = `<article class="page end-page back-cover" data-source="back" aria-label="Back cover"><div class="back-cover-leaf"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button>${legal}</div><button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  return napPage + back;
+}
+
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
+  if (isWillowBook(book)) return willowEndingHtml(book, baseUrl, credits, copyright, logoUrl);
   const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
-  const cue = isWillowBook(book) ? cueAttr(WILLOW_SONG_END_CUE) : "";
+  const cue = "";
   if (hasLayout(book.endLayout)) {
     return laidOutPage("The end", book.endLayout, book, baseUrl, extras, " end-page", "", cue).replace("<article", '<article data-source="end"');
   }
@@ -204,7 +214,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const openAttr=fadeOpen?' data-fade-open="1"':'';
   const templateAttr=oneLeaf?' data-page-template="one-up"':'';
   const htmlClass=fadeOpen?' class="opening"':' class="booting"';
-  return `<!doctype html><html${htmlClass}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr}${templateAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
+  return `<!doctype html><html${htmlClass}${paperAttr} lang="en" style="--title-bg:${palette.bg};--title-ink:${palette.text};--title-outline:${palette.accent};--page-paper:${paper};--spread:${spread}${paperStyle}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light only"><title>${esc(book.title)}</title><script>${bootMobile}</script>${preload?`<link rel="preload" as="image" href="${preload}">`:''}${characterPreload?`<link rel="preload" as="image" href="${characterPreload}">`:''}<link rel="stylesheet" href="${esc(googleFontsHref(bookFontFamilies(book)))}"><style>${localFontFaceCss()}${css}</style></head><body><div class="book-spine" aria-hidden="true"></div>${pageCurlHtml(baseUrl)}<main${openAttr}${templateAttr} aria-label="${esc(book.title)}">${articles}</main><span id="count" class="sr" aria-live="polite"></span><script>${runtime}</script></body></html>`;
 }
 export function mountReader(container,book,options={}) {
   const frame=document.createElement('iframe');frame.title=book.title;frame.style.cssText='width:100%;height:100%;border:0;display:block';

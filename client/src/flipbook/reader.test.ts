@@ -36,3 +36,18 @@ test("the cover turns with the same leaf as the other pages", async () => {
   assert.match(runtime, /animateLeaf/);
   assert.match(css, /html:not\(\.mobile\) \.front-cover-leaf\{[^}]*left:50%/);
 });
+
+test("Willow’s nap replaces The End and The End is the back cover", async () => {
+  const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
+  assert.match(reader, /class="page nap-page"/);
+  assert.match(reader, /willow-bear-nap\.webp/);
+  assert.match(reader, /class="page end-page back-cover"/);
+  assert.match(reader, /THE END/);
+  assert.match(reader, /Read again/);
+  const napAt = reader.indexOf('class="page nap-page"');
+  const backAt = reader.indexOf('class="page end-page back-cover"');
+  assert.ok(napAt > 0 && backAt > napAt);
+  assert.match(css, /html:not\(\.mobile\) \.page\.back-cover \.back-cover-leaf\{[^}]*left:0/);
+  assert.match(css, /html:not\(\.mobile\) \.page\.back-cover \.back-cover-leaf \.end-legal\{[^}]*bottom:14%/);
+});
