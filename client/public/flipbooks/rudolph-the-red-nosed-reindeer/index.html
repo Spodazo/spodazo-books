@@ -159,10 +159,31 @@ body {
 }
 .flipbook-close.left { left: max(12px, env(safe-area-inset-left)); }
 .flipbook-close.right { right: max(12px, env(safe-area-inset-right)); left: auto; }
+
+/* Sound toggle: red = playing (tap to mute), green = muted (tap to resume). */
+.rudolph-sound {
+  position: absolute;
+  z-index: 15;
+  width: clamp(44px, calc(var(--pw, 600px) * 0.11), 56px);
+  aspect-ratio: 1;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent center / contain no-repeat;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.rudolph-sound.is-visible { opacity: 1; pointer-events: auto; }
+.rudolph-sound.is-playing { background-image: url('sound-off.webp'); }
+.rudolph-sound:not(.is-playing) { background-image: url('sound-on.webp'); }
 </style>
 
 <div id="stage" aria-label="Rudolph the Red Nosed Reindeer flip book" role="application">
   <a id="closeBtn" class="flipbook-close left" href="/" target="_top" aria-label="Close">×</a>
+  <button type="button" id="soundBtn" class="rudolph-sound" hidden aria-label="Sound" aria-pressed="true"></button>
   <div id="book">
     <div class="stackWrapL"><div class="stack l" id="stackL"></div></div>
     <div class="stackWrapR"><div class="stack r" id="stackR"></div></div>
@@ -209,6 +230,148 @@ body {
 
   var single = false, closed = true, idx = 0, pg = 0, busy = false, pw = 0, ph = 0, turnGen = 0, turnAnims = [];
   var wasSingle = false;
+
+  // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
+  var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3';
+  var SONG_FIRST = 4, SONG_END = 19, SONG_LAST_WORD = 478, SONG_DURATION = 492;
+  var SONG_CUES = [15, 39, 87, 125, 160, 186, 210, 223, 247, 289, 318, 345, 378, 412, 446, 468];
+  var song = null, songMuted = false, songStarted = false;
+  var soundBtn = document.getElementById('soundBtn');
+
+  function cueForImage(n) {
+    if (n < SONG_FIRST || n > SONG_END) return NaN;
+    return SONG_CUES[n - SONG_FIRST];
+  }
+  function visibleImages() {
+    if (single) return [pg + 1];
+    if (closed) return [1];
+    return [SP[idx][0], SP[idx][1]].filter(function (n) { return n > 0 && n <= IMAGES; });
+  }
+  function maxVisibleImage() {
+    var imgs = visibleImages();
+    return imgs.length ? Math.max.apply(null, imgs) : 0;
+  }
+  function imageForTime(t) {
+    var best = 0, img, c, lead;
+    for (img = SONG_FIRST; img <= SONG_END; img++) {
+      c = cueForImage(img);
+      lead = img === SONG_END ? 0 : 0.35;
+      if (t + lead >= c) best = img;
+    }
+    if (t >= SONG_LAST_WORD && t < SONG_DURATION) best = Math.max(best, 20);
+    return best;
+  }
+  function spreadIndexForImage(n) {
+    var i, pair;
+    for (i = 0; i < SP.length; i++) {
+      pair = SP[i];
+      if (pair[0] === n || pair[1] === n) return i;
+    }
+    return -1;
+  }
+  function ensureSong() {
+    if (song) return song;
+    song = new Audio(SONG_SRC);
+    song.preload = 'auto';
+    song.addEventListener('timeupdate', followSong);
+    song.addEventListener('ended', function () { syncSoundButton(); followSong(); });
+    song.addEventListener('play', syncSoundButton);
+    song.addEventListener('pause', syncSoundButton);
+    return song;
+  }
+  function syncSoundButton() {
+    if (!soundBtn) return;
+    var playing = !songMuted && song && !song.paused && !song.ended;
+    soundBtn.classList.toggle('is-playing', playing);
+    soundBtn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+    soundBtn.setAttribute('aria-label', playing ? 'Turn sound off' : 'Turn sound on');
+  }
+  function updateSoundButton() {
+    if (!soundBtn) return;
+    var show = maxVisibleImage() >= SONG_FIRST;
+    soundBtn.hidden = false;
+    soundBtn.classList.toggle('is-visible', show);
+    syncSoundButton();
+    placeSoundButton();
+  }
+  function placeSoundButton() {
+    if (!soundBtn) return;
+    var r = book.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    var size = soundBtn.offsetWidth || 48;
+    var gap = Math.max(8, Math.round(ph * 0.025));
+    var x, y;
+    if (single && sr.width > sr.height) {
+      x = r.right - sr.left + gap;
+      y = r.top - sr.top + (r.height - size) / 2;
+    } else {
+      x = r.left - sr.left + r.width / 2 - size / 2;
+      y = r.top - sr.top - size - gap;
+    }
+    soundBtn.style.left = Math.round(x) + 'px';
+    soundBtn.style.top = Math.round(Math.max(gap, y)) + 'px';
+  }
+  function syncSongTimeToView() {
+    var img = maxVisibleImage(), c;
+    if (img < SONG_FIRST) return;
+    c = cueForImage(img);
+    if (isNaN(c)) return;
+    ensureSong();
+    if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
+  }
+  function tryStartSong() {
+    if (songMuted || songStarted || maxVisibleImage() < SONG_FIRST) return;
+    ensureSong();
+    syncSongTimeToView();
+    songStarted = true;
+    song.play().catch(function () { songStarted = false; });
+  }
+  function followSong() {
+    var target, cur, ti, audio;
+    if (songMuted || busy) return;
+    audio = ensureSong();
+    if (audio.paused && !audio.ended) return;
+    target = imageForTime(audio.ended ? SONG_DURATION : audio.currentTime);
+    if (target < SONG_FIRST) return;
+    cur = maxVisibleImage();
+    if (target <= cur) return;
+    if (single) {
+      if (pg + 1 < target) go(1);
+      return;
+    }
+    ti = spreadIndexForImage(target);
+    if (ti < 0) return;
+    if (ti > idx || (ti === idx && SP[idx][1] < target)) go(1);
+  }
+  function toggleSongMute() {
+    ensureSong();
+    if (songMuted) {
+      songMuted = false;
+      syncSongTimeToView();
+      song.play().catch(function () {});
+      songStarted = true;
+    } else {
+      songMuted = true;
+      song.pause();
+    }
+    syncSoundButton();
+  }
+  function stopSong() {
+    songStarted = false;
+    if (!song) return;
+    song.pause();
+    try { song.currentTime = 0; } catch (e) {}
+    syncSoundButton();
+  }
+  if (soundBtn) {
+    soundBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSongMute();
+    });
+    soundBtn.addEventListener('pointerup', function (e) {
+      e.stopPropagation();
+    });
+  }
 
   function clearSettle() {
     book.style.transition = '';
@@ -308,6 +471,7 @@ body {
     slotR.style.left = single ? '0' : '50%';
     slotR.style.width = single ? '100%' : '50%';
     render();
+    updateSoundButton();
   }
 
   function stackWidths(i) {
@@ -357,6 +521,12 @@ body {
       stackR.style.width = w[1] + 'px';
     }
     updateArrows();
+    updateSoundButton();
+    tryStartSong();
+    if (song && !songMuted && !song.paused && maxVisibleImage() >= SONG_FIRST) {
+      var syncCue = cueForImage(maxVisibleImage());
+      if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
+    }
     return Promise.all(jobs);
   }
   function hideLeaf() { slotL.style.opacity = ''; leaf.style.display = 'none'; front.style.cssText = ''; back.style.cssText = ''; }
@@ -537,6 +707,8 @@ body {
   function restart() {
     if (busy) return;
     busy = true;
+    stopSong();
+    songMuted = false;
     book.classList.add('fading');
     setTimeout(function () {
       idx = 0; pg = 0; closed = !single;
@@ -582,7 +754,7 @@ body {
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single && !closed }; },
     onTurn: function (dir) { go(dir); },
     ignoreTarget: function (el) {
-      return el.closest && (el.closest('.flipbook-close') || el.closest('.arrow'));
+      return el.closest && (el.closest('.flipbook-close') || el.closest('.arrow') || el.closest('.rudolph-sound'));
     },
     onTap: function (e, type) {
       var r = stage.getBoundingClientRect();
