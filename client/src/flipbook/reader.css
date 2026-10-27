@@ -785,6 +785,18 @@ html:not(.mobile) .nap-leaf-art{
   object-fit:cover;
   object-position:center center;
 }
+.nap-leaf,
+.nap-picture,
+.nap-end{
+  pointer-events:none;
+}
+html:not(.mobile) .page.nap-spread .zone[data-dir="-1"]{
+  width:50%;
+}
+html:not(.mobile) .page.nap-spread .zone[data-dir="1"]{
+  left:50%;
+  width:50%;
+}
 .mobile .page.nap-spread.current:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile),
 .mobile .leaf-copy.nap-spread:not(.title-page):not(.end-page):not(.cover-plate):not(.cover-page):not(.facsimile){
   display:block!important;

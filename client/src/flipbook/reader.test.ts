@@ -76,6 +76,7 @@ test("back covers sit alone on the right for every book", async () => {
 
 test("Willow’s The End sits on the nap’s left leaf, not the back cover", async () => {
   const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
+  const runtime = await readFile(new URL("./reader-runtime.js", import.meta.url), "utf8");
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
   assert.match(reader, /willow-bear-nap\.webp/);
   assert.match(reader, /class="nap-leaf nap-leaf-blank"><p class="nap-end">The End<\/p>/);
@@ -85,6 +86,9 @@ test("Willow’s The End sits on the nap’s left leaf, not the back cover", asy
   assert.match(css, /html:not\(\.mobile\) \.nap-leaf-art\{[^}]*left:50%/);
   assert.match(css, /\.nap-end\{[^}]*JuiceBox Script/);
   assert.match(css, /\.nap-picture\{[^}]*object-fit:cover/);
+  assert.match(css, /page\.nap-spread \.zone\[data-dir="1"\]/);
+  assert.match(runtime, /nap-spread/);
+  assert.doesNotMatch(runtime, /\|\|\{\}\)\.style\.fontSize/);
 });
 
 test("Willow’s front cover sits on the dark brown stage", async () => {

@@ -240,7 +240,7 @@ function takeComplete(article,units){
   return [];
 }
 function splitStory(p,template,i){
-  if(!mobile||p.classList.contains('facsimile')||p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('end-page'))return;
+  if(!mobile||p.classList.contains('facsimile')||p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('end-page')||p.classList.contains('nap-spread'))return;
   var keep=p.classList.contains('current');
   p.classList.add('current');
   p.style.visibility='hidden';
@@ -273,7 +273,7 @@ function splitStory(p,template,i){
   p.style.visibility=keep?'':'';
 }
 function shrinkStory(p){
-  if(p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('end-page'))return;
+  if(p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('end-page')||p.classList.contains('nap-spread'))return;
   var section=p.querySelector('section'),body=p.querySelector('p');
   if(!section||!body)return;
   var keep=p.classList.contains('current');
@@ -764,7 +764,7 @@ function shortSpread(){
   return !mobile&&matchMedia('(orientation: landscape) and (max-height: 700px)').matches;
 }
 function storyPage(p){
-  return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('front-cover')&&!p.classList.contains('cover-plate')&&!p.classList.contains('cover-page')&&!p.classList.contains('facsimile')&&!p.classList.contains('end-page'));
+  return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('front-cover')&&!p.classList.contains('cover-plate')&&!p.classList.contains('cover-page')&&!p.classList.contains('facsimile')&&!p.classList.contains('end-page')&&!p.classList.contains('nap-spread'));
 }
 function contentHeight(box){
   var h=0,kids=box.children,i,el,cs;
@@ -841,7 +841,8 @@ function fitTextBox(p,box){
 function alreadyFit(p){
   if(!storyPage(p))return true;
   var box=p.querySelector('.el-text p')||p.querySelector('p');
-  return !!(box&&(box.style.lineHeight||box.style.fontSize||(p.querySelector('.el-text')||{}).style.fontSize));
+  var fitted=p.querySelector('.el-text');
+  return !!(box&&(box.style.lineHeight||box.style.fontSize||(fitted&&fitted.style.fontSize)));
 }
 function fitLaidOut(p){
   if(!storyPage(p))return false;
