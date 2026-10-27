@@ -293,11 +293,16 @@
     }
     var m = single ? Math.max(12, Math.round(H * 0.03)) : 2;
     var avail = H - 2 * m;
-    var btn = Math.min(44, Math.max(28, 0.075 * (H / RATIO)));
-    var sideRoom = single ? 0 : Math.round(btn + 40);
-    pw = Math.floor(single ? Math.min(W, avail / RATIO) : Math.min((W - 2 * sideRoom) / 2, avail / RATIO));
-    if (!single && pw < 200) pw = Math.floor(Math.min(W / 2, avail / RATIO));
-    ph = Math.floor(pw * RATIO);
+    if (single) {
+      pw = Math.floor(Math.min(W, avail / RATIO));
+      ph = Math.floor(pw * RATIO);
+    } else if ((avail / RATIO) * 2 <= W) {
+      ph = avail;
+      pw = ph / RATIO;
+    } else {
+      pw = W / 2;
+      ph = pw * RATIO;
+    }
     var bw = single ? pw : pw * 2;
     book.style.width = bw + "px";
     book.style.height = ph + "px";
