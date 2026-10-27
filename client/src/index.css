@@ -205,10 +205,13 @@ html.book-closing .bundled-flipbook-host {
   background: var(--portrait);
 }
 .cover-pdf {
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  background: transparent;
+  height: 100%;
+  object-fit: contain;
+  object-position: center center;
+  background: var(--portrait);
 }
 .cover-el {
   position: absolute;
