@@ -254,11 +254,11 @@ body {
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
   var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3';
   var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
-  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468];
+  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 289, 318, 345, 356, 378, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
   var song = null, songMuted = true, songStarted = false, songFollowTurn = false;
   var verselessSpreadIdx = -1, verselessSpreadAt = 0;
-  var VERSELESS_BRIEF = { left: 16, right: 17, dwellMs: 2000 };
+  var VERSELESS_BRIEF = { left: 16, right: 17, dwellMs: 4000 };
   var soundBtn = document.getElementById('soundBtn');
 
   function songAudioUrl() {
