@@ -24,8 +24,9 @@ test("Rudolph story pages map onto the v3 PDF", () => {
 });
 
 test("Rudolph sing-along follows the recording through the outro", () => {
-  assert.equal(rudolphSongPdfPageForTime(0), 0);
-  assert.equal(rudolphSongPdfPageForTime(16), RUDOLPH_SONG_FIRST_PDF_PAGE);
+  assert.equal(rudolphSongPdfPageForTime(0), RUDOLPH_SONG_FIRST_PDF_PAGE);
+  assert.equal(rudolphSongPdfPageForTime(10), RUDOLPH_SONG_FIRST_PDF_PAGE);
+  assert.equal(rudolphSongPdfPageForTime(38), RUDOLPH_SONG_FIRST_PDF_PAGE);
   assert.equal(rudolphSongPdfPageForTime(40), 7);
   assert.equal(rudolphSongPdfPageForTime(470), RUDOLPH_SONG_LAST_PDF_PAGE);
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 1), 25);

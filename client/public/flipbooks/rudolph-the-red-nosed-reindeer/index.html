@@ -160,21 +160,20 @@ body {
 .flipbook-close.left { left: max(12px, env(safe-area-inset-left)); }
 .flipbook-close.right { right: max(12px, env(safe-area-inset-right)); left: auto; }
 
-/* Sound toggle: red = playing (tap to mute), green = muted (tap to resume). */
 .rudolph-sound {
   position: absolute;
   z-index: 15;
   box-sizing: border-box;
-  width: 24px;
-  height: 24px;
+  width: 29px;
+  height: 29px;
   padding: 0;
-  border: 1.5px solid rgba(255, 255, 255, .95);
+  border: 2px solid #fff;
   border-radius: 50%;
-  background-color: transparent;
+  background-color: #1fa34a;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 86%;
-  box-shadow: none;
+  background-size: 58%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M3 9v6h4l5 5V4L7 9H3zm7 0v6c1.66 0 3-1.34 3-3s-1.34-3-3-3zm5 3c0 2.21-1.79 4-4 4v2c3.31 0 6-2.69 6-6h-2z'/%3E%3C/svg%3E");
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
@@ -182,8 +181,10 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 .rudolph-sound.is-visible { opacity: 1; pointer-events: auto; }
-.rudolph-sound.is-playing { background-image: url('sound-off.webp'); }
-.rudolph-sound:not(.is-playing) { background-image: url('sound-on.webp'); }
+.rudolph-sound.is-playing {
+  background-color: #d41919;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M3 9v6h4l5 5V4L7 9H3zm11.59 3.41L14.18 7l-1.41 1.41L13.36 9H14v6h-1.64l.59.59 1.41 1.41 2.83-2.83-2.83-2.83z'/%3E%3C/svg%3E");
+}
 </style>
 
 <div id="stage" aria-label="Rudolph the Red Nosed Reindeer flip book" role="application">
@@ -239,7 +240,7 @@ body {
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
   var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3';
   var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
-  var SONG_CUES = [15, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468];
+  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
   var song = null, songMuted = false, songStarted = false;
   var soundBtn = document.getElementById('soundBtn');
@@ -310,8 +311,8 @@ body {
   function placeSoundButton() {
     if (!soundBtn) return;
     var r = book.getBoundingClientRect(), sr = stage.getBoundingClientRect();
-    var size = 24;
-    var gapAbove = 12;
+    var size = 29;
+    var gapAbove = 14;
     var sideGap = Math.max(10, Math.round(pw * 0.035));
     var landscape = single && sr.width > sr.height;
     var x, y;
@@ -338,7 +339,8 @@ body {
   function tryStartSong() {
     if (songStarted || maxVisibleImage() < SONG_FIRST) return;
     ensureSong();
-    syncSongTimeToView();
+    if (storySyncImage() === SONG_FIRST) song.currentTime = 0;
+    else syncSongTimeToView();
     songStarted = true;
     song.play().catch(function () { songStarted = false; });
   }

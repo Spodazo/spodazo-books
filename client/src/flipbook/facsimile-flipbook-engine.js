@@ -58,11 +58,6 @@
   var songStarted = false;
   var soundBtn = document.getElementById("soundBtn");
 
-  if (SING && stage) {
-    stage.style.setProperty("--rudolph-sound-on", "url('" + SING.soundOnUrl + "')");
-    stage.style.setProperty("--rudolph-sound-off", "url('" + SING.soundOffUrl + "')");
-  }
-
   function cueForPdfPage(n) {
     if (!SING || n < SING.firstPage || n > SING.endPage) return NaN;
     return SING.cues[n - SING.firstPage];
@@ -129,8 +124,8 @@
     if (!soundBtn) return;
     var r = book.getBoundingClientRect();
     var sr = stage.getBoundingClientRect();
-    var size = 24;
-    var gapAbove = 12;
+    var size = 29;
+    var gapAbove = 14;
     var sideGap = Math.max(10, Math.round(pw * 0.035));
     var landscape = single && sr.width > sr.height;
     var x;
@@ -171,7 +166,8 @@
   function tryStartSong() {
     if (!SING || songStarted || maxVisiblePdfPage() < SING.firstPage) return;
     ensureSong();
-    syncSongTimeToView();
+    if (storySyncPdfPage() === SING.firstPage) song.currentTime = 0;
+    else syncSongTimeToView();
     songStarted = true;
     song.play().catch(function () { songStarted = false; });
   }
