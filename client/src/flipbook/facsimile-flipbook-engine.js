@@ -141,14 +141,14 @@
     var size = 29;
     var gapAbove = 14;
     var sideGap = Math.max(10, Math.round(pw * 0.035));
-    var landscape = single && sr.width > sr.height;
+    var compactLandscape = sr.width > sr.height && Math.min(sr.width, sr.height) < 520;
     var x;
     var y;
     soundBtn.style.width = size + "px";
     soundBtn.style.height = size + "px";
-    if (landscape) {
-      x = r.right - sr.left + sideGap;
-      y = r.top - sr.top + (r.height - size) / 2;
+    if (compactLandscape) {
+      x = sr.width - size - Math.max(12, sideGap);
+      y = sr.height / 3 - size / 2;
     } else {
       x = r.left - sr.left + r.width / 2 - size / 2;
       y = r.top - sr.top - size - gapAbove;
