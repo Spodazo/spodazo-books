@@ -1746,16 +1746,21 @@ html[data-paper="deckle"] .page-curl-peek{
   background-blend-mode:luminosity,luminosity!important;
 }
 html:not(.mobile) .page.willow-title>.el-text[data-role="author"],
+html:not(.mobile) .page.willow-title>.el-text[data-id="title-author"],
+html:not(.mobile) .page.willow-title>.el-text[data-role="date"],
+html:not(.mobile) .page.willow-title>.el-text[data-id="title-date"]{
+  left:54%!important;
+  width:40%!important;
+  height:auto!important;
+  overflow:visible;
+}
+html:not(.mobile) .page.willow-title>.el-text[data-role="author"],
 html:not(.mobile) .page.willow-title>.el-text[data-id="title-author"]{
-  top:58%!important;
-  height:14%!important;
-  overflow:hidden;
+  top:78%!important;
 }
 html:not(.mobile) .page.willow-title>.el-text[data-role="date"],
 html:not(.mobile) .page.willow-title>.el-text[data-id="title-date"]{
-  top:76%!important;
-  height:10%!important;
-  overflow:hidden;
+  top:88%!important;
 }
 .page.willow-title>.el-text[data-role="author"] p,
 .page.willow-title>.el-text[data-role="date"] p,
@@ -1764,6 +1769,14 @@ html:not(.mobile) .page.willow-title>.el-text[data-id="title-date"]{
   margin:0!important;
   line-height:1.2;
   text-align:center;
+  white-space:nowrap;
+}
+.mobile .page.willow-title>.el-text[data-role="author"],
+.mobile .page.willow-title>.el-text[data-role="date"]{
+  height:auto!important;
+}
+.mobile .page.willow-title>.el-text[data-role="date"]{
+  margin-top:14px!important;
 }
 html.willow:not(.mobile):has(.page.front-cover.willow-front.current) main,
 html.willow:not(.mobile) .page.front-cover.willow-front{

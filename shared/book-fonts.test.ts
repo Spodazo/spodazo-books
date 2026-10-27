@@ -19,6 +19,16 @@ test("fontStack quotes the family name", () => {
   assert.equal(fontStack("Nunito Sans"), "'Nunito Sans', sans-serif");
 });
 
+test("Juicebox Script is a local face and is not requested from Google Fonts", async () => {
+  const { googleFontsHref, localFontFaceCss, normalizeFont } = await import("./book-fonts");
+  assert.equal(normalizeFont("Juicebox Script"), "Juicebox Script");
+  assert.match(localFontFaceCss(), /font-family:'Juicebox Script'/);
+  assert.match(localFontFaceCss(), /\/fonts\/JuiceboxScript\.otf/);
+  const href = googleFontsHref(["Juicebox Script", "Nunito"]);
+  assert.match(href, /Nunito/);
+  assert.doesNotMatch(href, /Juicebox/);
+});
+
 test("fontStack is safe inside a double-quoted HTML style attribute", () => {
   const style = `--ff:${fontStack("Nunito Sans")}`;
   assert.doesNotMatch(style, /"/);

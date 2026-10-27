@@ -30,6 +30,12 @@ export const BOOK_FONTS: BookFont[] = [
   { id: "Lobster", label: "Lobster", kind: "cursive" },
   { id: "Cookie", label: "Cookie", kind: "cursive" },
   { id: "Courgette", label: "Courgette", kind: "cursive" },
+  { id: "Juicebox Script", label: "Juicebox Script", kind: "cursive" },
+];
+
+/** Served from this site. Not a Google Font. */
+export const LOCAL_FONTS = [
+  { id: "Juicebox Script", href: "/fonts/JuiceboxScript.otf", format: "opentype" },
 ];
 
 export const TEXT_INK_PALETTE = [
@@ -47,7 +53,14 @@ export function normalizeFont(raw?: string | null, fallback = ""): string {
 
 export function fontStack(family?: string | null): string {
   const id = normalizeFont(family, DEFAULT_TEXT_FONT);
+  if (id === "Juicebox Script") return "'Juicebox Script', cursive";
   return `'${id}', sans-serif`;
+}
+
+export function localFontFaceCss(resolveHref: (href: string) => string = (href) => href): string {
+  return LOCAL_FONTS.map((font) =>
+    `@font-face{font-family:'${font.id}';src:url('${resolveHref(font.href)}') format('${font.format}');font-display:swap;}`,
+  ).join("");
 }
 
 export function fontsUsed(...values: Array<string | undefined | null>): string[] {
@@ -55,9 +68,12 @@ export function fontsUsed(...values: Array<string | undefined | null>): string[]
   return [...new Set(ids.length ? ids : [DEFAULT_TEXT_FONT])];
 }
 
+const LOCAL_FONT_IDS = new Set(LOCAL_FONTS.map((font) => font.id));
+
 export function googleFontsHref(families: string[]): string {
-  const ids = fontsUsed(...families);
-  const query = ids
+  const ids = fontsUsed(...families).filter((id) => !LOCAL_FONT_IDS.has(id));
+  const queryIds = ids.length ? ids : [DEFAULT_TEXT_FONT];
+  const query = queryIds
     .map((id) => `family=${encodeURIComponent(id).replace(/%20/g, "+")}:wght@400;700`)
     .join("&");
   return `https://fonts.googleapis.com/css2?${query}&display=swap`;

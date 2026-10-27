@@ -99,6 +99,9 @@ test("Willow’s title page keeps the author and date apart", async () => {
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
   assert.match(reader, /function separatedTitleCredits/);
   assert.match(reader, /willow-title/);
-  assert.match(css, /page\.willow-title>\.el-text\[data-role="author"\][\s\S]{0,180}top:58%!important/);
-  assert.match(css, /page\.willow-title>\.el-text\[data-role="date"\][\s\S]{0,180}top:76%!important/);
+  assert.match(reader, /author\.y = 78/);
+  assert.match(reader, /date\.y = 88/);
+  assert.match(css, /page\.willow-title>\.el-text\[data-role="author"\][\s\S]{0,700}top:78%!important/);
+  assert.match(css, /page\.willow-title>\.el-text\[data-role="date"\][\s\S]{0,400}top:88%!important/);
+  assert.match(css, /white-space:nowrap/);
 });
