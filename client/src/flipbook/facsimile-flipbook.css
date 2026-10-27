@@ -125,3 +125,22 @@ body { background: var(--ground); color: #fff; }
   color: #fff;
   outline: none;
 }
+
+.rudolph-sound {
+  position: absolute;
+  z-index: 15;
+  width: clamp(44px, calc(var(--pw, 600px) * 0.11), 56px);
+  aspect-ratio: 1;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent center / contain no-repeat;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.rudolph-sound.is-visible { opacity: 1; pointer-events: auto; }
+.rudolph-sound.is-playing { background-image: var(--rudolph-sound-off); }
+.rudolph-sound:not(.is-playing) { background-image: var(--rudolph-sound-on); }

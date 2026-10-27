@@ -1,27 +1,34 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  RUDOLPH_SONG_END_PAGE,
-  RUDOLPH_SONG_FIRST_PAGE,
-  RUDOLPH_SONG_IMAGE_CUES,
+  RUDOLPH_SONG_FIRST_PDF_PAGE,
+  RUDOLPH_SONG_LAST_PDF_PAGE,
+  RUDOLPH_SONG_PAGE_CUES,
   RUDOLPH_SONG_LAST_WORD_AT,
-  rudolphSongCueForImage,
-  rudolphSongImageForTime,
+  RUDOLPH_STORY_PAGE_OFFSET,
+  rudolphPdfPageForStoryPage,
+  rudolphSingAlongConfig,
+  rudolphSongCueForPdfPage,
+  rudolphSongPdfPageForTime,
 } from "./rudolph-song-book";
 
-test("Rudolph sing-along cues cover story images through The End", () => {
-  assert.equal(RUDOLPH_SONG_IMAGE_CUES.length, RUDOLPH_SONG_END_PAGE - RUDOLPH_SONG_FIRST_PAGE + 1);
-  for (let i = 1; i < RUDOLPH_SONG_IMAGE_CUES.length; i += 1) {
-    assert.ok(RUDOLPH_SONG_IMAGE_CUES[i] > RUDOLPH_SONG_IMAGE_CUES[i - 1]);
+test("Rudolph story pages map onto the v3 PDF", () => {
+  assert.equal(RUDOLPH_STORY_PAGE_OFFSET, 5);
+  assert.equal(rudolphPdfPageForStoryPage(1), RUDOLPH_SONG_FIRST_PDF_PAGE);
+  assert.equal(rudolphPdfPageForStoryPage(19), RUDOLPH_SONG_LAST_PDF_PAGE);
+  assert.equal(RUDOLPH_SONG_PAGE_CUES.length, 19);
+  for (let i = 1; i < RUDOLPH_SONG_PAGE_CUES.length; i += 1) {
+    assert.ok(RUDOLPH_SONG_PAGE_CUES[i] > RUDOLPH_SONG_PAGE_CUES[i - 1]);
   }
-  assert.equal(rudolphSongCueForImage(RUDOLPH_SONG_FIRST_PAGE), RUDOLPH_SONG_IMAGE_CUES[0]);
-  assert.ok(rudolphSongCueForImage(RUDOLPH_SONG_END_PAGE)! >= RUDOLPH_SONG_LAST_WORD_AT - 12);
+  assert.equal(rudolphSongCueForPdfPage(RUDOLPH_SONG_FIRST_PDF_PAGE), RUDOLPH_SONG_PAGE_CUES[0]);
 });
 
-test("Rudolph image lookup follows the recording", () => {
-  assert.equal(rudolphSongImageForTime(0), 0);
-  assert.equal(rudolphSongImageForTime(16), RUDOLPH_SONG_FIRST_PAGE);
-  assert.equal(rudolphSongImageForTime(40), 5);
-  assert.equal(rudolphSongImageForTime(470), RUDOLPH_SONG_END_PAGE);
-  assert.equal(rudolphSongImageForTime(RUDOLPH_SONG_LAST_WORD_AT + 2), 20);
+test("Rudolph sing-along follows the recording through the outro", () => {
+  assert.equal(rudolphSongPdfPageForTime(0), 0);
+  assert.equal(rudolphSongPdfPageForTime(16), RUDOLPH_SONG_FIRST_PDF_PAGE);
+  assert.equal(rudolphSongPdfPageForTime(40), 7);
+  assert.equal(rudolphSongPdfPageForTime(470), RUDOLPH_SONG_LAST_PDF_PAGE);
+  assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 1), 25);
+  assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 8), 26);
+  assert.ok(rudolphSingAlongConfig("/").soundOffUrl.includes("sound-off.webp"));
 });

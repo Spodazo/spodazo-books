@@ -12,6 +12,7 @@
   var LAST = SP.length - 1;
   var LIBRARY = cfg.libraryUrl || "/";
   var PAGE_LINKS = cfg.pageLinks && typeof cfg.pageLinks === "object" ? cfg.pageLinks : {};
+  var SING = cfg.singAlong && typeof cfg.singAlong === "object" ? cfg.singAlong : null;
 
   var stage = document.getElementById("stage");
   var book = document.getElementById("book");
@@ -51,6 +52,168 @@
   }
   var turnGen = 0;
   var turnAnims = [];
+
+  var song = null;
+  var songMuted = false;
+  var songStarted = false;
+  var soundBtn = document.getElementById("soundBtn");
+
+  if (SING && stage) {
+    stage.style.setProperty("--rudolph-sound-on", "url('" + SING.soundOnUrl + "')");
+    stage.style.setProperty("--rudolph-sound-off", "url('" + SING.soundOffUrl + "')");
+  }
+
+  function cueForPdfPage(n) {
+    if (!SING || n < SING.firstPage || n > SING.endPage) return NaN;
+    return SING.cues[n - SING.firstPage];
+  }
+
+  function visiblePdfPages() {
+    if (single) return [jumpPage || landPage || pg + 1];
+    var pair = SP[idx] || [0, 0];
+    return [pair[0], pair[1]].filter(function (n) { return n > 0 && n <= TOTAL; });
+  }
+
+  function maxVisiblePdfPage() {
+    var pages = visiblePdfPages();
+    return pages.length ? Math.max.apply(null, pages) : 0;
+  }
+
+  function pdfPageForTime(t) {
+    if (!SING) return 0;
+    var best = 0;
+    var page;
+    var c;
+    var lead;
+    for (page = SING.firstPage; page <= SING.endPage; page++) {
+      c = cueForPdfPage(page);
+      lead = page === SING.endPage ? 0 : 0.35;
+      if (t + lead >= c) best = page;
+    }
+    var outro = SING.outroCues || [];
+    for (var i = 0; i < outro.length; i++) {
+      if (t >= outro[i][0]) best = Math.max(best, outro[i][1]);
+    }
+    return best;
+  }
+
+  function ensureSong() {
+    if (!SING) return null;
+    if (song) return song;
+    song = new Audio(SING.audio);
+    song.preload = "auto";
+    song.addEventListener("timeupdate", followSong);
+    song.addEventListener("ended", function () { syncSoundButton(); followSong(); });
+    song.addEventListener("play", syncSoundButton);
+    song.addEventListener("pause", syncSoundButton);
+    return song;
+  }
+
+  function syncSoundButton() {
+    if (!soundBtn) return;
+    var playing = !songMuted && song && !song.paused && !song.ended;
+    soundBtn.classList.toggle("is-playing", playing);
+    soundBtn.setAttribute("aria-pressed", playing ? "true" : "false");
+    soundBtn.setAttribute("aria-label", playing ? "Turn sound off" : "Turn sound on");
+  }
+
+  function placeSoundButton() {
+    if (!soundBtn) return;
+    var r = book.getBoundingClientRect();
+    var sr = stage.getBoundingClientRect();
+    var size = soundBtn.offsetWidth || 48;
+    var gap = Math.max(8, Math.round(ph * 0.025));
+    var x;
+    var y;
+    if (single && sr.width > sr.height) {
+      x = r.right - sr.left + gap;
+      y = r.top - sr.top + (r.height - size) / 2;
+    } else {
+      x = r.left - sr.left + r.width / 2 - size / 2;
+      y = r.top - sr.top - size - gap;
+    }
+    soundBtn.style.left = Math.round(x) + "px";
+    soundBtn.style.top = Math.round(Math.max(gap, y)) + "px";
+  }
+
+  function updateSoundButton() {
+    if (!SING || !soundBtn) return;
+    var show = maxVisiblePdfPage() >= SING.firstPage;
+    soundBtn.hidden = false;
+    soundBtn.classList.toggle("is-visible", show);
+    syncSoundButton();
+    placeSoundButton();
+  }
+
+  function syncSongTimeToView() {
+    if (!SING) return;
+    var page = maxVisiblePdfPage();
+    var c;
+    if (page < SING.firstPage) return;
+    c = cueForPdfPage(page);
+    if (isNaN(c)) return;
+    ensureSong();
+    if (song.currentTime < c - 0.5 || song.currentTime > c + 120) song.currentTime = c;
+  }
+
+  function tryStartSong() {
+    if (!SING || songMuted || songStarted || maxVisiblePdfPage() < SING.firstPage) return;
+    ensureSong();
+    syncSongTimeToView();
+    songStarted = true;
+    song.play().catch(function () { songStarted = false; });
+  }
+
+  function followSong() {
+    var target;
+    var cur;
+    var ti;
+    if (!SING || songMuted || busy) return;
+    var audio = ensureSong();
+    if (!audio || (audio.paused && !audio.ended)) return;
+    target = pdfPageForTime(audio.ended ? SING.duration : audio.currentTime);
+    if (target < SING.firstPage) return;
+    cur = maxVisiblePdfPage();
+    if (target <= cur) return;
+    if (single) {
+      if (pg + 1 < target) go(1);
+      return;
+    }
+    ti = spreadIndexForPage(target);
+    if (ti > idx) go(1);
+  }
+
+  function toggleSongMute() {
+    if (!SING) return;
+    ensureSong();
+    if (songMuted) {
+      songMuted = false;
+      syncSongTimeToView();
+      song.play().catch(function () {});
+      songStarted = true;
+    } else {
+      songMuted = true;
+      song.pause();
+    }
+    syncSoundButton();
+  }
+
+  function stopSong() {
+    songStarted = false;
+    if (!song) return;
+    song.pause();
+    try { song.currentTime = 0; } catch (e) {}
+    syncSoundButton();
+  }
+
+  if (soundBtn && SING) {
+    soundBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSongMute();
+    });
+    soundBtn.addEventListener("pointerup", function (e) { e.stopPropagation(); });
+  }
 
   function exitToLibrary() {
     try {
@@ -324,6 +487,7 @@
     slotR.style.left = single ? "0" : "50%";
     slotR.style.width = single ? "100%" : "50%";
     render();
+    updateSoundButton();
   }
 
   function stackWidths(i) {
@@ -364,6 +528,12 @@
       stackR.style.width = w[1] + "px";
     }
     updateArrows();
+    updateSoundButton();
+    tryStartSong();
+    if (SING && song && !songMuted && !song.paused && maxVisiblePdfPage() >= SING.firstPage) {
+      var syncCue = cueForPdfPage(maxVisiblePdfPage());
+      if (!isNaN(syncCue) && song.currentTime > syncCue + 10) song.currentTime = syncCue;
+    }
     return Promise.all(jobs);
   }
 
@@ -517,6 +687,8 @@
   function restart() {
     if (busy) return;
     busy = true;
+    stopSong();
+    songMuted = false;
     book.classList.add("fading");
     setTimeout(function () {
       jumpPage = 0;
@@ -581,7 +753,7 @@
     layoutSize: function () { return { pw: pw, ph: ph, spread: !single }; },
     onTurn: function (dir) { go(dir); },
     ignoreTarget: function (el) {
-      return el.closest && (el.closest(".flipbook-close") || el.closest(".hot") || el.closest(".arrow"));
+      return el.closest && (el.closest(".flipbook-close") || el.closest(".hot") || el.closest(".arrow") || el.closest(".rudolph-sound"));
     },
     onTap: function (e, type) {
       if (turnsSuppressed() || landPage) return;

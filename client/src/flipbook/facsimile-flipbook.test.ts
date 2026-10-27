@@ -32,4 +32,6 @@ test("uploaded PDF flipbook engine has the Be Thou My Vision controls", async ()
   assert.match(mount, /mountFacsimileFlipbook/);
   assert.match(mount, /pageLinks/);
   assert.match(mount, /\/flipbooks\/mobile-view-zoom\.js/);
+  assert.match(engine, /followSong/);
+  assert.match(mount, /singAlong/);
 });

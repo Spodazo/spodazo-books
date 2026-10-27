@@ -233,8 +233,9 @@ body {
 
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
   var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3';
-  var SONG_FIRST = 4, SONG_END = 19, SONG_LAST_WORD = 478, SONG_DURATION = 492;
-  var SONG_CUES = [15, 39, 87, 125, 160, 186, 210, 223, 247, 289, 318, 345, 378, 412, 446, 468];
+  var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
+  var SONG_CUES = [15, 39, 87, 125, 160, 186, 210, 223, 247, 270, 289, 318, 345, 356, 378, 412, 425, 446, 468];
+  var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
   var song = null, songMuted = false, songStarted = false;
   var soundBtn = document.getElementById('soundBtn');
 
@@ -258,7 +259,9 @@ body {
       lead = img === SONG_END ? 0 : 0.35;
       if (t + lead >= c) best = img;
     }
-    if (t >= SONG_LAST_WORD && t < SONG_DURATION) best = Math.max(best, 20);
+    for (var oi = 0; oi < SONG_OUTRO.length; oi++) {
+      if (t >= SONG_OUTRO[oi][0]) best = Math.max(best, SONG_OUTRO[oi][1]);
+    }
     return best;
   }
   function spreadIndexForImage(n) {
