@@ -254,11 +254,14 @@ body {
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
   var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3';
   var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
-  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 289, 318, 345, 356, 378, 412, 425, 446, 468];
+  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 288, 318, 345, 356, 378, 412, 425, 446, 468];
   var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
   var song = null, songMuted = true, songStarted = false, songFollowTurn = false;
-  var verselessSpreadIdx = -1, verselessSpreadAt = 0;
-  var VERSELESS_BRIEF = { left: 16, right: 17, dwellMs: 3000 };
+  var verselessSpreadKey = '', verselessSpreadAt = 0;
+  var VERSELESS_BRIEF_SPREADS = [
+    { left: 16, right: 17, dwellMs: 3000 },
+    { left: 18, right: 19, dwellMs: 3000, startAfterPdfPage: 19 }
+  ];
   var soundBtn = document.getElementById('soundBtn');
 
   function songAudioUrl() {
@@ -428,24 +431,41 @@ body {
     if (pair[1] >= SONG_FIRST) return pair[1];
     return 0;
   }
+  function verselessBriefForSpread(pair) {
+    var i, b;
+    for (i = 0; i < VERSELESS_BRIEF_SPREADS.length; i++) {
+      b = VERSELESS_BRIEF_SPREADS[i];
+      if (pair[0] === b.left && pair[1] === b.right) return b;
+    }
+    return null;
+  }
   function checkVerselessBriefAdvance() {
-    var pair;
+    var pair, brief, key, cue;
     if (busy || !songPlaybackActive()) {
-      if (!songPlaybackActive()) verselessSpreadIdx = -1;
+      if (!songPlaybackActive()) verselessSpreadKey = '';
       return;
     }
     pair = SP[idx] || [0, 0];
-    if (pair[0] !== VERSELESS_BRIEF.left || pair[1] !== VERSELESS_BRIEF.right) {
-      verselessSpreadIdx = -1;
+    brief = verselessBriefForSpread(pair);
+    if (!brief) {
+      verselessSpreadKey = '';
       return;
     }
-    if (verselessSpreadIdx !== idx) {
-      verselessSpreadIdx = idx;
+    if (brief.startAfterPdfPage) {
+      cue = cueForImage(brief.startAfterPdfPage);
+      if (isNaN(cue) || song.currentTime < cue) {
+        verselessSpreadKey = '';
+        return;
+      }
+    }
+    key = brief.left + ',' + brief.right + ',' + (brief.startAfterPdfPage || 0);
+    if (verselessSpreadKey !== key) {
+      verselessSpreadKey = key;
       verselessSpreadAt = Date.now();
       return;
     }
-    if (Date.now() - verselessSpreadAt >= VERSELESS_BRIEF.dwellMs) {
-      verselessSpreadIdx = -1;
+    if (Date.now() - verselessSpreadAt >= brief.dwellMs) {
+      verselessSpreadKey = '';
       go(1, true);
     }
   }
@@ -469,7 +489,7 @@ body {
   }
   function stopSong() {
     songStarted = false;
-    verselessSpreadIdx = -1;
+    verselessSpreadKey = '';
     if (!song) {
       syncSoundButton();
       return;

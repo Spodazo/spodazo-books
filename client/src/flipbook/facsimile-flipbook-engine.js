@@ -57,7 +57,7 @@
   var songMuted = true;
   var songStarted = false;
   var songFollowTurn = false;
-  var verselessSpreadIdx = -1;
+  var verselessSpreadKey = "";
   var verselessSpreadAt = 0;
   var soundBtn = document.getElementById("soundBtn");
 
@@ -262,27 +262,56 @@
     return 0;
   }
 
+  function verselessBriefSpreads() {
+    if (!SING) return [];
+    if (Array.isArray(SING.verselessBriefSpreads) && SING.verselessBriefSpreads.length) {
+      return SING.verselessBriefSpreads;
+    }
+    if (SING.verselessBriefSpread) return [SING.verselessBriefSpread];
+    return [];
+  }
+
+  function verselessBriefForSpread(pair) {
+    var list = verselessBriefSpreads();
+    var i;
+    var b;
+    for (i = 0; i < list.length; i++) {
+      b = list[i];
+      if (pair[0] === b.left && pair[1] === b.right) return b;
+    }
+    return null;
+  }
+
   function checkVerselessBriefAdvance() {
     var brief;
     var pair;
+    var key;
+    var cue;
     if (!SING || busy || !songPlaybackActive()) {
-      if (!SING || !SING.verselessBriefSpread) verselessSpreadIdx = -1;
+      if (!SING || !verselessBriefSpreads().length) verselessSpreadKey = "";
       return;
     }
-    brief = SING.verselessBriefSpread;
-    if (!brief) return;
     pair = SP[idx] || [0, 0];
-    if (pair[0] !== brief.left || pair[1] !== brief.right) {
-      verselessSpreadIdx = -1;
+    brief = verselessBriefForSpread(pair);
+    if (!brief) {
+      verselessSpreadKey = "";
       return;
     }
-    if (verselessSpreadIdx !== idx) {
-      verselessSpreadIdx = idx;
+    if (brief.startAfterPdfPage) {
+      cue = cueForPdfPage(brief.startAfterPdfPage);
+      if (isNaN(cue) || song.currentTime < cue) {
+        verselessSpreadKey = "";
+        return;
+      }
+    }
+    key = brief.left + "," + brief.right + "," + (brief.startAfterPdfPage || 0);
+    if (verselessSpreadKey !== key) {
+      verselessSpreadKey = key;
       verselessSpreadAt = Date.now();
       return;
     }
     if (Date.now() - verselessSpreadAt >= brief.dwellMs) {
-      verselessSpreadIdx = -1;
+      verselessSpreadKey = "";
       go(1, true);
     }
   }
@@ -309,7 +338,7 @@
 
   function stopSong() {
     songStarted = false;
-    verselessSpreadIdx = -1;
+    verselessSpreadKey = "";
     if (!song) {
       syncSoundButton();
       return;

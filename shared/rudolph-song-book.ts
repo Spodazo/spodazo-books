@@ -28,7 +28,7 @@ export function rudolphPdfPageForStoryPage(storyPage: number): number {
  * Matched to `Rudloph the Red Nosed Reindeer-BEST.mp3`.
  */
 export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
-  0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 289, 318, 345, 356, 378, 412, 425, 446, 468,
+  0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 288, 318, 345, 356, 378, 412, 425, 446, 468,
 ];
 
 /** Seconds when the last sung words finish; outro plays on PDF pages 25–28. */
@@ -75,10 +75,24 @@ export function rudolphSongImageForTime(seconds: number): number {
 export const RUDOLPH_SINGALONG_NOTE_PAGE = 2;
 export const RUDOLPH_SINGALONG_NOTE_TEXT = "This is a sing-along book.";
 
-/** Story pages 11–12 (PDF 16–17) are art-only — show ~2s then advance to story page 13. */
-export const RUDOLPH_VERSELESS_BRIEF_PDF_LEFT = rudolphPdfPageForStoryPage(11);
-export const RUDOLPH_VERSELESS_BRIEF_PDF_RIGHT = rudolphPdfPageForStoryPage(12);
-export const RUDOLPH_VERSELESS_BRIEF_MS = 3000;
+export type RudolphVerselessBriefSpread = {
+  left: number;
+  right: number;
+  dwellMs: number;
+  /** Wait until the song reaches this PDF page before starting the dwell timer. */
+  startAfterPdfPage?: number;
+};
+
+/** Art-only spreads: brief display then auto-turn while the song keeps playing. */
+export const RUDOLPH_VERSELESS_BRIEF_SPREADS: readonly RudolphVerselessBriefSpread[] = [
+  { left: rudolphPdfPageForStoryPage(11), right: rudolphPdfPageForStoryPage(12), dwellMs: 3000 },
+  {
+    left: rudolphPdfPageForStoryPage(13),
+    right: rudolphPdfPageForStoryPage(14),
+    dwellMs: 3000,
+    startAfterPdfPage: rudolphPdfPageForStoryPage(14),
+  },
+];
 
 export type RudolphSingalongNoteMetrics = {
   topPct: number;
@@ -108,7 +122,7 @@ export type RudolphSingAlongConfig = {
   soundOffUrl: string;
   singalongNotePage: number;
   singalongNoteText: string;
-  verselessBriefSpread: { left: number; right: number; dwellMs: number };
+  verselessBriefSpreads: RudolphVerselessBriefSpread[];
 };
 
 /** Payload for facsimile / bundled flipbook engines. */
@@ -127,10 +141,6 @@ export function rudolphSingAlongConfig(baseUrl = "/"): RudolphSingAlongConfig {
     soundOffUrl: `${root}flipbooks/rudolph-the-red-nosed-reindeer/sound-off.webp`,
     singalongNotePage: RUDOLPH_SINGALONG_NOTE_PAGE,
     singalongNoteText: RUDOLPH_SINGALONG_NOTE_TEXT,
-    verselessBriefSpread: {
-      left: RUDOLPH_VERSELESS_BRIEF_PDF_LEFT,
-      right: RUDOLPH_VERSELESS_BRIEF_PDF_RIGHT,
-      dwellMs: RUDOLPH_VERSELESS_BRIEF_MS,
-    },
+    verselessBriefSpreads: [...RUDOLPH_VERSELESS_BRIEF_SPREADS],
   };
 }

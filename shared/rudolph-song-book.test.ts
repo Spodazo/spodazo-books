@@ -30,17 +30,14 @@ test("Rudolph sing-along follows the recording through the outro", () => {
   assert.equal(rudolphSongPdfPageForTime(38), RUDOLPH_SONG_FIRST_PDF_PAGE);
   assert.equal(rudolphSongPdfPageForTime(40), 7);
   assert.equal(rudolphSongPdfPageForTime(272), RUDOLPH_SONG_FIRST_PDF_PAGE + 9);
-  assert.equal(rudolphSongPdfPageForTime(290), RUDOLPH_SONG_FIRST_PDF_PAGE + 10);
+  assert.equal(rudolphSongPdfPageForTime(289), RUDOLPH_SONG_FIRST_PDF_PAGE + 10);
   assert.equal(rudolphSongPdfPageForTime(470), RUDOLPH_SONG_LAST_PDF_PAGE);
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 1), 25);
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 8), 26);
   assert.ok(rudolphSingAlongConfig("/").soundOffUrl.includes("sound-off.webp"));
   assert.equal(rudolphSingAlongConfig("/").singalongNoteText, "This is a sing-along book.");
-  assert.deepEqual(rudolphSingAlongConfig("/").verselessBriefSpread, {
-    left: 16,
-    right: 17,
-    dwellMs: 3000,
-  });
+  assert.equal(rudolphSingAlongConfig("/").verselessBriefSpreads.length, 2);
+  assert.equal(rudolphSingAlongConfig("/").verselessBriefSpreads[1].startAfterPdfPage, 19);
   assert.equal(rudolphSingalongNoteMetrics(900, 1080).topPct, 43.52);
   assert.equal(rudolphSingalongNoteMetrics(1188, 1861).topPct, 91.1);
 });
