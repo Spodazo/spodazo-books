@@ -333,16 +333,86 @@ export function withWillowSongTagline(layout: PageLayout | undefined): PageLayou
   return { ...layout, elements };
 }
 
+export const WILLOW_NAP_IMAGE = "willow-bear-nap.webp";
+
+export function willowNapLayout(): PageLayout {
+  return {
+    background: "",
+    elements: [
+      {
+        id: "nap-art",
+        type: "image",
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 100,
+        z: 1,
+        imageAsset: WILLOW_NAP_IMAGE,
+        imageUrl: `/media/images/${WILLOW_NAP_IMAGE}`,
+        fit: "contain",
+        focusX: 50,
+        focusY: 50,
+        opacity: 100,
+      },
+    ],
+  };
+}
+
+export function willowBackCoverLayout(): PageLayout {
+  return {
+    background: "",
+    elements: [
+      {
+        id: "end-art",
+        type: "image",
+        x: 8,
+        y: 4,
+        w: 34,
+        h: 44,
+        z: 1,
+        imageAsset: "willow-character.webp",
+        imageUrl: "/media/images/willow-character.webp",
+        fit: "contain",
+        focusX: 50,
+        focusY: 40,
+        opacity: 100,
+      },
+      {
+        id: "end-title",
+        type: "text",
+        x: 6,
+        y: 50,
+        w: 38,
+        h: 14,
+        z: 2,
+        text: "THE END",
+        imageUrl: "",
+        fontSize: 5,
+        fontFamily: "",
+        color: "",
+        align: "center",
+        frame: "",
+        frameColor: "",
+        role: "end",
+      },
+    ],
+  };
+}
+
 export function willowSongPayload(book: Book): Partial<Book> {
   return {
     tagline: WILLOW_SONG_TAGLINE,
     pages: willowSongPages(),
     titleLayout: withWillowSongTagline(book.titleLayout),
     coverLayout: withWillowSongTagline(book.coverLayout),
+    endLayout: willowNapLayout(),
+    backCoverLayout: willowBackCoverLayout(),
   };
 }
 
 export function needsWillowSongUpdate(book: Book): boolean {
   if (!isWillowBook(book)) return false;
-  return !isWillowSongBook(book);
+  if (!isWillowSongBook(book)) return true;
+  const nap = book.endLayout?.elements?.find((item) => item.type === "image");
+  return nap?.imageAsset !== WILLOW_NAP_IMAGE;
 }

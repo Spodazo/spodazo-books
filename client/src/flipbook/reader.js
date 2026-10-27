@@ -131,9 +131,19 @@ function characterSrc(book, baseUrl) {
   return url ? esc(safeURL(url, baseUrl)) : "";
 }
 
+function willowEndingHtml(book, baseUrl, credits, copyright, logoUrl) {
+  const nap = esc(safeURL(`/media/images/${"willow-bear-nap.webp"}`, baseUrl));
+  const cue = cueAttr(WILLOW_SONG_END_CUE);
+  const legal = legalHtml(credits, copyright, logoUrl, baseUrl, book.date);
+  const napPage = `<article class="page nap-page" data-source="end"${cue} aria-label="A cozy nap"><img class="nap-picture" src="${nap}" alt=""><button class="zone" data-dir="-1" aria-label="Previous page"></button><button class="zone" data-dir="1" aria-label="Next page"></button></article>`;
+  const back = `<article class="page end-page back-cover" data-source="back" aria-label="Back cover"><div class="back-cover-leaf"><h1 class="end-title">THE END</h1><button type="button" class="read-again">Read again</button>${legal}</div><button class="zone" data-dir="-1" aria-label="Previous page"></button></article>`;
+  return napPage + back;
+}
+
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {
+  if (isWillowBook(book)) return willowEndingHtml(book, baseUrl, credits, copyright, logoUrl);
   const extras = `${legalHtml(credits,copyright,logoUrl,baseUrl,book.date)}<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
-  const cue = isWillowBook(book) ? cueAttr(WILLOW_SONG_END_CUE) : "";
+  const cue = "";
   if (hasLayout(book.endLayout)) {
     return laidOutPage("The end", book.endLayout, book, baseUrl, extras, " end-page", "", cue).replace("<article", '<article data-source="end"');
   }
