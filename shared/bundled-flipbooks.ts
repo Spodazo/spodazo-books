@@ -42,10 +42,12 @@ export function usesStaticBundledFlipbook(book: {
   pages?: BundlePageRef[];
 }): boolean {
   if (!book.slug || !isBundledFlipbookSlug(book.slug)) return false;
+  // A stored PDF is a revised book. Never keep showing the shipped flipbook.
+  if (String(book.pdf || book.pdfUrl || "").trim()) return false;
   const pages = book.pages || [];
   if (pages.length > 0 && pages.every((page) => isStaticBundlePage(page))) return true;
   if (pages.length > 0) return false;
-  return !String(book.pdf || book.pdfUrl || "").trim();
+  return true;
 }
 
 function flipbookRoot(baseUrl: string): string {

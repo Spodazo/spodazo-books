@@ -38,6 +38,14 @@ test("shouldUseFacsimileFlipbook is true for uploaded PDFs and false for bundled
   assert.equal(
     shouldUseFacsimileFlipbook({
       slug: "Rudolph",
+      pdf: "Rudolph-revised.pdf",
+      pages: [{ kind: "facsimile", imageAsset: "p-01.jpg", fullPageAsset: "p-01.jpg", imageUrl: "/flipbooks/rudolph-the-red-nosed-reindeer/pages/p-01.jpg" }],
+    }),
+    true,
+  );
+  assert.equal(
+    shouldUseFacsimileFlipbook({
+      slug: "Rudolph",
       pdf: "",
       pages: [{ kind: "facsimile", imageAsset: "p-01.jpg", fullPageAsset: "p-01.jpg", imageUrl: "/flipbooks/rudolph-the-red-nosed-reindeer/pages/p-01.jpg" }],
     }),

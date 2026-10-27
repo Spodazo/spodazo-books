@@ -60,6 +60,7 @@ function catalogEntryReady(book: { pages?: Array<{ kind?: string }> }): boolean 
 /** Idempotent: ensure Be Thou My Vision appears in the library after deploy (no manual import script). */
 export async function ensureBeThouMyVisionCatalog(store: BookStore): Promise<void> {
   const existing = await store.getBookBySlug(BE_THOU_SLUG);
+  if (String(existing?.pdf || "").trim()) return;
   if (existing && catalogEntryReady(existing)) return;
 
   const payload = catalogPayload(existing?.sortOrder ?? (await store.listBooks()).length + 1);

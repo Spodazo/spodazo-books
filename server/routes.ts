@@ -447,8 +447,36 @@ export function registerRoutes(app: Express): void {
       }
       const used = new Set((await store.listBooks()).map((book) => book.slug));
       const requested = String(body.slug || "").trim();
-      const slug = requested && !used.has(requested) ? requested : uniqueSlug(requested || title, used);
       const pages = pagesFromBody(body.pages) || [];
+      const pdf = files?.pdf?.[0]?.filename || filenameFromUrl(body.pdfUrl || "");
+      const cover = files?.cover?.[0]?.filename || filenameFromUrl(body.coverUrl || "") || pages[0]?.imageAsset;
+      const existing = requested
+        ? (await store.listBooks()).find((item) => item.slug.toLowerCase() === requested.toLowerCase())
+        : undefined;
+      if (existing && pages.length && pdf) {
+        const replaced = await store.updateBook(existing.id, {
+          title,
+          tagline: String(body.tagline || ""),
+          author: String(body.author || ""),
+          date: String(body.date || ""),
+          cover,
+          pdf,
+          pages,
+          hidden: body.hidden === true || body.hidden === "true",
+          published: body.published !== "false" && body.published !== false,
+          audience: String(body.audience || ""),
+          pageTemplate: String(body.pageTemplate || "one-up"),
+          pageBackground: String(body.pageBackground || ""),
+          pageTexture: String(body.pageTexture || ""),
+          spreadBackground: String(body.spreadBackground || ""),
+          textFont: String(body.textFont || ""),
+          textColor: String(body.textColor || ""),
+          coverLayout: body.coverLayout,
+        });
+        res.json(replaced);
+        return;
+      }
+      const slug = requested && !used.has(requested) ? requested : uniqueSlug(requested || title, used);
       const book = await store.createBook({
         title,
         slug,
