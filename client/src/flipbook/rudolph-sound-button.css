@@ -10,11 +10,11 @@
   min-height: 29px;
   padding: 6px 10px;
   margin: 0;
-  border: 2px solid #fff;
+  border: 1px solid #fff;
   border-radius: 3px;
   background-color: #1fa34a;
   color: #fff;
-  font: 600 10px Lexend, system-ui, sans-serif;
+  font: 400 10px "Lora", Georgia, "Times New Roman", serif;
   letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: pointer;
