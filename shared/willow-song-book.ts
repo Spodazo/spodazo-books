@@ -334,6 +334,9 @@ export function withWillowSongTagline(layout: PageLayout | undefined): PageLayou
 }
 
 export const WILLOW_NAP_IMAGE = "willow-bear-nap.webp";
+export const WILLOW_FRONT_COVER = "willow-front-cover.webp";
+export const WILLOW_OPENING_FONT = "Juicebox Script";
+const OLD_WILLOW_COVER = "Willow - Tiger.webp";
 
 export function willowNapLayout(): PageLayout {
   return {
@@ -397,6 +400,49 @@ export function willowBackCoverLayout(): PageLayout {
       },
     ],
   };
+}
+
+export function willowFrontCoverLayout(): PageLayout {
+  return {
+    background: "#c65a1a",
+    elements: [
+      {
+        id: "cover-art",
+        type: "image",
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 100,
+        z: 1,
+        imageAsset: WILLOW_FRONT_COVER,
+        imageUrl: `/media/images/${WILLOW_FRONT_COVER}`,
+        fit: "cover",
+        focusX: 50,
+        focusY: 50,
+        opacity: 100,
+      },
+    ],
+  };
+}
+
+export function withOpeningPageFont(layout: PageLayout | undefined): PageLayout {
+  const elements = (layout?.elements || []).map((item) =>
+    item.type === "text" ? { ...item, fontFamily: WILLOW_OPENING_FONT } : item,
+  );
+  return { ...(layout || { elements }), elements };
+}
+
+export function usesOldWillowCover(book: Pick<Book, "slug" | "title" | "cover" | "coverLayout">): boolean {
+  if (!isWillowBook(book)) return false;
+  if (book.cover === OLD_WILLOW_COVER) return true;
+  if ((book.coverLayout?.elements || []).some((item) => item.type === "image" && item.imageAsset === OLD_WILLOW_COVER)) return true;
+  const art = (book.coverLayout?.elements || []).find((item) => item.id === "cover-art");
+  return book.cover === WILLOW_FRONT_COVER && art?.fit !== "cover";
+}
+
+export function needsOpeningPageFont(book: Pick<Book, "slug" | "title" | "titleLayout">): boolean {
+  if (!isWillowBook(book)) return false;
+  return (book.titleLayout?.elements || []).some((item) => item.type === "text" && item.fontFamily !== WILLOW_OPENING_FONT);
 }
 
 export function willowSongPayload(book: Book): Partial<Book> {

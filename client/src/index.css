@@ -1,3 +1,8 @@
+@font-face {
+  font-family: "Juicebox Script";
+  src: url("/fonts/JuiceboxScript.otf") format("opentype");
+  font-display: swap;
+}
 :root,
 [data-palette="honey"] {
   --bg: #f0dfb3;
