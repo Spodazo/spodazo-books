@@ -259,8 +259,10 @@
     ensureSong();
     songMuted = false;
     song.muted = false;
-    try { song.currentTime = 0; } catch (e) {}
-    var playAttempt = song.play();
+    if (song.ended || song.currentTime > 0.2) {
+      try { song.currentTime = 0; } catch (e) {}
+    }
+    var playAttempt = playBookSong(song);
     if (!playAttempt || !playAttempt.then) return;
     playAttempt.then(function () {
       songStarted = true;
@@ -291,8 +293,11 @@
   }
 
   function primeSongTime() {
-    if (storySyncPdfPage() === SING.firstPage && (!songStarted || song.currentTime < 0.25)) song.currentTime = 0;
-    else syncSongTimeToView();
+    if (storySyncPdfPage() === SING.firstPage && (!songStarted || song.currentTime < 0.25)) {
+      if (song && (song.ended || song.currentTime > 0.25)) {
+        try { song.currentTime = 0; } catch (e) {}
+      }
+    } else syncSongTimeToView();
   }
 
   function toggleMusicButton() {
@@ -313,7 +318,7 @@
     }
     primeSongTime();
     if (song.paused || song.ended) {
-      var playAttempt = song.play();
+      var playAttempt = playBookSong(song);
       if (!playAttempt || !playAttempt.then) return;
       playAttempt.then(function () {
         songStarted = true;

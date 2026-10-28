@@ -806,8 +806,8 @@ function toggleSingAlong(){
   songMuted=false;
   audio.muted=false;
   cue=cueFor(pages[index]);
-  if((audio.ended||audio.currentTime<0.5)&&!isNaN(cue))audio.currentTime=cue;
-  if(audio.paused||audio.ended)audio.play().catch(function(){});
+  if((audio.ended||audio.currentTime<0.5)&&!isNaN(cue)&&Math.abs(audio.currentTime-cue)>0.05){try{audio.currentTime=cue;}catch(err){}}
+  if(audio.paused||audio.ended)playBookSong(audio).catch(function(){});
   else syncSingAlong(true);
 }
 var willowSoundBtn=document.getElementById('soundBtn');
