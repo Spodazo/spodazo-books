@@ -247,7 +247,7 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const titleBlock=pdfFacsimile?'':titlePageHtml(book,baseUrl,libraryUrl,!cover);
   const endBlock=pdfFacsimile?'':endPageHtml(book,baseUrl,credits,copyright,logoUrl)+backCoverPageHtml(book,baseUrl,credits,copyright,logoUrl);
   const articles=cover+titleBlock+buildStoryPagesHtml(storyPages,storyDeps)+endBlock;
-  const bootMobile=`(function(){try{var m=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches&&matchMedia('(orientation:portrait)').matches;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
+  const bootMobile=`(function(){try{var handset=matchMedia('(max-width:700px), (pointer:coarse) and (max-width:1100px)').matches;var landscape=matchMedia('(orientation:landscape)').matches||innerWidth>innerHeight;var m=handset&&!landscape;var root=document.documentElement;root.classList.toggle('mobile',m);if(!m&&${cover?'true':'false'})root.classList.add('closed-book');}catch(e){}})();`;
   const openAttr=fadeOpen?' data-fade-open="1"':'';
   const templateAttr=oneLeaf?' data-page-template="one-up"':'';
   const htmlClass=` class="${fadeOpen?"opening":"booting"}${isWillowBook(book)?" willow":""}"`;

@@ -315,9 +315,15 @@ function centerWillowLyrics(p){
     para.style.setProperty('font-size','clamp(18.72px, 2.592dvh, 23.04px)','important');
   });
 }
+function portraitHandset(){
+  var handset=matchMedia('(max-width: 700px), (pointer: coarse) and (max-width: 1100px)').matches;
+  var landscape=matchMedia('(orientation: landscape)').matches||window.innerWidth>window.innerHeight;
+  return handset&&!landscape;
+}
 function splitWillowPortraitLeaves(){
   var i,p,lyrics;
   if(!mobile||!document.documentElement.classList.contains('willow'))return;
+  if(window.innerWidth>window.innerHeight||matchMedia('(orientation: landscape)').matches)return;
   for(i=0;i<pages.length;i++){
     p=pages[i];
     if(p.classList.contains('willow-leaf')||p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('front-cover'))continue;
@@ -394,7 +400,7 @@ function rebuild(){
   if(busy)return;
   resetViewZoom();
   var source=pages[index]?pages[index].getAttribute('data-source'):null;
-  mobile=matchMedia('(max-width: 700px), (pointer: coarse) and (max-width: 1100px)').matches&&matchMedia('(orientation: portrait)').matches;
+  mobile=portraitHandset();
   document.documentElement.classList.toggle('mobile',mobile);
   var first=!pages.length;
   if(first){
@@ -502,6 +508,11 @@ function releaseFlip(layer,after){
         return;
       }
       followSong();
+      if(rebuildQueued&&!busy){
+        rebuildQueued=false;
+        rebuild();
+        bootPages();
+      }
     });
   });
 }
@@ -1105,5 +1116,19 @@ rebuild();
 bootPages();
 requestAnimationFrame(function(){requestAnimationFrame(function(){curlHold=false;if(!busy)updateCurl();});});
 var hint=document.getElementById('hint');setTimeout(function(){if(hint)hint.remove()},3000);
-var resizeTimer;window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(busy)return;rebuild();bootPages();},200)});
+var resizeTimer,rebuildQueued=false;
+function scheduleRebuild(){
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(function(){
+    if(busy){rebuildQueued=true;return;}
+    rebuild();
+    bootPages();
+  },120);
+}
+window.addEventListener('resize',scheduleRebuild);
+window.addEventListener('orientationchange',scheduleRebuild);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',scheduleRebuild);
+try{if(window.parent&&window.parent!==window){window.parent.addEventListener('resize',scheduleRebuild);window.parent.addEventListener('orientationchange',scheduleRebuild);}}catch(err){}
+var portraitWatch=matchMedia('(orientation: portrait)');
+if(portraitWatch.addEventListener)portraitWatch.addEventListener('change',scheduleRebuild);
 })();

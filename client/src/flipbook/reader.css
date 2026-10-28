@@ -1912,6 +1912,18 @@ html.willow.mobile main{
   height:var(--book-h);
   border-radius:18px;
 }
+@media(orientation:landscape){
+  html.willow.mobile{
+    --book-w:min(calc((100dvh - 8px) / var(--page-ratio, 1.2) * 2), 100dvw);
+    --book-h:calc(var(--book-w) / 2 * var(--page-ratio, 1.2));
+  }
+  html.willow.mobile main{
+    top:max(2px, calc((100dvh - var(--book-h)) / 2));
+    left:calc((100dvw - var(--book-w)) / 2);
+    width:var(--book-w);
+    height:var(--book-h);
+  }
+}
 html.willow a.viewport-close{
   color:#fff;
   -webkit-text-fill-color:#fff;
