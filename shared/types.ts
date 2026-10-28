@@ -109,6 +109,9 @@ export type BookListItem = {
   cover: string;
   coverUrl: string;
   pdfUrl: string;
+  /** Pixel size of the shelf picture, so the card can hold its shape before the file arrives. */
+  coverWidth?: number;
+  coverHeight?: number;
   color: string;
   sortOrder: number;
   hidden: boolean;

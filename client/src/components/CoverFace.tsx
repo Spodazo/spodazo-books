@@ -62,12 +62,16 @@ export default function CoverFace({
   texture,
   font,
   ink,
+  imageWidth,
+  imageHeight,
 }: {
   layout: PageLayout;
   background: string;
   texture?: string;
   font: string;
   ink: string;
+  imageWidth?: number;
+  imageHeight?: number;
 }) {
   const pdfCover = layout.elements.length === 1
     && layout.elements[0]?.type === "image"
@@ -76,9 +80,18 @@ export default function CoverFace({
     && layout.elements[0]?.h >= 99
     && Boolean(layout.elements[0]?.imageUrl);
   if (pdfCover && layout.elements[0]?.type === "image") {
+    const ratio = imageWidth && imageHeight ? { aspectRatio: `${imageWidth} / ${imageHeight}` } : undefined;
     return (
-      <div className="cover-face">
-        <img className="cover-pdf" src={layout.elements[0].imageUrl} alt="" />
+      <div className="cover-face" style={ratio}>
+        <img
+          className="cover-pdf"
+          src={layout.elements[0].imageUrl}
+          alt=""
+          width={imageWidth || undefined}
+          height={imageHeight || undefined}
+          decoding="async"
+          fetchPriority="high"
+        />
       </div>
     );
   }

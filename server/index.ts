@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { registerRoutes } from "./routes";
 import { htmlWithSiteIcons } from "./htmlIcons";
+import { htmlWithHomeBootstrap, htmlWithPalette, withCoverMetrics } from "./homeShell";
 import { prepareFaviconSet, warmHomeCardImages } from "./media";
 import { ensureDataDirs, syncBundledMedia } from "./paths";
 import { ensureSessionTable, sessionMiddleware } from "./session";
@@ -81,8 +82,13 @@ async function start() {
 
   async function pageHtml(source: string): Promise<string> {
     try {
-      const setup = await (await getStore()).getPlayerSetup();
-      return htmlWithSiteIcons(source, setup.favicon);
+      const store = await getStore();
+      const [setup, list] = await Promise.all([store.getPlayerSetup(), store.listBooks()]);
+      const books = await withCoverMetrics(list.filter((book) => book.published && !book.hidden));
+      return htmlWithHomeBootstrap(
+        htmlWithPalette(htmlWithSiteIcons(source, setup.favicon), setup.collectionColor),
+        { setup, books },
+      );
     } catch {
       return source;
     }

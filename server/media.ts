@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
+import { WILLOW_FRONT_COVER_ASSET } from "../shared/willow-song-book";
 import { audioDir, dataDir, faviconDir, imagesDir, pdfsDir, uniqueFileName } from "./paths";
 
 export function decodeMediaFilename(filename: string): string {
@@ -92,11 +93,48 @@ export async function preparedImagePath(full: string, width?: number): Promise<s
   return dest;
 }
 
+const coverSizeCache = new Map<string, { width: number; height: number }>();
+
+/** Versioned image URLs can stay cached. Unversioned ones (Willow’s shelf thumb) refresh within a day. */
+export function imageCacheControl(version: unknown): string {
+  return version
+    ? "public, max-age=31536000, immutable"
+    : "public, max-age=86400";
+}
+
+export async function coverPixelSize(src: string): Promise<{ width: number; height: number } | null> {
+  if (!src) return null;
+  let pathname = "";
+  let width: number | undefined;
+  try {
+    const url = new URL(src, "https://books.spodazo.com");
+    pathname = url.pathname;
+    width = parseImageWidth(url.searchParams.get("w"));
+  } catch {
+    return null;
+  }
+  const full = localImagePath(pathname);
+  if (!full) return null;
+  const key = `${full}|${width || 0}|${Math.round(fs.statSync(full).mtimeMs)}`;
+  const cached = coverSizeCache.get(key);
+  if (cached) return cached;
+  try {
+    const prepared = await preparedImagePath(full, width);
+    const meta = await sharp(prepared).metadata();
+    if (!meta.width || !meta.height) return null;
+    const size = { width: meta.width, height: meta.height };
+    coverSizeCache.set(key, size);
+    return size;
+  } catch {
+    return null;
+  }
+}
+
 export async function warmHomeCardImages(
   books: Array<{ cover?: string }>,
   extra: Array<string | undefined> = [],
 ): Promise<void> {
-  const names = new Set<string>();
+  const names = new Set<string>([WILLOW_FRONT_COVER_ASSET]);
   for (const book of books) {
     if (book.cover) names.add(book.cover);
   }

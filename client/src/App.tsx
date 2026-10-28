@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { clearBookOpen, onBookOpenChange, openingSince } from "./lib/bookOpen";
-import { playLibraryEnter, resetBookTransition } from "./lib/bookTransition";
+import { resetBookTransition } from "./lib/bookTransition";
 import AdminPage from "./pages/Admin";
 import BookPage from "./pages/Book";
 import HomePage from "./pages/Home";
@@ -20,7 +20,6 @@ export default function App() {
     if (!onHome) return;
     resetBookTransition();
     clearBookOpen();
-    playLibraryEnter();
   }, [onHome]);
 
   return (

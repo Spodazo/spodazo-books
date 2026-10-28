@@ -76,6 +76,21 @@ export async function loadHomeBooks(): Promise<BookListItem[]> {
   return books;
 }
 
+/** Books and colors shipped in the HTML, so the shelf can paint before another request. */
+export function absorbHomeBootstrap(): void {
+  if (typeof document === "undefined") return;
+  const node = document.getElementById("home-bootstrap");
+  if (!node) return;
+  try {
+    const parsed = JSON.parse(node.textContent || "") as { setup?: PlayerSetup; books?: BookListItem[] };
+    if (parsed.setup && typeof parsed.setup.appName === "string") writeCachedSetup(parsed.setup);
+    if (Array.isArray(parsed.books)) writeCachedBooks(parsed.books);
+  } catch {
+    /* the shelf can still load from the API */
+  }
+  node.remove();
+}
+
 export function prefetchHome() {
   void loadHomeSetup();
   void loadHomeBooks();

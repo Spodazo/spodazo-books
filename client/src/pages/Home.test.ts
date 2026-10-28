@@ -16,4 +16,7 @@ test("home page uses Admin sortOrder and does not zoom covers on hover", async (
   assert.match(css, /\.cover-face:has\(\.cover-pdf\)\s*\{[^}]*aspect-ratio:\s*auto/);
   assert.match(css, /\.cover-face:has\(\.cover-pdf\)\s*\{[^}]*container-type:\s*normal/);
   assert.match(css, /\.book-card\s*\{[^}]*min-width:\s*0/);
+  assert.match(source, /homeCoverLayout/);
+  assert.match(source, /coverWidth/);
+  assert.doesNotMatch(source, /playLibraryEnter|willowFrontCoverLayout/);
 });

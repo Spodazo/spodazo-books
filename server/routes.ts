@@ -14,6 +14,7 @@ import {
   assetVersion,
   convertUploadedImage,
   decodeMediaFilename,
+  imageCacheControl,
   FAVICON_PUBLIC_FILES,
   faviconPublicPath,
   imageUrl,
@@ -39,6 +40,8 @@ import {
 import { importPdfOnServer } from "./pdf-import";
 import { pdfReplaceStatus, startPdfReplace } from "./replace-book-pdf";
 import { withTaglineText, withTitleText } from "../shared/page-layout";
+import { paletteById } from "../shared/palettes";
+import { withCoverMetrics } from "./homeShell";
 
 function isPdfUpload(file: { fieldname: string; mimetype: string; originalname: string }): boolean {
   return file.fieldname === "pdf" || file.mimetype === "application/pdf" || /\.pdf$/i.test(file.originalname);
@@ -231,8 +234,8 @@ export function registerRoutes(app: Express): void {
       start_url: "/",
       scope: "/",
       display: "standalone",
-      background_color: "#F0DFB3",
-      theme_color: "#7A4FD0",
+      background_color: paletteById(setup.collectionColor).bg,
+      theme_color: paletteById(setup.collectionColor).bg,
       icons: [
         { src: `/icon-${stamp}.png`, sizes: "32x32", type: "image/png", purpose: "any" },
         { src: `/site-icons/${stamp}/android-chrome-192x192.png`, sizes: "192x192", type: "image/png", purpose: "any" },
@@ -275,7 +278,8 @@ export function registerRoutes(app: Express): void {
   app.get("/api/books", async (req, res) => {
     const store = await getStore();
     const list = await store.listBooks();
-    sendNoStoreJson(res, req.session?.admin ? list : list.filter((book) => !book.hidden && book.published));
+    const visible = req.session?.admin ? list : list.filter((book) => !book.hidden && book.published);
+    sendNoStoreJson(res, await withCoverMetrics(visible));
     void warmHomeCardImages(list);
   });
 
@@ -655,8 +659,12 @@ export function registerRoutes(app: Express): void {
     const width = parseImageWidth(req.query.w);
     try {
       const file = await preparedImagePath(full, width);
+      const cache = imageCacheControl(req.query.v);
       res.sendFile(path.resolve(file), {
-        headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache", Expires: "0" },
+        headers: {
+          "Cache-Control": cache,
+          "CDN-Cache-Control": cache,
+        },
       });
     } catch {
       res.sendFile(path.resolve(full));

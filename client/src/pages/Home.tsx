@@ -3,13 +3,12 @@ import { Link } from "wouter";
 import AdminLoginLink from "../components/AdminLoginLink";
 import CoverFace from "../components/CoverFace";
 import { BOOK_FONTS, DEFAULT_TEXT_COLOR, DEFAULT_TEXT_FONT, googleFontsHref } from "@shared/book-fonts";
-import { DEFAULT_PAGE_BACKGROUND, libraryCoverLayout } from "@shared/page-layout";
+import { homeCoverLayout } from "@shared/home-cover";
+import { DEFAULT_PAGE_BACKGROUND } from "@shared/page-layout";
 import { DEFAULT_PLAYER_SETUP, sortBooksByAdminOrder } from "@shared/seed-data";
 import type { BookListItem, PlayerSetup } from "@shared/types";
 import { isBundledFlipbookSlug } from "@shared/bundled-flipbooks";
 import { isFacsimileFlipbookListItem } from "@shared/facsimile-flipbook";
-import { isWillowBook } from "@shared/reader-pages";
-import { willowFrontCoverLayout } from "@shared/willow-song-book";
 import { fetchBook } from "../lib/api";
 import { markBookOpen } from "../lib/bookOpen";
 import { loadHomeBooks, loadHomeSetup, readCachedBooks, readCachedSetup } from "../lib/homeCache";
@@ -103,11 +102,13 @@ function LibraryBookCard({ book }: { book: BookListItem }) {
         }}
       >
         <CoverFace
-          layout={isWillowBook(book) ? willowFrontCoverLayout() : libraryCoverLayout(book)}
+          layout={homeCoverLayout(book)}
           background={book.pageBackground || DEFAULT_PAGE_BACKGROUND}
           texture={book.pageTexture}
           font={book.textFont || DEFAULT_TEXT_FONT}
           ink={book.textColor || DEFAULT_TEXT_COLOR}
+          imageWidth={book.coverWidth}
+          imageHeight={book.coverHeight}
         />
       </Link>
     </article>
