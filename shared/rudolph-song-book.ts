@@ -33,7 +33,7 @@ export function rudolphPdfPageForStoryPage(storyPage: number): number {
  * numbered page 1 arrives with the first verse, and page 13 arrives as “good cheer to all” ends.
  */
 export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
-  0, 3.2, 6.8, 11, 23.96, 44.8, 76.94, 104.58, 106.08, 124.65, 126.67, 146.64, 168.08, 179.68, 197.72, 218.72, 233.83, 252.08, 274.28, 296.52, 317.88, 338.04, 360.28,
+  0, 2.7, 6.3, 10.5, 23.46, 44.3, 76.44, 104.08, 105.58, 124.15, 126.17, 146.14, 167.58, 179.18, 197.22, 220.72, 233.33, 251.58, 273.78, 296.02, 317.38, 337.54, 359.78,
 ];
 
 /** Seconds when the last sung words finish. The End, the cast, and the boy at the window follow. */
@@ -43,10 +43,10 @@ export const RUDOLPH_SONG_DURATION = 396.92;
 
 /** Outro turns. The back cover (28) arrives as the fade reaches silence. */
 export const RUDOLPH_SONG_OUTRO_CUES: readonly [number, number][] = [
-  [383.12, 25],
-  [387.2, 26],
-  [391, 27],
-  [394.92, 28],
+  [382.62, 25],
+  [386.7, 26],
+  [390.5, 27],
+  [394.42, 28],
 ];
 
 export function rudolphSongCueForPdfPage(pdfPage: number): number | undefined {

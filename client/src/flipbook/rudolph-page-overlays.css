@@ -11,3 +11,20 @@
   pointer-events: none;
   white-space: nowrap;
 }
+.rudolph-read-again {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  padding: 0.15em 0.35em;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-family: "Lora", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  line-height: 1.2;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}

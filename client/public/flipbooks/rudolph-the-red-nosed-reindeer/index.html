@@ -199,6 +199,23 @@ body {
   pointer-events: none;
   white-space: nowrap;
 }
+.rudolph-read-again {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  padding: 0.15em 0.35em;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-family: "Lora", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  line-height: 1.2;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
 </style>
 
 <div id="stage" aria-label="Rudolph the Red Nosed Reindeer flip book" role="application">
@@ -254,8 +271,8 @@ body {
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
   var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3?v=20261028b';
   var SONG_FIRST = 2, SONG_END = 24, SONG_LAST_WORD = 383.12, SONG_DURATION = 396.92;
-  var SONG_CUES = [0, 3.2, 6.8, 11, 23.96, 44.8, 76.94, 104.58, 106.08, 124.65, 126.67, 146.64, 168.08, 179.68, 197.72, 218.72, 233.83, 252.08, 274.28, 296.52, 317.88, 338.04, 360.28];
-  var SONG_OUTRO = [[383.12, 25], [387.2, 26], [391, 27], [394.92, 28]];
+  var SONG_CUES = [0, 2.7, 6.3, 10.5, 23.46, 44.3, 76.44, 104.08, 105.58, 124.15, 126.17, 146.14, 167.58, 179.18, 197.22, 220.72, 233.33, 251.58, 273.78, 296.02, 317.38, 337.54, 359.78];
+  var SONG_OUTRO = [[382.62, 25], [386.7, 26], [390.5, 27], [394.42, 28]];
   var song = null, songMuted = true, songStarted = false, songFollowTurn = false, songFollowPoll = null;
   var verselessSpreadKey = '', verselessSpreadAt = 0;
   var VERSELESS_BRIEF_SPREADS = [];
@@ -666,19 +683,68 @@ body {
     for (var i = 0; i < notes.length; i++) {
       placeRudolphSingalongNote(notes[i].parentElement);
     }
+    var agains = document.querySelectorAll('.rudolph-read-again');
+    for (var j = 0; j < agains.length; j++) {
+      placeRudolphReadAgain(agains[j].parentElement);
+    }
+  }
+  function placeRudolphReadAgain(page) {
+    var el = page.querySelector('.rudolph-read-again');
+    if (!el) return;
+    var img = page.querySelector('img');
+    var box = imageContentBox(page);
+    var ph = page.clientHeight || 1;
+    var iw = img && img.naturalWidth ? img.naturalWidth : 900;
+    var ih = img && img.naturalHeight ? img.naturalHeight : 1080;
+    var metrics = rudolphSingalongNoteMetrics(iw, ih);
+    var imgDisplayH = (box.height / 100) * ph;
+    el.style.fontSize = (imgDisplayH * metrics.fontSizePct / 100) + 'px';
+    el.style.top = (box.top + 61 * box.height / 100) + '%';
+    el.style.left = (box.left + box.width / 2) + '%';
+  }
+  function syncRudolphReadAgain(host, n) {
+    var p = pageEl(host);
+    var el = p.querySelector('.rudolph-read-again');
+    if (n !== TOTAL) {
+      if (el) el.remove();
+      return;
+    }
+    if (!el) {
+      el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'rudolph-read-again';
+      el.textContent = 'Read Again';
+      el.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      el.addEventListener('pointerup', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        restart();
+      });
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      p.appendChild(el);
+    }
+    placeRudolphReadAgain(p);
   }
   // returns a promise that resolves once the page image is decoded and ready to paint
   function setPage(host, n, blankPaper) {
     var p = pageEl(host), img = p.querySelector('img');
     p.classList.remove('empty', 'blank', 'again', 'link');
     if (n === TOTAL) p.classList.add('link');   // the closing page carries the View Again... link over its picture
-    if (n === TOTAL + 1) { img.removeAttribute('src'); p.classList.add('again'); syncRudolphSingalongNote(host, n); return Promise.resolve(); }
-    if (!n) { img.removeAttribute('src'); p.classList.add(blankPaper ? 'blank' : 'empty'); syncRudolphSingalongNote(host, n); return Promise.resolve(); }
+    if (n === TOTAL + 1) { img.removeAttribute('src'); p.classList.add('again'); syncRudolphSingalongNote(host, n); syncRudolphReadAgain(host, n); return Promise.resolve(); }
+    if (!n) { img.removeAttribute('src'); p.classList.add(blankPaper ? 'blank' : 'empty'); syncRudolphSingalongNote(host, n); syncRudolphReadAgain(host, n); return Promise.resolve(); }
     var s = src(n);
     if (img.getAttribute('src') !== s) img.setAttribute('src', s);
     syncRudolphSingalongNote(host, n);
+    syncRudolphReadAgain(host, n);
     return (img.decode ? img.decode().catch(function () {}) : Promise.resolve()).then(function () {
       syncRudolphSingalongNote(host, n);
+      syncRudolphReadAgain(host, n);
     });
   }
 

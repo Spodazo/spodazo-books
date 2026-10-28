@@ -25,7 +25,8 @@ test("Rudolph story pages map onto the v3 PDF", () => {
     assert.ok(RUDOLPH_SONG_PAGE_CUES[i] > RUDOLPH_SONG_PAGE_CUES[i - 1]);
   }
   assert.equal(rudolphSongCueForPdfPage(RUDOLPH_MUSIC_START_PDF_PAGE), 0);
-  assert.equal(rudolphSongCueForPdfPage(RUDOLPH_SONG_FIRST_PDF_PAGE), 23.96);
+  assert.equal(rudolphSongCueForPdfPage(RUDOLPH_SONG_FIRST_PDF_PAGE), 23.46);
+  assert.equal(rudolphSongCueForPdfPage(rudolphPdfPageForStoryPage(12)), 220.72);
 });
 
 test("the preface holds the longest part of the introduction", () => {

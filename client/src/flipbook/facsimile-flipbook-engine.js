@@ -587,6 +587,58 @@
     for (var i = 0; i < notes.length; i++) {
       placeRudolphSingalongNote(notes[i].parentElement);
     }
+    var agains = document.querySelectorAll(".rudolph-read-again");
+    for (var j = 0; j < agains.length; j++) {
+      placeRudolphReadAgain(agains[j].parentElement);
+    }
+  }
+
+  function placeRudolphReadAgain(page) {
+    var el = page.querySelector(".rudolph-read-again");
+    if (!el) return;
+    var img = page.querySelector("img");
+    var box = imageContentBox(page);
+    var ph = page.clientHeight || 1;
+    var iw = img && img.naturalWidth ? img.naturalWidth : 900;
+    var ih = img && img.naturalHeight ? img.naturalHeight : 1080;
+    var metrics = rudolphSingalongNoteMetrics(iw, ih);
+    var imgDisplayH = (box.height / 100) * ph;
+    el.style.fontSize = imgDisplayH * metrics.fontSizePct / 100 + "px";
+    el.style.top = box.top + 61 * box.height / 100 + "%";
+    el.style.left = box.left + box.width / 2 + "%";
+  }
+
+  function syncRudolphReadAgain(host, n) {
+    if (!SING) return;
+    var p = pageEl(host);
+    var el = p.querySelector(".rudolph-read-again");
+    if (n !== TOTAL) {
+      if (el) el.remove();
+      return;
+    }
+    if (!el) {
+      el = document.createElement("button");
+      el.type = "button";
+      el.className = "rudolph-read-again";
+      el.textContent = "Read Again";
+      el.addEventListener("pointerdown", function (e) {
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+      el.addEventListener("pointerup", function (e) {
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        e.preventDefault();
+        restart();
+      });
+      el.addEventListener("click", function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      });
+      p.appendChild(el);
+    }
+    placeRudolphReadAgain(p);
   }
 
   var COVER_LINKS = [
@@ -684,8 +736,11 @@
     p.classList.remove("empty", "blank", "again", "link", "index");
     clearIndexHots(p);
     if (n === TOTAL) {
-      p.classList.add("link");
-      mountCoverLinks(p);
+      if (SING) syncRudolphReadAgain(host, n);
+      else {
+        p.classList.add("link");
+        mountCoverLinks(p);
+      }
     }
     if (n && linksFor(n).length) {
       p.classList.add("index");
@@ -695,15 +750,18 @@
       img.removeAttribute("src");
       p.classList.add(blankPaper ? "blank" : "empty");
       syncRudolphSingalongNote(host, n);
+      syncRudolphReadAgain(host, n);
       return Promise.resolve();
     }
     var s = src(n);
     if (img.getAttribute("src") !== s) img.setAttribute("src", s);
     syncRudolphSingalongNote(host, n);
+    syncRudolphReadAgain(host, n);
     return (img.decode ? img.decode().catch(function () {}) : Promise.resolve()).then(function () {
-      if (n === TOTAL) placeCoverLinks(p);
+      if (n === TOTAL && !SING) placeCoverLinks(p);
       if (n && linksFor(n).length) mountIndexHots(p, n);
       syncRudolphSingalongNote(host, n);
+      syncRudolphReadAgain(host, n);
     });
   }
 
