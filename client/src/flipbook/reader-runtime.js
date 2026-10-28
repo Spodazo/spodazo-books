@@ -336,7 +336,16 @@ function splitWillowPortraitLeaves(){
     Array.prototype.slice.call(lyrics.querySelectorAll('[data-leaf="right"]')).forEach(function(el){remapWillowLeaf(el,'right');});
     lyrics.classList.add('willow-leaf','willow-lyrics');
     lyrics.classList.remove('current');
-    lyrics.removeAttribute('data-cue');
+    var verseCue=parseFloat(p.getAttribute('data-cue')),nextCue=NaN,j,ahead;
+    for(j=i+1;j<pages.length;j++){
+      ahead=parseFloat(pages[j].getAttribute('data-cue'));
+      if(!isNaN(ahead)){nextCue=ahead;break;}
+    }
+    if(!isNaN(verseCue)){
+      var gap=isNaN(nextCue)?4:nextCue-verseCue;
+      var hold=gap>3?2:Math.max(0.8,gap/2);
+      lyrics.setAttribute('data-cue',String(Math.round((verseCue+hold)*100)/100));
+    }else lyrics.removeAttribute('data-cue');
     centerWillowLyrics(lyrics);
     if(p.nextSibling)book.insertBefore(lyrics,p.nextSibling);
     else book.appendChild(lyrics);
@@ -776,6 +785,10 @@ function followSong(){
   t=song.ended?Infinity:song.currentTime;
   target=pageForSongTime(t);
   if(target<0||target<=index)return;
+  if(target>index+1&&pages[index+1]&&pages[index+1].classList.contains('willow-lyrics')){
+    go(1);
+    return;
+  }
   if(target===index+1)go(1);
   else jumpTo(target);
 }
