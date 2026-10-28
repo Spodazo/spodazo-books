@@ -300,6 +300,26 @@ function fillWillowPicture(p){
   img.style.setProperty('object-fit','cover','important');
   img.style.setProperty('object-position','center center','important');
 }
+function centerWillowLyrics(p){
+  p.style.setProperty('display','flex','important');
+  p.style.setProperty('flex-direction','column','important');
+  p.style.setProperty('align-items','center','important');
+  p.style.setProperty('justify-content','center','important');
+  p.style.setProperty('height','100%','important');
+  var box=p.querySelector('.el-text');
+  if(box){
+    box.style.setProperty('position','relative','important');
+    box.style.setProperty('top','auto','important');
+    box.style.setProperty('left','auto','important');
+    box.style.setProperty('width','92%','important');
+    box.style.setProperty('height','auto','important');
+    box.style.setProperty('flex','0 0 auto','important');
+    box.style.setProperty('margin','0 auto','important');
+  }
+  Array.prototype.forEach.call(p.querySelectorAll('.el-text p'),function(para){
+    para.style.setProperty('font-size','clamp(18.72px, 2.592dvh, 23.04px)','important');
+  });
+}
 function splitWillowPortraitLeaves(){
   var i,p,lyrics;
   if(!mobile||!document.documentElement.classList.contains('willow'))return;
@@ -322,6 +342,7 @@ function splitWillowPortraitLeaves(){
     lyrics.classList.add('willow-leaf','willow-lyrics');
     lyrics.classList.remove('current');
     lyrics.removeAttribute('data-cue');
+    centerWillowLyrics(lyrics);
     if(p.nextSibling)book.insertBefore(lyrics,p.nextSibling);
     else book.appendChild(lyrics);
     pages.splice(i+1,0,lyrics);
@@ -337,7 +358,7 @@ function splitWillowNap(p,i){
     end.setAttribute('data-cue',p.getAttribute('data-cue'));
     p.removeAttribute('data-cue');
   }
-  end.innerHTML='<p class="nap-end">The End</p>';
+  end.innerHTML='<p class="nap-end" style="position:absolute;left:0;right:0;top:50%;width:100%;margin:0;transform:translateY(-50%);text-align:center;">The End</p>';
   var blank=p.querySelector('.nap-leaf-blank');
   if(blank)blank.remove();
   p.classList.add('willow-leaf','willow-nap-picture');
