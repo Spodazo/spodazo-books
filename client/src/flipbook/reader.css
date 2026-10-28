@@ -1939,7 +1939,7 @@ html.willow.mobile .leaf-copy.willow-picture:not(.title-page):not(.end-page):not
   flex:none!important;
   background:transparent!important;
 }
-html.willow.mobile .page.willow-leaf:not(.current){
+html.willow.mobile .page.willow-leaf:not(.current):not(.leaf-copy){
   display:none!important;
 }
 html.willow.mobile .page.willow-picture{

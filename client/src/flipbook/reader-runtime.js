@@ -301,11 +301,6 @@ function fillWillowPicture(p){
   img.style.setProperty('object-position','center center','important');
 }
 function centerWillowLyrics(p){
-  p.style.setProperty('display','flex','important');
-  p.style.setProperty('flex-direction','column','important');
-  p.style.setProperty('align-items','center','important');
-  p.style.setProperty('justify-content','center','important');
-  p.style.setProperty('height','100%','important');
   var box=p.querySelector('.el-text');
   if(box){
     box.style.setProperty('position','relative','important');
