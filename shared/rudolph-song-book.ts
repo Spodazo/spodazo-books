@@ -30,10 +30,10 @@ export function rudolphPdfPageForStoryPage(storyPage: number): number {
 /**
  * Seconds when each PDF page from the first interior leaf (2) through the last lyric leaf (24) should appear.
  * Timed to Rudolph-the-red-nosed-reindeer.mp3: the introduction holds longest on the preface,
- * numbered page 1 arrives with the first verse, and page 13 arrives as “good cheer to all” ends.
+ * numbered page 1 arrives with the first verse. Numbered page 12 stays until two seconds after the lady’s crescendo.
  */
 export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
-  0, 2.7, 6.3, 10.5, 23.46, 44.3, 76.44, 104.08, 105.58, 124.15, 126.17, 146.14, 167.58, 179.18, 197.22, 220.72, 233.33, 251.58, 273.78, 296.02, 317.38, 337.54, 359.78,
+  0, 2.2, 5.8, 10, 22.96, 43.8, 75.94, 103.58, 105.08, 123.65, 125.67, 145.64, 167.08, 178.68, 196.72, 217.72, 235.83, 251.08, 273.28, 295.52, 316.88, 337.04, 359.28,
 ];
 
 /** Seconds when the last sung words finish. The End, the cast, and the boy at the window follow. */
@@ -43,10 +43,10 @@ export const RUDOLPH_SONG_DURATION = 396.92;
 
 /** Outro turns. The back cover (28) arrives as the fade reaches silence. */
 export const RUDOLPH_SONG_OUTRO_CUES: readonly [number, number][] = [
-  [382.62, 25],
-  [386.7, 26],
-  [390.5, 27],
-  [394.42, 28],
+  [382.12, 25],
+  [386.2, 26],
+  [390, 27],
+  [393.92, 28],
 ];
 
 export function rudolphSongCueForPdfPage(pdfPage: number): number | undefined {
