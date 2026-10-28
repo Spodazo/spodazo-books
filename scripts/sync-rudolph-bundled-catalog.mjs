@@ -39,7 +39,7 @@ function curlJson(args, body) {
 
 function rudolphPages() {
   const pages = [];
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 1; i <= 28; i++) {
     const file = `p-${String(i).padStart(2, "0")}.jpg`;
     const url = `/flipbooks/rudolph-the-red-nosed-reindeer/pages/${file}`;
     pages.push({

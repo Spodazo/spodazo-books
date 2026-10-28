@@ -6,8 +6,8 @@ import { dataDir, pdfsDir } from "./paths";
 import { applyReplacementPdf, enqueuePdfReplace } from "./replace-book-pdf";
 import type { BookStore } from "./storage";
 
-/** Desktop upload “Rudolph the Red Nosed Reindeer v3.pdf”, without the two Willow pages that were exported on the end. */
-export const RUDOLPH_V3_SHA256 = "cf9974c946b145dca64aec8b997b76c1d25c9949f3c1e732db1d448df3f0d0aa";
+/** Desktop upload “Rudolph the Red Nosed Reindeer - Flip Book.pdf” (28 pages). */
+export const RUDOLPH_V3_SHA256 = "db7d035110d3a2aead2ed9c88070fbb2b163b7ee07719761bdd24dbe04f3f488";
 
 export function bundledRudolphPdfPath(): string {
   return path.resolve(process.cwd(), "media/pdfs/rudolph-v3.pdf");

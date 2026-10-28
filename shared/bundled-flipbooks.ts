@@ -2,8 +2,8 @@ import { RUDOLPH_LEGACY_SLUG, RUDOLPH_SLUG } from "./rudolph";
 
 /** Static flipbook bundles shipped under client/public/flipbooks (exact exports, not Spodazo reader). */
 export const BUNDLED_FLIPBOOKS = {
-  [RUDOLPH_SLUG]: { dir: "rudolph-the-red-nosed-reindeer", pageCount: 20 },
-  [RUDOLPH_LEGACY_SLUG]: { dir: "rudolph-the-red-nosed-reindeer", pageCount: 20 },
+  [RUDOLPH_SLUG]: { dir: "rudolph-the-red-nosed-reindeer", pageCount: 28 },
+  [RUDOLPH_LEGACY_SLUG]: { dir: "rudolph-the-red-nosed-reindeer", pageCount: 28 },
   "Be-Thou-My-Vision": { dir: "be-thou-my-vision", pageCount: 18 },
 } as const;
 

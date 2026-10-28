@@ -20,9 +20,9 @@ test("Rudolph uses the bundled static flipbook", () => {
 
 test("Rudolph catalog pages mirror the zip export", () => {
   const pages = rudolphFlipbookPages("/");
-  assert.equal(pages.length, 20);
+  assert.equal(pages.length, 28);
   assert.equal(pages[0].imageUrl, "/flipbooks/rudolph-the-red-nosed-reindeer/pages/p-01.jpg");
-  assert.equal(pages[19].imageUrl, "/flipbooks/rudolph-the-red-nosed-reindeer/pages/p-20.jpg");
+  assert.equal(pages[27].imageUrl, "/flipbooks/rudolph-the-red-nosed-reindeer/pages/p-28.jpg");
   assert.equal(bundledFlipbookCoverUrl("Rudolph", "/"), pages[0].imageUrl);
   assert.equal(
     bundledFlipbookSrc("Rudolph-The-Red-Nosed-Reindeer", "/"),
