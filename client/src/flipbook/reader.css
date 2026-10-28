@@ -1904,13 +1904,22 @@ html.willow.mobile{
   --book-h:calc(var(--book-w) * var(--page-ratio));
 }
 html.willow.mobile main{
-  top:calc((100dvh - var(--book-h)) / 2);
-  left:calc((100dvw - var(--book-w)) / 2);
-  right:auto;
-  bottom:auto;
-  width:var(--book-w);
-  height:var(--book-h);
+  top:calc(env(safe-area-inset-top) + 88px);
+  right:12px;
+  bottom:max(12px, env(safe-area-inset-bottom));
+  left:12px;
+  width:auto;
+  height:auto;
   border-radius:18px;
+}
+html.willow.mobile .page.laid-out.current:not(.title-page):not(.end-page):not(.front-cover):not(.nap-spread)>.el-image[data-size="main"]{
+  flex:1 1 auto;
+  min-height:0;
+  width:100%!important;
+  height:auto!important;
+  max-height:100%;
+  object-fit:contain!important;
+  object-position:center center!important;
 }
 .willow-sound{
   position:fixed;
