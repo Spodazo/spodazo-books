@@ -1,5 +1,5 @@
 /**
- * Portrait-phone hint for every flip book.
+ * Portrait phone and tablet hint for every flip book.
  * Fades in once the book is open, stays about 5 seconds,
  * and leaves as soon as the cover is tapped to turn a page.
  */
@@ -41,10 +41,11 @@
   var leaving = false;
   var orient = null;
 
-  function portraitPhone() {
+  function portraitTouch() {
     try {
-      return window.matchMedia("(max-width:700px), (pointer:coarse) and (max-width:1100px)").matches
-        && window.matchMedia("(orientation:portrait)").matches;
+      if (!window.matchMedia("(orientation:portrait)").matches) return false;
+      // iPad reports a fine pointer. any-pointer still sees the touch screen.
+      return window.matchMedia("(any-pointer:coarse), (pointer:coarse)").matches;
     } catch (e) {
       return false;
     }
@@ -84,7 +85,7 @@
   }
 
   function onOrient() {
-    if (!portraitPhone()) dismiss();
+    if (!portraitTouch()) dismiss();
   }
 
   function onCover(e) {
@@ -97,7 +98,7 @@
   }
 
   function show() {
-    if (root || !portraitPhone() || !document.body) return;
+    if (root || !portraitTouch() || !document.body) return;
     var style = document.createElement("style");
     style.textContent = CSS;
     document.head.appendChild(style);

@@ -8,6 +8,8 @@ test("portrait flip books fade in a landscape hint and dismiss on the cover", as
   assert.match(hint, /HOLD_MS = 5000/);
   assert.match(hint, /pointerdown/);
   assert.match(hint, /orientation:portrait/);
+  assert.match(hint, /any-pointer:coarse/);
+  assert.doesNotMatch(hint, /max-width:1100px/);
 
   const mount = await readFile(new URL("./facsimile-flipbook.js", import.meta.url), "utf8");
   const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
