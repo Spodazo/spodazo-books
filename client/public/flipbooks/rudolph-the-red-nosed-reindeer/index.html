@@ -583,7 +583,7 @@ body {
   }
   function pageEl(host) { return host.querySelector('.page'); }
   var SINGALONG_NOTE_PAGE = 2;
-  var SINGALONG_NOTE_TEXT = 'This is a sing-along book.';
+  var SINGALONG_NOTE_TEXT = '';
   function imageContentBox(page) {
     var img = page.querySelector('img');
     var pw = page.clientWidth || 1;
@@ -626,7 +626,7 @@ body {
   function syncRudolphSingalongNote(host, n) {
     var p = pageEl(host);
     var el = p.querySelector('.rudolph-singalong-note');
-    if (n !== SINGALONG_NOTE_PAGE) {
+    if (!SINGALONG_NOTE_TEXT || n !== SINGALONG_NOTE_PAGE) {
       if (el) el.remove();
       return;
     }

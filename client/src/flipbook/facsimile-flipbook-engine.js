@@ -537,11 +537,11 @@
 
   function syncRudolphSingalongNote(host, n) {
     if (!SING) return;
-    var notePage = Number(SING.singalongNotePage) || 2;
-    var noteText = SING.singalongNoteText || "This is a sing-along book.";
+    var notePage = Number(SING.singalongNotePage) || 0;
+    var noteText = String(SING.singalongNoteText || "").trim();
     var p = pageEl(host);
     var el = p.querySelector(".rudolph-singalong-note");
-    if (n !== notePage) {
+    if (!noteText || n !== notePage) {
       if (el) el.remove();
       return;
     }

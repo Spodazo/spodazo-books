@@ -35,7 +35,7 @@ test("Rudolph sing-along follows the recording through the outro", () => {
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 1), 25);
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT + 8), 26);
   assert.ok(rudolphSingAlongConfig("/").soundOffUrl.includes("sound-off.webp"));
-  assert.equal(rudolphSingAlongConfig("/").singalongNoteText, "This is a sing-along book.");
+  assert.equal(rudolphSingAlongConfig("/").singalongNoteText, "");
   assert.equal(rudolphSingAlongConfig("/").verselessBriefSpreads.length, 1);
   assert.equal(rudolphSongPdfPageForTime(307), RUDOLPH_SONG_FIRST_PDF_PAGE + 13);
   assert.equal(rudolphSongPdfPageForTime(309), RUDOLPH_SONG_FIRST_PDF_PAGE + 14);

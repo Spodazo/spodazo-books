@@ -73,7 +73,7 @@ export function rudolphSongImageForTime(seconds: number): number {
 }
 
 export const RUDOLPH_SINGALONG_NOTE_PAGE = 2;
-export const RUDOLPH_SINGALONG_NOTE_TEXT = "This is a sing-along book.";
+export const RUDOLPH_SINGALONG_NOTE_TEXT = "";
 
 export type RudolphVerselessBriefSpread = {
   left: number;
