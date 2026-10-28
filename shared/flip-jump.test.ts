@@ -85,7 +85,7 @@ test("uploaded PDF flipbooks mount contents taps from pageLinks", async () => {
 
 test("Rudolph sing-along cues match shared/rudolph-song-book.ts", async () => {
   const { readFile } = await import("node:fs/promises");
-  const { RUDOLPH_SONG_PAGE_CUES, RUDOLPH_SONG_FIRST_PDF_PAGE, RUDOLPH_SONG_LAST_PDF_PAGE } = await import(
+  const { RUDOLPH_SONG_PAGE_CUES, RUDOLPH_MUSIC_START_PDF_PAGE, RUDOLPH_SONG_LAST_PDF_PAGE } = await import(
     "./rudolph-song-book",
   );
   const html = await readFile(
@@ -94,7 +94,7 @@ test("Rudolph sing-along cues match shared/rudolph-song-book.ts", async () => {
   );
   const engine = await readFile(new URL("../client/src/flipbook/facsimile-flipbook-engine.js", import.meta.url), "utf8");
   const mount = await readFile(new URL("../client/src/flipbook/facsimile-flipbook.js", import.meta.url), "utf8");
-  assert.match(html, /var SONG_FIRST = 6, SONG_END = 24/);
+  assert.match(html, /var SONG_FIRST = 2, SONG_END = 24/);
   const found = html.match(/var SONG_CUES = \[([\d.,\s]+)\]/)?.[1] || "";
   assert.deepEqual(
     found.split(",").map((n) => Number(n.trim())),
@@ -102,7 +102,7 @@ test("Rudolph sing-along cues match shared/rudolph-song-book.ts", async () => {
   );
   assert.match(engine, /cfg\.singAlong/);
   assert.match(mount, /rudolphSingAlongConfig/);
-  assert.equal(RUDOLPH_SONG_PAGE_CUES.length, RUDOLPH_SONG_LAST_PDF_PAGE - RUDOLPH_SONG_FIRST_PDF_PAGE + 1);
+  assert.equal(RUDOLPH_SONG_PAGE_CUES.length, RUDOLPH_SONG_LAST_PDF_PAGE - RUDOLPH_MUSIC_START_PDF_PAGE + 1);
 });
 
 test("Be Thou song list taps live on the contents page", async () => {

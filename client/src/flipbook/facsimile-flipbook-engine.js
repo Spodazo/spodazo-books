@@ -249,12 +249,39 @@
     song.currentTime = c;
   }
 
+  function startSongFromBeginning() {
+    if (!SING || songStarted) return;
+    ensureSong();
+    songMuted = false;
+    song.muted = false;
+    try { song.currentTime = 0; } catch (e) {}
+    var playAttempt = song.play();
+    if (!playAttempt || !playAttempt.then) return;
+    playAttempt.then(function () {
+      songStarted = true;
+      syncSoundButton();
+      placeSoundButton();
+    }).catch(function () {});
+  }
+
+  function maybeStartSongOnFirstPage() {
+    if (!SING || songStarted || songFollowTurn) return;
+    var pages = visiblePdfPages();
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i] === SING.firstPage) {
+        startSongFromBeginning();
+        return;
+      }
+    }
+  }
+
   function afterTurnSongSync() {
     if (songFollowTurn) {
       songFollowTurn = false;
       followSong();
       return;
     }
+    maybeStartSongOnFirstPage();
     syncSongToManualPage();
   }
 

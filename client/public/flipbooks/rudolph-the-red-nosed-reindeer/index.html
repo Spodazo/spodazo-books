@@ -252,15 +252,13 @@ body {
   var wasSingle = false;
 
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
-  var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3';
-  var SONG_FIRST = 6, SONG_END = 24, SONG_LAST_WORD = 478, SONG_DURATION = 492;
-  var SONG_CUES = [0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 288, 291, 294, 296, 308, 338, 396, 428, 450];
-  var SONG_OUTRO = [[478, 25], [484, 26], [488, 27], [491, 28]];
+  var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3?v=20261028';
+  var SONG_FIRST = 2, SONG_END = 24, SONG_LAST_WORD = 383.12, SONG_DURATION = 394.92;
+  var SONG_CUES = [0, 3.2, 6.8, 11, 23.96, 44.8, 76.94, 104.58, 106.08, 124.65, 126.67, 146.64, 168.08, 179.68, 197.72, 218.72, 233.83, 252.08, 274.28, 296.52, 317.88, 338.04, 360.28];
+  var SONG_OUTRO = [[383.12, 25], [387.2, 26], [391, 27], [394.92, 28]];
   var song = null, songMuted = true, songStarted = false, songFollowTurn = false, songFollowPoll = null;
   var verselessSpreadKey = '', verselessSpreadAt = 0;
-  var VERSELESS_BRIEF_SPREADS = [
-    { left: 16, right: 17, dwellMs: 3000 }
-  ];
+  var VERSELESS_BRIEF_SPREADS = [];
   var soundBtn = document.getElementById('soundBtn');
 
   function songAudioUrl() {
@@ -422,12 +420,37 @@ body {
     if (c > song.currentTime + 4) return;
     song.currentTime = c;
   }
+  function startSongFromBeginning() {
+    if (songStarted) return;
+    ensureSong();
+    songMuted = false;
+    song.muted = false;
+    try { song.currentTime = 0; } catch (e) {}
+    var playAttempt = song.play();
+    if (!playAttempt || !playAttempt.then) return;
+    playAttempt.then(function () {
+      songStarted = true;
+      syncSoundButton();
+      placeSoundButton();
+    }).catch(function () {});
+  }
+  function maybeStartSongOnFirstPage() {
+    if (songStarted || songFollowTurn) return;
+    var pages = visibleImages();
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i] === SONG_FIRST) {
+        startSongFromBeginning();
+        return;
+      }
+    }
+  }
   function afterTurnSongSync() {
     if (songFollowTurn) {
       songFollowTurn = false;
       followSong();
       return;
     }
+    maybeStartSongOnFirstPage();
     syncSongToManualPage();
   }
   function toggleMusicButton() {

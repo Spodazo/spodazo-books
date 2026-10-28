@@ -1,15 +1,19 @@
 /** Rudolph v3 PDF sing-along (28 leaves). Story pages 1–19 map to PDF pages 6–24. */
 export const RUDOLPH_SONG_AUDIO_ASSET = "rudolph-the-red-nosed-reindeer.mp3";
-export const RUDOLPH_SONG_AUDIO_URL = `/media/audio/${RUDOLPH_SONG_AUDIO_ASSET}`;
+export const RUDOLPH_SONG_AUDIO_URL = `/media/audio/${RUDOLPH_SONG_AUDIO_ASSET}?v=20261028`;
 
 export const RUDOLPH_PDF_PAGE_COUNT = 28;
 /** Printed story page 1 (“Up on the silver hills…”) is PDF page 6. */
 export const RUDOLPH_STORY_PAGE_OFFSET = 5;
 
+/** Music begins on the first interior leaf (PDF page 2), as the cover turns. */
+export const RUDOLPH_MUSIC_START_PDF_PAGE = 2;
+/** Preface is PDF page 5. It holds the longest share of the introduction. */
+export const RUDOLPH_PREFACE_PDF_PAGE = 5;
 export const RUDOLPH_SONG_FIRST_PDF_PAGE = 1 + RUDOLPH_STORY_PAGE_OFFSET;
 /** Printed story page 19 (final verse) is PDF page 24. */
 export const RUDOLPH_SONG_LAST_PDF_PAGE = 19 + RUDOLPH_STORY_PAGE_OFFSET;
-/** Outro leaves after the song (PDF pages 25–28). */
+/** Outro leaves after the song (PDF pages 25–28). The boy at the window is PDF page 27; 28 is the back cover. */
 export const RUDOLPH_SONG_OUTRO_FIRST_PDF_PAGE = RUDOLPH_SONG_LAST_PDF_PAGE + 1;
 
 /** @deprecated Use RUDOLPH_SONG_FIRST_PDF_PAGE */
@@ -24,28 +28,29 @@ export function rudolphPdfPageForStoryPage(storyPage: number): number {
 }
 
 /**
- * Seconds into the recording when each PDF page (6–24) should appear.
- * Matched to `Rudloph the Red Nosed Reindeer-BEST.mp3`.
+ * Seconds when each PDF page from the first interior leaf (2) through the last lyric leaf (24) should appear.
+ * Timed to Rudolph-the-red-nosed-reindeer.mp3: the introduction holds longest on the preface,
+ * numbered page 1 arrives with the first verse, and page 13 arrives as “good cheer to all” ends.
  */
 export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
-  0, 39, 87, 125, 160, 186, 210, 223, 247, 272, 288, 291, 294, 296, 308, 338, 396, 428, 450,
+  0, 3.2, 6.8, 11, 23.96, 44.8, 76.94, 104.58, 106.08, 124.65, 126.67, 146.64, 168.08, 179.68, 197.72, 218.72, 233.83, 252.08, 274.28, 296.52, 317.88, 338.04, 360.28,
 ];
 
-/** Seconds when the last sung words finish; outro plays on PDF pages 25–28. */
-export const RUDOLPH_SONG_LAST_WORD_AT = 478;
-export const RUDOLPH_SONG_DURATION = 492;
+/** Seconds when the last sung words finish. The End, the cast, and the boy at the window follow. */
+export const RUDOLPH_SONG_LAST_WORD_AT = 383.12;
+export const RUDOLPH_SONG_DURATION = 394.92;
 
-/** Outro page turns during the instrumental tail. */
+/** Outro turns. The back cover (28) arrives as the recording ends. */
 export const RUDOLPH_SONG_OUTRO_CUES: readonly [number, number][] = [
-  [478, 25],
-  [484, 26],
-  [488, 27],
-  [491, 28],
+  [383.12, 25],
+  [387.2, 26],
+  [391, 27],
+  [394.92, 28],
 ];
 
 export function rudolphSongCueForPdfPage(pdfPage: number): number | undefined {
-  if (pdfPage < RUDOLPH_SONG_FIRST_PDF_PAGE || pdfPage > RUDOLPH_SONG_LAST_PDF_PAGE) return undefined;
-  return RUDOLPH_SONG_PAGE_CUES[pdfPage - RUDOLPH_SONG_FIRST_PDF_PAGE];
+  if (pdfPage < RUDOLPH_MUSIC_START_PDF_PAGE || pdfPage > RUDOLPH_SONG_LAST_PDF_PAGE) return undefined;
+  return RUDOLPH_SONG_PAGE_CUES[pdfPage - RUDOLPH_MUSIC_START_PDF_PAGE];
 }
 
 /** @deprecated Use rudolphSongCueForPdfPage */
@@ -55,7 +60,7 @@ export function rudolphSongCueForImage(imageNumber: number): number | undefined 
 
 export function rudolphSongPdfPageForTime(seconds: number): number {
   let best = 0;
-  for (let page = RUDOLPH_SONG_FIRST_PDF_PAGE; page <= RUDOLPH_SONG_LAST_PDF_PAGE; page += 1) {
+  for (let page = RUDOLPH_MUSIC_START_PDF_PAGE; page <= RUDOLPH_SONG_LAST_PDF_PAGE; page += 1) {
     const cue = rudolphSongCueForPdfPage(page);
     if (cue == null) continue;
     const lead = page === RUDOLPH_SONG_LAST_PDF_PAGE ? 0 : 0.35;
@@ -83,11 +88,8 @@ export type RudolphVerselessBriefSpread = {
   startAfterPdfPage?: number;
 };
 
-/** Art-only spreads: brief display then auto-turn while the song keeps playing. */
-/** Story pages 11–12 only (PDF 16–17). Page 13 is art on the next spread; page 14 has lyrics. */
-export const RUDOLPH_VERSELESS_BRIEF_SPREADS: readonly RudolphVerselessBriefSpread[] = [
-  { left: rudolphPdfPageForStoryPage(11), right: rudolphPdfPageForStoryPage(12), dwellMs: 3000 },
-];
+/** Art pages now follow the recording cues, so nothing is skipped on a timer. */
+export const RUDOLPH_VERSELESS_BRIEF_SPREADS: readonly RudolphVerselessBriefSpread[] = [];
 
 export type RudolphSingalongNoteMetrics = {
   topPct: number;
@@ -125,7 +127,7 @@ export function rudolphSingAlongConfig(baseUrl = "/"): RudolphSingAlongConfig {
   const root = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   return {
     audio: RUDOLPH_SONG_AUDIO_URL,
-    firstPage: RUDOLPH_SONG_FIRST_PDF_PAGE,
+    firstPage: RUDOLPH_MUSIC_START_PDF_PAGE,
     endPage: RUDOLPH_SONG_LAST_PDF_PAGE,
     outroFirstPage: RUDOLPH_SONG_OUTRO_FIRST_PDF_PAGE,
     lastWordAt: RUDOLPH_SONG_LAST_WORD_AT,
