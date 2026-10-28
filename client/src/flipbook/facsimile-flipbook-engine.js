@@ -392,6 +392,18 @@
     }
   }
 
+  function pageHoldBlocksTurn(audio) {
+    var hold = SING && SING.pageHold;
+    var pages;
+    var i;
+    if (!hold || !audio) return false;
+    pages = visiblePdfPages();
+    for (i = 0; i < pages.length; i++) {
+      if (pages[i] === hold.pdfPage && audio.currentTime < hold.until) return true;
+    }
+    return false;
+  }
+
   function followSong() {
     var target;
     var needIdx;
@@ -399,6 +411,7 @@
     if (!SING || busy) return;
     var audio = ensureSong();
     if (!audio || (audio.paused && !audio.ended)) return;
+    if (pageHoldBlocksTurn(audio)) return;
     checkVerselessBriefAdvance();
     if (busy) return;
     target = pdfPageForTime(audio.ended ? SING.duration : audio.currentTime);

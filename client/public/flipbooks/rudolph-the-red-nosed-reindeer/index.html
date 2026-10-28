@@ -271,7 +271,8 @@ body {
   // Sing-along timings — keep in sync with shared/rudolph-song-book.ts
   var SONG_SRC = '/media/audio/rudolph-the-red-nosed-reindeer.mp3?v=20261028b';
   var SONG_FIRST = 2, SONG_END = 24, SONG_LAST_WORD = 383.12, SONG_DURATION = 396.92;
-  var SONG_CUES = [0, 2.2, 5.8, 10, 22.96, 43.8, 75.94, 103.58, 105.08, 123.65, 125.67, 145.64, 167.08, 178.68, 196.72, 217.72, 235.83, 251.08, 273.28, 295.52, 316.88, 337.04, 359.28];
+  var SONG_CUES = [0, 2.2, 5.8, 10, 22.96, 43.8, 75.94, 103.58, 105.08, 123.65, 125.67, 145.64, 167.08, 178.68, 196.72, 217.72, 243.35, 251.08, 273.28, 295.52, 316.88, 337.04, 359.28];
+  var PAGE12_HOLD = 17, PAGE12_HOLD_UNTIL = 243;
   var SONG_OUTRO = [[382.12, 25], [386.2, 26], [390, 27], [393.92, 28]];
   var song = null, songMuted = true, songStarted = false, songFollowTurn = false, songFollowPoll = null;
   var verselessSpreadKey = '', verselessSpreadAt = 0;
@@ -550,11 +551,21 @@ body {
       go(1, true);
     }
   }
+  function page12HoldBlocks(audio) {
+    var pages, i;
+    if (!audio) return false;
+    pages = visibleImages();
+    for (i = 0; i < pages.length; i++) {
+      if (pages[i] === PAGE12_HOLD && audio.currentTime < PAGE12_HOLD_UNTIL) return true;
+    }
+    return false;
+  }
   function followSong() {
     var target, needIdx, pair, audio;
     if (busy) return;
     audio = ensureSong();
     if (audio.paused && !audio.ended) return;
+    if (page12HoldBlocks(audio)) return;
     checkVerselessBriefAdvance();
     if (busy) return;
     target = imageForTime(audio.ended ? SONG_DURATION : audio.currentTime);

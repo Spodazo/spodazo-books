@@ -26,7 +26,9 @@ test("Rudolph story pages map onto the v3 PDF", () => {
   }
   assert.equal(rudolphSongCueForPdfPage(RUDOLPH_MUSIC_START_PDF_PAGE), 0);
   assert.equal(rudolphSongCueForPdfPage(RUDOLPH_SONG_FIRST_PDF_PAGE), 22.96);
-  assert.equal(rudolphSongCueForPdfPage(rudolphPdfPageForStoryPage(13)), 235.83);
+  assert.equal(rudolphSongCueForPdfPage(rudolphPdfPageForStoryPage(13)), 243.35);
+  assert.equal(rudolphSingAlongConfig("/").pageHold.pdfPage, rudolphPdfPageForStoryPage(12));
+  assert.equal(rudolphSingAlongConfig("/").pageHold.until, 243);
 });
 
 test("the preface holds the longest part of the introduction", () => {
@@ -50,8 +52,8 @@ test("Rudolph sing-along follows the recording through the outro", () => {
   assert.equal(rudolphSongPdfPageForTime(44.8), rudolphPdfPageForStoryPage(2));
   assert.equal(rudolphSongPdfPageForTime(125), rudolphPdfPageForStoryPage(6));
   assert.equal(rudolphSongPdfPageForTime(126.4), rudolphPdfPageForStoryPage(7));
-  assert.equal(rudolphSongPdfPageForTime(233.5), rudolphPdfPageForStoryPage(12));
-  assert.equal(rudolphSongPdfPageForTime(235.5), rudolphPdfPageForStoryPage(13));
+  assert.equal(rudolphSongPdfPageForTime(235.5), rudolphPdfPageForStoryPage(12));
+  assert.equal(rudolphSongPdfPageForTime(243.1), rudolphPdfPageForStoryPage(13));
   assert.equal(rudolphSongPdfPageForTime(252.08), rudolphPdfPageForStoryPage(14));
   assert.equal(rudolphSongPdfPageForTime(360.28), RUDOLPH_SONG_LAST_PDF_PAGE);
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT), 25);

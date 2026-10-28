@@ -13,6 +13,13 @@ export const RUDOLPH_PREFACE_PDF_PAGE = 5;
 export const RUDOLPH_SONG_FIRST_PDF_PAGE = 1 + RUDOLPH_STORY_PAGE_OFFSET;
 /** Printed story page 19 (final verse) is PDF page 24. */
 export const RUDOLPH_SONG_LAST_PDF_PAGE = 19 + RUDOLPH_STORY_PAGE_OFFSET;
+/**
+ * Numbered page 12 stays on screen until the held “all” has finished.
+ * That note runs about nine seconds, ending near 242.5s. The turn is locked to 243s.
+ */
+export const RUDOLPH_PAGE12_HOLD_PDF_PAGE = 12 + RUDOLPH_STORY_PAGE_OFFSET;
+export const RUDOLPH_PAGE12_HOLD_UNTIL = 243;
+
 /** Outro leaves after the song (PDF pages 25–28). The boy at the window is PDF page 27; 28 is the back cover. */
 export const RUDOLPH_SONG_OUTRO_FIRST_PDF_PAGE = RUDOLPH_SONG_LAST_PDF_PAGE + 1;
 
@@ -30,10 +37,10 @@ export function rudolphPdfPageForStoryPage(storyPage: number): number {
 /**
  * Seconds when each PDF page from the first interior leaf (2) through the last lyric leaf (24) should appear.
  * Timed to Rudolph-the-red-nosed-reindeer.mp3: the introduction holds longest on the preface,
- * numbered page 1 arrives with the first verse. Numbered page 12 stays until two seconds after the lady’s crescendo.
+ * numbered page 1 arrives with the first verse. Numbered page 12 stays through the nine-second “all.”
  */
 export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
-  0, 2.2, 5.8, 10, 22.96, 43.8, 75.94, 103.58, 105.08, 123.65, 125.67, 145.64, 167.08, 178.68, 196.72, 217.72, 235.83, 251.08, 273.28, 295.52, 316.88, 337.04, 359.28,
+  0, 2.2, 5.8, 10, 22.96, 43.8, 75.94, 103.58, 105.08, 123.65, 125.67, 145.64, 167.08, 178.68, 196.72, 217.72, 243.35, 251.08, 273.28, 295.52, 316.88, 337.04, 359.28,
 ];
 
 /** Seconds when the last sung words finish. The End, the cast, and the boy at the window follow. */
@@ -121,6 +128,8 @@ export type RudolphSingAlongConfig = {
   singalongNotePage: number;
   singalongNoteText: string;
   verselessBriefSpreads: RudolphVerselessBriefSpread[];
+  /** While this PDF page is visible, song-follow will not turn forward before `until` seconds. */
+  pageHold: { pdfPage: number; until: number };
 };
 
 /** Payload for facsimile / bundled flipbook engines. */
@@ -140,5 +149,6 @@ export function rudolphSingAlongConfig(baseUrl = "/"): RudolphSingAlongConfig {
     singalongNotePage: RUDOLPH_SINGALONG_NOTE_PAGE,
     singalongNoteText: RUDOLPH_SINGALONG_NOTE_TEXT,
     verselessBriefSpreads: [...RUDOLPH_VERSELESS_BRIEF_SPREADS],
+    pageHold: { pdfPage: RUDOLPH_PAGE12_HOLD_PDF_PAGE, until: RUDOLPH_PAGE12_HOLD_UNTIL },
   };
 }
