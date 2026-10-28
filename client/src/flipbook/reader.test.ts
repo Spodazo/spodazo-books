@@ -107,6 +107,7 @@ test("Willow’s front cover sits on the dark brown stage", async () => {
   const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
   assert.match(reader, /front-cover willow-front/);
+  assert.match(reader, /hint:!isWillowBook\(book\)/);
   assert.match(css, /html\.willow:not\(\.mobile\) \.page\.front-cover\.willow-front\{[^}]*background:#0a3207!important/);
 });
 

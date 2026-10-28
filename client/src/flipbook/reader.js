@@ -192,7 +192,7 @@ function readerChrome(libraryUrl, baseUrl, {back=true, next=true, hint=true, hin
 }
 
 function frontCoverHtml(book, baseUrl, libraryUrl) {
-  const chrome = readerChrome(libraryUrl, baseUrl, {back:false, hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"});
+  const chrome = readerChrome(libraryUrl, baseUrl, {back:false, hint:!isWillowBook(book), hintDesktop:"Tap the cover to open", hintMobile:"Swipe to open"});
   if (isWillowBook(book)) {
     const src = esc(safeURL(WILLOW_FRONT_COVER_URL, baseUrl));
     return `<article class="page front-cover willow-front current" data-source="cover" aria-label="Cover">${chrome}<div class="front-cover-leaf"><img class="front-cover-art" src="${src}" alt=""></div></article>`;
