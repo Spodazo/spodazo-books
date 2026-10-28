@@ -1,6 +1,6 @@
 /** Rudolph v3 PDF sing-along (28 leaves). Story pages 1–19 map to PDF pages 6–24. */
 export const RUDOLPH_SONG_AUDIO_ASSET = "rudolph-the-red-nosed-reindeer.mp3";
-export const RUDOLPH_SONG_AUDIO_URL = `/media/audio/${RUDOLPH_SONG_AUDIO_ASSET}?v=20261028`;
+export const RUDOLPH_SONG_AUDIO_URL = `/media/audio/${RUDOLPH_SONG_AUDIO_ASSET}?v=20261028b`;
 
 export const RUDOLPH_PDF_PAGE_COUNT = 28;
 /** Printed story page 1 (“Up on the silver hills…”) is PDF page 6. */
@@ -38,9 +38,10 @@ export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
 
 /** Seconds when the last sung words finish. The End, the cast, and the boy at the window follow. */
 export const RUDOLPH_SONG_LAST_WORD_AT = 383.12;
-export const RUDOLPH_SONG_DURATION = 394.92;
+/** The last 2 seconds fade out, then 2 seconds of silence. The back cover turns as the fade reaches silence. */
+export const RUDOLPH_SONG_DURATION = 396.92;
 
-/** Outro turns. The back cover (28) arrives as the recording ends. */
+/** Outro turns. The back cover (28) arrives as the fade reaches silence. */
 export const RUDOLPH_SONG_OUTRO_CUES: readonly [number, number][] = [
   [383.12, 25],
   [387.2, 26],
