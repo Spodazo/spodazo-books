@@ -1855,4 +1855,33 @@ html.willow:not(.mobile) .page.front-cover.willow-front{
 html.willow:not(.mobile):has(.page.front-cover.willow-front.current) main{
   box-shadow:none!important;
 }
+/* Same page shape as Rudolph (900×1080) so the music control has the same room above the book. */
+html.willow:not(.mobile){
+  --page-ratio:1.2;
+  --avail-h:calc(100dvh - 2 * var(--book-gap));
+  --arrow:clamp(28px, calc(var(--avail-h) / var(--page-ratio) * 0.075), 44px);
+  --side-room:calc(var(--arrow) + 40px);
+  --book-w:min(calc(var(--avail-h) / var(--page-ratio) * 2), calc(100dvw - 2 * var(--side-room)));
+  --book-h:calc(var(--book-w) / 2 * var(--page-ratio));
+}
+html.willow.mobile,
+html.willow.mobile body{
+  background:#322616;
+}
+html.willow.mobile{
+  --page-ratio:1.2;
+  --edge:max(12px, 3dvh);
+  --avail-h:calc(100dvh - 2 * var(--edge));
+  --book-w:min(100dvw, calc(var(--avail-h) / var(--page-ratio)));
+  --book-h:calc(var(--book-w) * var(--page-ratio));
+}
+html.willow.mobile main{
+  top:calc((100dvh - var(--book-h)) / 2);
+  left:calc((100dvw - var(--book-w)) / 2);
+  right:auto;
+  bottom:auto;
+  width:var(--book-w);
+  height:var(--book-h);
+  border-radius:18px;
+}
 

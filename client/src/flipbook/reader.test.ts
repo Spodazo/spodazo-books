@@ -23,6 +23,9 @@ test("Willow title page has a Sing Along control wired to the song", async () =>
 test("desktop and landscape flip books keep a 2px top and bottom margin", async () => {
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
   assert.match(css, /--book-w:calc\(var\(--book-h\) \* 1\.4142137\)/);
+  assert.match(css, /html\.willow:not\(\.mobile\)/);
+  assert.match(css, /--page-ratio:1\.2;/);
+  assert.match(css, /html\.willow\.mobile main/);
   assert.doesNotMatch(css, /inset:2px 20px/);
   assert.match(css, /--book-gap:2px;/);
   const engine = await readFile(new URL("./facsimile-flipbook-engine.js", import.meta.url), "utf8");
