@@ -63,7 +63,7 @@ function updateArrows(){
   if(left)left.classList.toggle('off',index<=0);
   if(right)right.classList.toggle('off',index>=pages.length-1);
 }
-function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});document.documentElement.classList.toggle('closed-book',!mobile&&!!(pages[index]&&pages[index].classList.contains('front-cover')));count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();updateArrows();}
+function status(){pages.forEach(function(p,i){p.classList.toggle('current',i===index);p.setAttribute('aria-hidden',i!==index);});document.documentElement.classList.toggle('closed-book',!mobile&&!!(pages[index]&&pages[index].classList.contains('front-cover')));count.textContent='Page '+(index+1)+' of '+pages.length;updateCurl();updateArrows();updateWillowSound();}
 function isPicturePage(p){
   return !!(p&&!p.classList.contains('title-page')&&!p.classList.contains('end-page')&&!p.classList.contains('cover-page')&&p.querySelector('img'));
 }
@@ -597,7 +597,10 @@ function go(dir){
 }
 function direction(target){var z=target.closest('[data-dir]');return z?Number(z.getAttribute('data-dir')):0;}
 function control(target,name){return !!(target&&target.closest&&target.closest(name));}
-var song=null;
+var song=null,songMuted=false;
+function musicAudible(){
+  return !!(song&&!songMuted&&!song.paused&&!song.ended);
+}
 function syncSingAlong(playing){
   var btns=document.querySelectorAll('.sing-along'),i;
   for(i=0;i<btns.length;i++){
@@ -605,6 +608,48 @@ function syncSingAlong(playing){
     btns[i].classList.toggle('is-playing',playing);
     btns[i].textContent=playing?'Pause':'Sing Along';
   }
+  syncWillowSound();
+}
+function syncWillowSound(){
+  var btn=document.getElementById('soundBtn'),audible,label;
+  if(!btn)return;
+  audible=musicAudible();
+  label=audible?'Silence Music':'Start Music';
+  btn.textContent=label;
+  btn.classList.toggle('is-playing',audible);
+  btn.setAttribute('aria-pressed',audible?'true':'false');
+  btn.setAttribute('aria-label',label);
+}
+function placeWillowSound(){
+  var btn=document.getElementById('soundBtn'),r,w,h,compact,x,y,sideGap;
+  if(!btn||!book)return;
+  r=book.getBoundingClientRect();
+  w=btn.offsetWidth||106;
+  h=btn.offsetHeight||29;
+  sideGap=Math.max(10,Math.round(r.width*0.035));
+  compact=window.innerWidth>window.innerHeight&&Math.min(window.innerWidth,window.innerHeight)<520;
+  if(compact){
+    x=window.innerWidth-w-Math.max(12,sideGap);
+    y=window.innerHeight/3-h/2;
+  }else{
+    x=r.left+r.width/2-w/2;
+    y=r.top-h-14;
+  }
+  btn.style.left=Math.round(x)+'px';
+  btn.style.top=Math.round(Math.max(0,y))+'px';
+}
+function updateWillowSound(){
+  var btn=document.getElementById('soundBtn'),page,cover,theEnd,show;
+  if(!btn)return;
+  page=pages[index];
+  cover=!page||page.classList.contains('front-cover');
+  theEnd=!!(page&&(page.classList.contains('nap-spread')||page.classList.contains('end-page')));
+  show=!cover&&!theEnd;
+  btn.hidden=false;
+  btn.classList.toggle('is-visible',show);
+  btn.setAttribute('aria-hidden',show?'false':'true');
+  placeWillowSound();
+  syncWillowSound();
 }
 function songAudio(){
   var btn,src;
@@ -613,8 +658,8 @@ function songAudio(){
   src=btn&&btn.getAttribute('data-audio');
   if(!src)return null;
   song=new Audio(src);
-  song.addEventListener('ended',function(){syncSingAlong(false);followSong();});
-  song.addEventListener('play',function(){syncSingAlong(true);followSong();});
+  song.addEventListener('ended',function(){songMuted=false;syncSingAlong(false);followSong();});
+  song.addEventListener('play',function(){syncSingAlong(musicAudible());followSong();});
   song.addEventListener('pause',function(){syncSingAlong(false);});
   song.addEventListener('timeupdate',followSong);
   return song;
@@ -648,10 +693,30 @@ function followSong(){
 function toggleSingAlong(){
   var audio=songAudio(),cue;
   if(!audio)return;
-  if(!audio.paused){audio.pause();return;}
+  if(musicAudible()){
+    songMuted=true;
+    audio.muted=true;
+    syncSingAlong(false);
+    return;
+  }
+  songMuted=false;
+  audio.muted=false;
   cue=cueFor(pages[index]);
   if((audio.ended||audio.currentTime<0.5)&&!isNaN(cue))audio.currentTime=cue;
-  audio.play().catch(function(){});
+  if(audio.paused||audio.ended)audio.play().catch(function(){});
+  else syncSingAlong(true);
+}
+var willowSoundBtn=document.getElementById('soundBtn');
+if(willowSoundBtn){
+  willowSoundBtn.addEventListener('pointerup',function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSingAlong();
+  });
+  willowSoundBtn.addEventListener('click',function(e){
+    e.preventDefault();
+    e.stopPropagation();
+  });
 }
 function edgeJumpSide(x,width){
   var band=Math.max(56,width*0.18);

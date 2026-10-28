@@ -1884,4 +1884,35 @@ html.willow.mobile main{
   height:var(--book-h);
   border-radius:18px;
 }
+.willow-sound{
+  position:fixed;
+  z-index:50;
+  appearance:none;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:29px;
+  padding:6px 10px;
+  margin:0;
+  border:1px solid #fff;
+  border-radius:3px;
+  background-color:#1fa34a;
+  color:#fff;
+  font:400 10px "Lora", Georgia, "Times New Roman", serif;
+  letter-spacing:0.02em;
+  white-space:nowrap;
+  cursor:pointer;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 1.8s ease, background-color 0.2s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.willow-sound.is-visible{
+  opacity:1;
+  pointer-events:auto;
+}
+.willow-sound.is-playing{
+  background-color:#d41919;
+}
 

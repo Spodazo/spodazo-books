@@ -17,7 +17,12 @@ test("Willow title page has a Sing Along control wired to the song", async () =>
   assert.match(runtime, /song\.ended/);
   assert.match(runtime, /end-page/);
   assert.match(runtime, /\.sing-along/);
+  assert.match(runtime, /Silence Music/);
+  assert.match(runtime, /songMuted/);
+  assert.doesNotMatch(runtime, /maybeStartSongOnFirstPage/);
+  assert.match(reader, /id="soundBtn"/);
   assert.match(css, /\.sing-along/);
+  assert.match(css, /\.willow-sound/);
 });
 
 test("desktop and landscape flip books keep a 2px top and bottom margin", async () => {
