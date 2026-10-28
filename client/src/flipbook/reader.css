@@ -1886,7 +1886,7 @@ html.willow:not(.mobile) .page.laid-out:not(.title-page):not(.end-page):not(.fro
 html.willow:not(.mobile) .leaf-copy.laid-out:not(.title-page):not(.end-page):not(.front-cover)>.el-image[data-size="main"]{
   left:0!important;
   top:0!important;
-  width:52%!important;
+  width:50%!important;
   height:100%!important;
   max-height:none!important;
   object-fit:cover!important;
