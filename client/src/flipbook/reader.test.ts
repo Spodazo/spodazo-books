@@ -16,7 +16,9 @@ test("Willow title page has a Sing Along control wired to the song", async () =>
   assert.match(runtime, /pageForSongTime/);
   assert.match(runtime, /song\.ended/);
   assert.match(runtime, /end-page/);
-  assert.match(runtime, /\.sing-along/);
+  assert.match(runtime, /splitWillowPortraitLeaves/);
+  assert.match(runtime, /willow-picture/);
+  assert.match(css, /\.willow-picture/);
   assert.match(runtime, /Silence Music/);
   assert.match(runtime, /songMuted/);
   assert.doesNotMatch(runtime, /maybeStartSongOnFirstPage/);

@@ -1912,18 +1912,34 @@ html.willow.mobile main{
   height:var(--book-h);
   border-radius:18px;
 }
-html.willow.mobile .page.laid-out.current:not(.title-page):not(.end-page):not(.front-cover):not(.nap-spread)>.el-image[data-size="main"]{
-  flex:1 1 auto;
-  min-height:0;
+html.willow.mobile .page.willow-picture>.el-image[data-size="main"]{
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
   width:100%!important;
-  height:0!important;
-  object-fit:contain!important;
+  height:100%!important;
+  max-height:none!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  object-fit:cover!important;
   object-position:center center!important;
+  flex:none!important;
 }
-html.willow.mobile .page.laid-out.current:not(.title-page):not(.end-page):not(.front-cover):not(.nap-spread)>.el-text{
+html.willow.mobile .page.willow-lyrics{
+  display:flex!important;
+  flex-direction:column;
+  justify-content:center;
+  padding:28px 22px!important;
+  background:#efdda6;
+}
+html.willow.mobile .page.willow-lyrics>.el-text{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  height:auto!important;
   flex:0 0 auto;
-  height:auto;
-  overflow:visible;
 }
 .willow-sound{
   position:fixed;

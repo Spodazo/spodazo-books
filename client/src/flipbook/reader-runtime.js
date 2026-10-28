@@ -272,6 +272,39 @@ function splitStory(p,template,i){
   if(!keep)p.classList.remove('current');
   p.style.visibility=keep?'':'';
 }
+function remapWillowLeaf(el, side){
+  var x=parseFloat(el.style.left)||0, w=parseFloat(el.style.width)||0;
+  if(side==='left'){
+    el.style.left=(x*2)+'%';
+    el.style.width=(w*2)+'%';
+  }else{
+    el.style.left=((x-50)*2)+'%';
+    el.style.width=(w*2)+'%';
+  }
+}
+function splitWillowPortraitLeaves(){
+  var i,p,lyrics;
+  if(!mobile||!document.documentElement.classList.contains('willow'))return;
+  for(i=0;i<pages.length;i++){
+    p=pages[i];
+    if(p.classList.contains('willow-leaf')||p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('front-cover')||p.classList.contains('nap-spread'))continue;
+    if(!p.classList.contains('laid-out'))continue;
+    if(!p.querySelector('.el-image[data-leaf="left"][data-size="main"]')||!p.querySelector('.el-text[data-leaf="right"]'))continue;
+    lyrics=p.cloneNode(true);
+    Array.prototype.slice.call(p.querySelectorAll('[data-leaf="right"]')).forEach(function(el){el.remove();});
+    Array.prototype.slice.call(p.querySelectorAll('[data-leaf="left"]')).forEach(function(el){remapWillowLeaf(el,'left');});
+    p.classList.add('willow-leaf','willow-picture');
+    Array.prototype.slice.call(lyrics.querySelectorAll('[data-leaf="left"]')).forEach(function(el){el.remove();});
+    Array.prototype.slice.call(lyrics.querySelectorAll('[data-leaf="right"]')).forEach(function(el){remapWillowLeaf(el,'right');});
+    lyrics.classList.add('willow-leaf','willow-lyrics');
+    lyrics.classList.remove('current');
+    lyrics.removeAttribute('data-cue');
+    if(p.nextSibling)book.insertBefore(lyrics,p.nextSibling);
+    else book.appendChild(lyrics);
+    pages.splice(i+1,0,lyrics);
+    i++;
+  }
+}
 function shrinkStory(p){
   if(p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('end-page')||p.classList.contains('nap-spread'))return;
   var section=p.querySelector('section'),body=p.querySelector('p');
@@ -312,6 +345,7 @@ function rebuild(){
     if(template)splitStory(p,template,isNaN(src)?i:src);
   });
   pages.forEach(shrinkStory);
+  splitWillowPortraitLeaves();
   if(source){
     index=Math.max(0,pages.findIndex(function(p){return p.getAttribute('data-source')===source;}));
     if(index<0)index=0;
