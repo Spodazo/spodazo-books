@@ -106,7 +106,7 @@
     root.className = "landscape-hint";
     root.setAttribute("role", "status");
     root.setAttribute("aria-live", "polite");
-    root.innerHTML = ICON + "<p>For the best experience, turn your phone to landscape mode</p>";
+    root.innerHTML = ICON + "<p>For the best experience, turn your phone to landscape mode, or tap to start</p>";
     document.body.appendChild(root);
     if (reducedMotion()) root.classList.add("is-in");
     else {
