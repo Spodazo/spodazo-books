@@ -2064,4 +2064,19 @@ html.willow.mobile .page.willow-nap-picture .nap-leaf-art{
 .willow-sound.is-playing{
   background-color:#d41919;
 }
+@media(orientation:landscape) and (max-height:700px){
+  .willow-sound{
+    min-height:14.5px;
+    padding:3px 5px;
+    border-width:0.5px;
+    border-radius:1.5px;
+    font-size:5px;
+  }
+  .page.title-page .sing-along,
+  .mobile .page.title-page .sing-along{
+    font-size:8px;
+    padding:4px 11px;
+    border-width:1px;
+  }
+}
 

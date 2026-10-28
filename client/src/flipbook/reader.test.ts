@@ -23,6 +23,7 @@ test("Willow title page has a Sing Along control wired to the song", async () =>
   assert.match(runtime, /orientation: landscape/);
   assert.match(runtime, /orientationchange/);
   assert.match(css, /@media\(orientation:landscape\)\{\s*html\.willow\.mobile\{/);
+  assert.match(css, /\.willow-sound\{[^}]*min-height:14\.5px;[^}]*font-size:5px/);
   assert.match(runtime, /willow-picture/);
   assert.match(css, /\.willow-picture/);
   assert.match(runtime, /Silence Music/);
