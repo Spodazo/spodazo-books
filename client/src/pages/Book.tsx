@@ -125,7 +125,17 @@ export default function BookPage() {
   if (book && bundledSrc) {
     return (
       <div ref={bundledHostRef} className="reader-host bundled-flipbook-host" style={{ opacity: 0 }}>
-        <iframe className="bundled-flipbook-frame" title={book.title.replace(/\n/g, " ")} src={bundledSrc} allow="fullscreen" allowFullScreen />
+        <iframe
+          className="bundled-flipbook-frame"
+          title={book.title.replace(/\n/g, " ")}
+          src={bundledSrc}
+          allow="fullscreen"
+          allowFullScreen
+          onLoad={(event) => {
+            const doc = event.currentTarget.contentDocument;
+            doc?.addEventListener("pointerdown", () => window.spodazoFullscreen?.enter(), true);
+          }}
+        />
       </div>
     );
   }

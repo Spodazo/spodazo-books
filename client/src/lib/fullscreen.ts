@@ -1,5 +1,19 @@
 const FULLSCREEN_KEY = "spodazo-fullscreen";
 
+export type FullscreenDefault = {
+  held: boolean;
+  active: () => boolean;
+  wanted: () => boolean;
+  enter: () => void;
+  exit: () => void;
+};
+
+declare global {
+  interface Window {
+    spodazoFullscreen?: FullscreenDefault;
+  }
+}
+
 type FullscreenEl = HTMLElement & {
   webkitRequestFullscreen?: () => void;
 };
@@ -9,9 +23,14 @@ type FullscreenDoc = Document & {
   webkitExitFullscreen?: () => void;
 };
 
-/** Browsers reject fullscreen until a click or tap. The Mac green button is not that. */
-export function wantsFullscreen(stored: string | null, active: boolean): boolean {
-  return stored === "1" && !active;
+/**
+ * Full screen is the default. Browsers still reject it until a click or tap,
+ * so a missing choice stays on and only an explicit "0" turns it off.
+ * The Mac green button is not this switch.
+ */
+export function wantsFullscreen(stored: string | null, active: boolean, held = false, admin = false): boolean {
+  if (held || admin || active) return false;
+  return stored !== "0";
 }
 
 export function readFullscreenPreference(): boolean {

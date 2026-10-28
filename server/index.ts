@@ -100,7 +100,11 @@ async function start() {
       express.static(publicDir, {
         index: false,
         setHeaders(res, filePath) {
-          if (filePath.endsWith(".html") || filePath.includes(`${path.sep}flipbooks${path.sep}`)) {
+          if (
+            filePath.endsWith(".html") ||
+            filePath.endsWith(`${path.sep}fullscreen-default.js`) ||
+            filePath.includes(`${path.sep}flipbooks${path.sep}`)
+          ) {
             res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
             res.setHeader("CDN-Cache-Control", "no-store");
             res.setHeader("Cloudflare-CDN-Cache-Control", "no-store");
