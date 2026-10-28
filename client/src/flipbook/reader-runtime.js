@@ -283,6 +283,23 @@ function remapWillowLeaf(el, side){
     el.style.width=(w*2)+'%';
   }
 }
+function fillWillowPicture(p){
+  var img=p.querySelector('.el-image[data-size="main"]');
+  p.style.setProperty('padding','0','important');
+  if(!img)return;
+  img.style.setProperty('position','absolute','important');
+  img.style.setProperty('inset','0','important');
+  img.style.setProperty('left','0','important');
+  img.style.setProperty('top','0','important');
+  img.style.setProperty('width','100%','important');
+  img.style.setProperty('height','100%','important');
+  img.style.setProperty('max-height','none','important');
+  img.style.setProperty('margin','0','important');
+  img.style.setProperty('border','0','important');
+  img.style.setProperty('border-radius','0','important');
+  img.style.setProperty('object-fit','cover','important');
+  img.style.setProperty('object-position','center center','important');
+}
 function splitWillowPortraitLeaves(){
   var i,p,lyrics;
   if(!mobile||!document.documentElement.classList.contains('willow'))return;
@@ -299,6 +316,7 @@ function splitWillowPortraitLeaves(){
     Array.prototype.slice.call(p.querySelectorAll('[data-leaf="right"]')).forEach(function(el){el.remove();});
     Array.prototype.slice.call(p.querySelectorAll('[data-leaf="left"]')).forEach(function(el){remapWillowLeaf(el,'left');});
     p.classList.add('willow-leaf','willow-picture');
+    fillWillowPicture(p);
     Array.prototype.slice.call(lyrics.querySelectorAll('[data-leaf="left"]')).forEach(function(el){el.remove();});
     Array.prototype.slice.call(lyrics.querySelectorAll('[data-leaf="right"]')).forEach(function(el){remapWillowLeaf(el,'right');});
     lyrics.classList.add('willow-leaf','willow-lyrics');
