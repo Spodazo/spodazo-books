@@ -1912,6 +1912,12 @@ html.willow.mobile main{
   height:var(--book-h);
   border-radius:18px;
 }
+html.willow.mobile .page.willow-leaf:not(.current){
+  display:none!important;
+}
+html.willow.mobile .page.willow-picture{
+  background:#efdda6;
+}
 html.willow.mobile .page.willow-picture>.el-image[data-size="main"]{
   position:absolute!important;
   left:0!important;
@@ -1926,7 +1932,7 @@ html.willow.mobile .page.willow-picture>.el-image[data-size="main"]{
   object-position:center center!important;
   flex:none!important;
 }
-html.willow.mobile .page.willow-lyrics{
+html.willow.mobile .page.willow-lyrics.current{
   display:flex!important;
   flex-direction:column;
   justify-content:center;
