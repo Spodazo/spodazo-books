@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Route, Switch, useLocation } from "wouter";
+import FullScreenButton from "./components/FullScreenButton";
 import { clearBookOpen, onBookOpenChange, openingSince } from "./lib/bookOpen";
 import { resetBookTransition } from "./lib/bookTransition";
 import AdminPage from "./pages/Admin";
@@ -33,6 +34,7 @@ export default function App() {
       ) : onHome ? null : (
         <BookPage />
       )}
+      {onAdmin ? null : <FullScreenButton />}
     </>
   );
 }

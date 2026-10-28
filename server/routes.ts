@@ -234,6 +234,7 @@ export function registerRoutes(app: Express): void {
       start_url: "/",
       scope: "/",
       display: "standalone",
+      display_override: ["fullscreen", "standalone"],
       background_color: paletteById(setup.collectionColor).bg,
       theme_color: paletteById(setup.collectionColor).bg,
       icons: [
