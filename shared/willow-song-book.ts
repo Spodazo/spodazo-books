@@ -24,6 +24,11 @@ export const WILLOW_SONG_LAST_WORD_AT = 163;
 export const WILLOW_SONG_END_DELAY = 3;
 /** Seconds into the song when THE END should appear. */
 export const WILLOW_SONG_END_CUE = WILLOW_SONG_LAST_WORD_AT + WILLOW_SONG_END_DELAY;
+/**
+ * Seconds when Sing Along should turn from THE END onto the back cover.
+ * The recording ends just after THE END, so this cue is reached when the song ends.
+ */
+export const WILLOW_SONG_BACK_COVER_CUE = WILLOW_SONG_END_CUE + 1;
 
 export function willowFrontCoverLayout(): PageLayout {
   return {

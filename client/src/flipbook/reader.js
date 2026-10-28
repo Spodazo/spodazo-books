@@ -7,7 +7,7 @@ import {DEFAULT_FRAME_COLOR, frameClass, frameMarkup} from '@shared/text-frames'
 import {fontStack, fontsUsed, googleFontsHref, localFontFaceCss} from '@shared/book-fonts';
 import {paletteById} from '@shared/palettes';
 import {characterUrlFor, isWillowBook, visibleStoryPages} from '@shared/reader-pages';
-import {WILLOW_FRONT_COVER_URL, WILLOW_SONG_AUDIO_URL, WILLOW_SONG_END_CUE, WILLOW_SONG_TITLE_CUE, willowStoryPageCue, withWillowTitleCredits} from '@shared/willow-song-book';
+import {WILLOW_FRONT_COVER_URL, WILLOW_SONG_AUDIO_URL, WILLOW_SONG_BACK_COVER_CUE, WILLOW_SONG_END_CUE, WILLOW_SONG_TITLE_CUE, willowStoryPageCue, withWillowTitleCredits} from '@shared/willow-song-book';
 import {isImportedPdfFacsimileBook,storyPagesHtml as buildStoryPagesHtml} from './story-pages-html';
 
 function coverSrc(book, baseUrl) {
@@ -150,6 +150,7 @@ function backCoverPageHtml(book, baseUrl, credits, copyright, logoUrl) {
   const legal = legalHtml(credits, copyright, logoUrl, baseUrl, book.date);
   const again = `<button type="button" class="read-again">Read again</button>`;
   const zone = `<button class="zone" data-dir="-1" aria-label="Previous page"></button>`;
+  const cue = isWillowBook(book) ? cueAttr(WILLOW_SONG_BACK_COVER_CUE) : "";
   let inner = "";
   let leafStyle = "";
   let plain = " back-cover-plain";
@@ -164,7 +165,7 @@ function backCoverPageHtml(book, baseUrl, credits, copyright, logoUrl) {
     const src = coverSrc(book, baseUrl);
     inner = src ? `<img class="back-cover-art" src="${src}" alt="">` : "";
   }
-  return `<article class="page end-page back-cover${plain}" data-source="end" aria-label="Back cover"><div class="back-cover-leaf"${leafStyle}>${inner}${again}${legal}</div>${zone}</article>`;
+  return `<article class="page end-page back-cover${plain}" data-source="end"${cue} aria-label="Back cover"><div class="back-cover-leaf"${leafStyle}>${inner}${again}${legal}</div>${zone}</article>`;
 }
 
 function endPageHtml(book, baseUrl, credits, copyright, logoUrl) {

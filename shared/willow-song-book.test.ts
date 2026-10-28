@@ -4,6 +4,7 @@ import { visibleStoryPages } from "./reader-pages";
 import {
   WILLOW_SONG_AUDIO_URL,
   WILLOW_SONG_TAGLINE,
+  WILLOW_SONG_BACK_COVER_CUE,
   WILLOW_SONG_END_CUE,
   WILLOW_SONG_END_DELAY,
   WILLOW_SONG_LAST_WORD_AT,
@@ -57,6 +58,7 @@ test("Willow sing-along cues follow the recorded lyrics", () => {
   assert.equal(WILLOW_SONG_END_DELAY, 3);
   assert.equal(WILLOW_SONG_END_CUE, 166);
   assert.ok(WILLOW_SONG_END_CUE > WILLOW_SONG_LAST_WORD_AT);
+  assert.ok(WILLOW_SONG_BACK_COVER_CUE > WILLOW_SONG_END_CUE);
 });
 
 test("needsWillowSongUpdate is true until the chorus pages are in place", () => {

@@ -10,6 +10,8 @@ test("Willow title page has a Sing Along control wired to the song", async () =>
   assert.match(reader, /class="sing-along"/);
   assert.match(reader, /data-cue/);
   assert.match(reader, /WILLOW_SONG_END_CUE/);
+  assert.match(reader, /WILLOW_SONG_BACK_COVER_CUE/);
+  assert.match(runtime, /willow-nap-picture/);
   assert.match(reader, /Sing Along/);
   assert.match(runtime, /toggleSingAlong/);
   assert.match(runtime, /followSong/);

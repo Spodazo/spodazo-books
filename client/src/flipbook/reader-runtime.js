@@ -359,8 +359,16 @@ function splitWillowNap(p,i){
   end.setAttribute('aria-label','The End');
   if(p.getAttribute('data-source'))end.setAttribute('data-source',p.getAttribute('data-source'));
   if(p.hasAttribute('data-cue')){
+    var endCue=parseFloat(p.getAttribute('data-cue')),coverCue=NaN,j,ahead;
     end.setAttribute('data-cue',p.getAttribute('data-cue'));
-    p.removeAttribute('data-cue');
+    for(j=i+1;j<pages.length;j++){
+      if(!pages[j].classList.contains('end-page'))continue;
+      ahead=parseFloat(pages[j].getAttribute('data-cue'));
+      if(!isNaN(ahead))coverCue=ahead;
+      break;
+    }
+    if(!isNaN(endCue)&&!isNaN(coverCue)&&coverCue>endCue)p.setAttribute('data-cue',String(Math.round(((endCue+coverCue)/2)*100)/100));
+    else p.removeAttribute('data-cue');
   }
   end.innerHTML='<p class="nap-end" style="position:absolute;left:0;right:0;top:50%;width:100%;margin:0;transform:translateY(-50%);text-align:center;">The End</p>';
   var blank=p.querySelector('.nap-leaf-blank');
@@ -491,7 +499,9 @@ function releaseFlip(layer,after){
         pendingN=null;
         pendingAfter=null;
         show(n,null,fn);
+        return;
       }
+      followSong();
     });
   });
 }
@@ -787,7 +797,8 @@ function followSong(){
   t=song.ended?Infinity:song.currentTime;
   target=pageForSongTime(t);
   if(target<0||target<=index)return;
-  if(target>index+1&&pages[index+1]&&pages[index+1].classList.contains('willow-lyrics')){
+  var next=pages[index+1];
+  if(target>index+1&&next&&(next.classList.contains('willow-lyrics')||next.classList.contains('willow-nap-picture')||next.classList.contains('end-page'))){
     go(1);
     return;
   }
