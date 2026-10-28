@@ -694,6 +694,8 @@ function go(dir){
   show(index+dir);
 }
 function direction(target){var z=target.closest('[data-dir]');return z?Number(z.getAttribute('data-dir')):0;}
+function tapSide(clientX){var box=book.getBoundingClientRect();if(!(box.width>0))return 0;return clientX-box.left>=box.width/2?1:-1;}
+function plainTap(target){return !(target&&target.closest&&target.closest('a,button,input,textarea,label,.hot,.admin-login'));}
 function control(target,name){return !!(target&&target.closest&&target.closest(name));}
 var song=null,songMuted=false;
 function musicAudible(){
@@ -915,12 +917,20 @@ book.addEventListener('touchend',function(e){
   if(!start||viewScale>1){start=null;lastTouch=Date.now();return;}
   var t2=e.changedTouches[0],dx=t2.clientX-start.x,dy=t2.clientY-start.y;start=null;var dir=0;
   if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.4){clearTimeout(edgeTimer);edgeTimer=0;lastEdgeTap=0;lastEdgeSide=0;dir=dx<0?1:-1;}
-  else if(!mobile&&Math.abs(dx)<20&&Math.abs(dy)<20)dir=direction(e.target);
+  else if(Math.abs(dx)<20&&Math.abs(dy)<20){
+    if(mobile){
+      var box=book.getBoundingClientRect();
+      var side=edgeJumpSide(t2.clientX-box.left,box.width);
+      var now2=Date.now();
+      if(side&&side===lastEdgeSide&&now2-lastEdgeTap>0&&now2-lastEdgeTap<=350){clearTimeout(edgeTimer);edgeTimer=0;lastEdgeTap=0;lastEdgeSide=0;e.preventDefault();lastTouch=now2;if(side<0)goToStart();else goToEnd();return;}
+      if(side){lastEdgeTap=now2;lastEdgeSide=side;clearTimeout(edgeTimer);edgeTimer=setTimeout(function(){edgeTimer=0;go(side);},350);return;}
+      if(plainTap(e.target))dir=tapSide(t2.clientX);
+    }else dir=direction(e.target)||(plainTap(e.target)?tapSide(t2.clientX):0);
+  }
   if(dir){e.preventDefault();lastTouch=Date.now();go(dir);return;}
-  if(mobile&&Math.abs(dx)<20&&Math.abs(dy)<20){var box=book.getBoundingClientRect();var side=edgeJumpSide(t2.clientX-box.left,box.width);var now2=Date.now();if(side&&side===lastEdgeSide&&now2-lastEdgeTap>0&&now2-lastEdgeTap<=350){clearTimeout(edgeTimer);edgeTimer=0;lastEdgeTap=0;lastEdgeSide=0;e.preventDefault();lastTouch=now2;if(side<0)goToStart();else goToEnd();return;}if(side){lastEdgeTap=now2;lastEdgeSide=side;}}
 },{passive:false});
 book.addEventListener('touchcancel',function(){start=null;panPending=false;gesturePan=false;if(gesturePinch){gesturePinch=false;if(viewScale<=1.05)resetViewZoom();else applyViewZoom();}});
-book.addEventListener('click',function(e){if(leaveLibrary(e))return;if(control(e.target,'.sing-along')){e.preventDefault();if(Date.now()-lastTouch<=650)return;toggleSingAlong();return;}if(control(e.target,'.read-again')){e.preventDefault();if(Date.now()-lastTouch<=650)return;restart();return;}if(e.target.closest&&e.target.closest('.admin-login'))return;if(viewScale>1)return;var dir=direction(e.target);if(mobile||!dir)return;e.preventDefault();if(Date.now()-lastTouch<=650)return;if(e.detail>=2){clearTimeout(zoneTimer);zoneTimer=0;if(dir<0)goToStart();else goToEnd();return;}clearTimeout(zoneTimer);zoneTimer=setTimeout(function(){zoneTimer=0;go(dir);},400);});
+book.addEventListener('click',function(e){if(leaveLibrary(e))return;if(control(e.target,'.sing-along')){e.preventDefault();if(Date.now()-lastTouch<=650)return;toggleSingAlong();return;}if(control(e.target,'.read-again')){e.preventDefault();if(Date.now()-lastTouch<=650)return;restart();return;}if(e.target.closest&&e.target.closest('.admin-login'))return;if(viewScale>1)return;var zoneDir=direction(e.target);var dir=zoneDir||(plainTap(e.target)?tapSide(e.clientX):0);if(mobile||!dir)return;e.preventDefault();if(Date.now()-lastTouch<=650)return;if(e.detail>=2&&zoneDir){clearTimeout(zoneTimer);zoneTimer=0;if(dir<0)goToStart();else goToEnd();return;}if(zoneDir){clearTimeout(zoneTimer);zoneTimer=setTimeout(function(){zoneTimer=0;go(dir);},400);return;}go(dir);});
 book.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&direction(e.target)){e.preventDefault();go(direction(e.target));}});
 document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go(e.key==='ArrowRight'?1:-1);}});
 function applyLineHeight(nodes,lh){

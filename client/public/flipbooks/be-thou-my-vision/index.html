@@ -640,8 +640,7 @@ body { background: var(--ground); color: #fff; }
     ignoreTarget: function (el) {
       return el.closest && (el.closest('.flipbook-close') || el.closest('.hot') || el.closest('.arrow'));
     },
-    onTap: function (e, type) {
-      if (type === 'touch') return;
+    onTap: function (e) {
       if (turnsSuppressed() || landPage) return;
       var r = stage.getBoundingClientRect();
       go(e.clientX - r.left >= r.width / 2 ? 1 : -1);

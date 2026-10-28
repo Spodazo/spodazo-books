@@ -143,4 +143,6 @@ test("in-app reader jumps on double-click zones and mobile edge taps", async () 
   assert.match(runtime, /function goToEnd\(\)\{jumpTo\(pages\.length-1\);\}/);
   assert.match(runtime, /e\.detail>=2/);
   assert.match(runtime, /edgeJumpSide/);
+  assert.match(runtime, /function tapSide/);
+  assert.match(runtime, /plainTap\(e\.target\)\)dir=tapSide/);
 });

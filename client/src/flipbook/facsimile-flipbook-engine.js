@@ -1150,17 +1150,12 @@
     ignoreTarget: function (el) {
       return el.closest && (el.closest(".flipbook-close") || el.closest(".hot") || el.closest(".arrow") || el.closest(".rudolph-sound"));
     },
-    onTap: function (e, type) {
+    onTap: function (e) {
       if (turnsSuppressed() || landPage) return;
       var r = stage.getBoundingClientRect();
       var onRight = e.clientX - r.left >= r.width / 2;
-      if (type === "touch") {
-        if (atLastPage()) restart();
-      } else if (atLastPage() && (single || onRight)) {
-        restart();
-      } else {
-        go(onRight ? 1 : -1);
-      }
+      if (atLastPage() && onRight) restart();
+      else go(onRight ? 1 : -1);
     },
     onJump: function (dir) {
       if (dir < 0) goToStart();
