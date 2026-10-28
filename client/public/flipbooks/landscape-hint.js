@@ -17,7 +17,7 @@
     "text-align:center;pointer-events:none;",
     "opacity:0;transform:translate(-50%,calc(-50% + 12px));",
     "font:500 16.5px/1.4 Lexend,'Avenir Next','Segoe UI',system-ui,sans-serif;letter-spacing:-.015em}",
-    ".landscape-hint p{margin:0}",
+    ".landscape-hint p{margin:0}.landscape-hint p+p{margin-top:8px}",
     ".landscape-hint svg{display:block;margin:0 auto 12px}",
     ".landscape-hint.is-in{opacity:1;transform:translate(-50%,-50%);",
     "transition:opacity 1.2s cubic-bezier(.22,.7,.3,1),transform 1.2s cubic-bezier(.22,.7,.3,1)}",
@@ -106,7 +106,7 @@
     root.className = "landscape-hint";
     root.setAttribute("role", "status");
     root.setAttribute("aria-live", "polite");
-    root.innerHTML = ICON + "<p>For the best experience, turn your phone to landscape mode, or swipe or tap to start.</p>";
+    root.innerHTML = ICON + "<p>For the best experience, turn your phone to landscape mode.</p><p>Swipe or tap to start.</p>";
     document.body.appendChild(root);
     if (reducedMotion()) root.classList.add("is-in");
     else {

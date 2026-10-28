@@ -4,7 +4,8 @@ import test from "node:test";
 
 test("portrait flip books fade in a landscape hint and dismiss on the cover", async () => {
   const hint = await readFile(new URL("../../public/flipbooks/landscape-hint.js", import.meta.url), "utf8");
-  assert.match(hint, /For the best experience, turn your phone to landscape mode, or swipe or tap to start\./);
+  assert.match(hint, /For the best experience, turn your phone to landscape mode\./);
+  assert.match(hint, /Swipe or tap to start\./);
   assert.match(hint, /HOLD_MS = 5000/);
   assert.match(hint, /pointerdown/);
   assert.match(hint, /orientation:portrait/);
