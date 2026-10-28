@@ -126,6 +126,7 @@ function plantCurl(at,under){
   if(!wrap)return;
   if(curlHold){wrap.hidden=true;return;}
   if(at==null)at=index;
+  if(pages[at]&&pages[at].classList.contains('willow-nap-picture')){wrap.hidden=true;return;}
   var next=pages[at+1];
   var box=readCurlBox();
   if(!box||box.width<80||box.height<80){wrap.hidden=true;return;}
@@ -287,7 +288,11 @@ function splitWillowPortraitLeaves(){
   if(!mobile||!document.documentElement.classList.contains('willow'))return;
   for(i=0;i<pages.length;i++){
     p=pages[i];
-    if(p.classList.contains('willow-leaf')||p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('front-cover')||p.classList.contains('nap-spread'))continue;
+    if(p.classList.contains('willow-leaf')||p.classList.contains('title-page')||p.classList.contains('end-page')||p.classList.contains('front-cover'))continue;
+    if(p.classList.contains('nap-spread')){
+      splitWillowNap(p,i);
+      continue;
+    }
     if(!p.classList.contains('laid-out'))continue;
     if(!p.querySelector('.el-image[data-leaf="left"][data-size="main"]')||!p.querySelector('.el-text[data-leaf="right"]'))continue;
     lyrics=p.cloneNode(true);
@@ -304,6 +309,22 @@ function splitWillowPortraitLeaves(){
     pages.splice(i+1,0,lyrics);
     i++;
   }
+}
+function splitWillowNap(p,i){
+  var end=document.createElement('article');
+  end.className='page willow-leaf willow-the-end';
+  end.setAttribute('aria-label','The End');
+  if(p.getAttribute('data-source'))end.setAttribute('data-source',p.getAttribute('data-source'));
+  if(p.hasAttribute('data-cue')){
+    end.setAttribute('data-cue',p.getAttribute('data-cue'));
+    p.removeAttribute('data-cue');
+  }
+  end.innerHTML='<p class="nap-end">The End</p>';
+  var blank=p.querySelector('.nap-leaf-blank');
+  if(blank)blank.remove();
+  p.classList.add('willow-leaf','willow-nap-picture');
+  book.insertBefore(end,p);
+  pages.splice(i,0,end);
 }
 function shrinkStory(p){
   if(p.classList.contains('title-page')||p.classList.contains('front-cover')||p.classList.contains('cover-plate')||p.classList.contains('cover-page')||p.classList.contains('facsimile')||p.classList.contains('end-page')||p.classList.contains('nap-spread'))return;
@@ -677,7 +698,7 @@ function updateWillowSound(){
   if(!btn)return;
   page=pages[index];
   cover=!page||page.classList.contains('front-cover');
-  theEnd=!!(page&&(page.classList.contains('nap-spread')||page.classList.contains('end-page')));
+  theEnd=!!(page&&(page.classList.contains('nap-spread')||page.classList.contains('end-page')||page.classList.contains('willow-the-end')||page.classList.contains('willow-nap-picture')));
   show=!cover&&!theEnd;
   btn.hidden=false;
   btn.classList.toggle('is-visible',show);
