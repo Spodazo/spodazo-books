@@ -747,7 +747,7 @@ html:not(.mobile) .page.back-cover.end-page .end-legal,
   z-index:30;
 }
 .page.nap-spread{
-  background:var(--page-paper,#efdda6);
+  background:#efdda6;
 }
 html:not(.mobile) .nap-leaf-blank{
   position:absolute;
@@ -776,13 +776,16 @@ html:not(.mobile) .nap-leaf-art{
   left:50%;
   width:50%;
   overflow:hidden;
+  background:#efdda6;
 }
 .nap-picture{
   position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
+  left:50%;
+  top:50%;
+  width:80%;
+  height:80%;
+  transform:translate(-50%, -50%);
+  object-fit:contain;
   object-position:center center;
 }
 .nap-leaf,
@@ -824,6 +827,7 @@ html:not(.mobile) .page.nap-spread .zone[data-dir="1"]{
   inset:0;
   width:100%;
   height:100%;
+  background:#efdda6;
 }
 .mobile .page.nap-spread .nap-picture,
 .mobile .leaf-copy.nap-spread .nap-picture{
@@ -1848,9 +1852,23 @@ html:not(.mobile) .book-frame{
 .mobile .page.willow-title>.el-text[data-role="date"]{
   margin-top:14px!important;
 }
+html.willow .page.back-cover .end-logo{
+  display:none!important;
+}
+html.willow .page.back-cover .back-cover-leaf > .read-again{
+  left:auto;
+  right:6%;
+  top:5%;
+  transform:translateY(-50%);
+}
+html.willow:not(.mobile),
+html.willow:not(.mobile) body,
+html.willow main{
+  background:#0a3207;
+}
 html.willow:not(.mobile):has(.page.front-cover.willow-front.current) main,
 html.willow:not(.mobile) .page.front-cover.willow-front{
-  background:#322616!important;
+  background:#0a3207!important;
 }
 html.willow:not(.mobile):has(.page.front-cover.willow-front.current) main{
   box-shadow:none!important;
@@ -1864,9 +1882,19 @@ html.willow:not(.mobile){
   --book-w:min(calc(var(--avail-h) / var(--page-ratio) * 2), calc(100dvw - 2 * var(--side-room)));
   --book-h:calc(var(--book-w) / 2 * var(--page-ratio));
 }
+html.willow:not(.mobile) .page.laid-out:not(.title-page):not(.end-page):not(.front-cover)>.el-image[data-size="main"],
+html.willow:not(.mobile) .leaf-copy.laid-out:not(.title-page):not(.end-page):not(.front-cover)>.el-image[data-size="main"]{
+  left:0!important;
+  top:0!important;
+  width:52%!important;
+  height:100%!important;
+  max-height:none!important;
+  object-fit:cover!important;
+  object-position:right center!important;
+}
 html.willow.mobile,
 html.willow.mobile body{
-  background:#322616;
+  background:#0a3207;
 }
 html.willow.mobile{
   --page-ratio:1.2;

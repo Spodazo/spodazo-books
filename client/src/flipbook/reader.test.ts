@@ -95,7 +95,7 @@ test("Willow’s The End sits on the nap’s left leaf, not the back cover", asy
   assert.doesNotMatch(reader, /back-cover-art" src="\$\{src\}" alt=""><h1 class="end-title">/);
   assert.match(css, /html:not\(\.mobile\) \.nap-leaf-art\{[^}]*left:50%/);
   assert.match(css, /\.nap-end\{[^}]*JuiceBox Script/);
-  assert.match(css, /\.nap-picture\{[^}]*object-fit:cover/);
+  assert.match(css, /\.nap-picture\{[^}]*object-fit:contain/);
   assert.match(css, /page\.nap-spread \.zone\[data-dir="1"\]/);
   assert.match(runtime, /nap-spread/);
   assert.doesNotMatch(runtime, /\|\|\{\}\)\.style\.fontSize/);
@@ -105,7 +105,7 @@ test("Willow’s front cover sits on the dark brown stage", async () => {
   const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
   assert.match(reader, /front-cover willow-front/);
-  assert.match(css, /html\.willow:not\(\.mobile\) \.page\.front-cover\.willow-front\{[^}]*background:#322616!important/);
+  assert.match(css, /html\.willow:not\(\.mobile\) \.page\.front-cover\.willow-front\{[^}]*background:#0a3207!important/);
 });
 
 test("Willow’s title page keeps the author and date apart", async () => {
