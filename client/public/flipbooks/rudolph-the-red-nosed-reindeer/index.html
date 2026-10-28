@@ -182,7 +182,7 @@ body {
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.45s ease, background-color 0.2s ease;
+  transition: opacity 1.8s ease, background-color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .rudolph-sound.is-visible { opacity: 1; pointer-events: auto; }
@@ -384,9 +384,13 @@ body {
   }
   function updateSoundButton() {
     if (!soundBtn) return;
-    var show = maxVisibleImage() >= SONG_FIRST;
+    var pages = visibleImages();
+    var maxPage = pages.length ? Math.max.apply(null, pages) : 0;
+    var minPage = pages.length ? Math.min.apply(null, pages) : 0;
+    var show = maxPage >= SONG_FIRST && minPage < 25;
     soundBtn.hidden = false;
     soundBtn.classList.toggle('is-visible', show);
+    soundBtn.setAttribute('aria-hidden', show ? 'false' : 'true');
     syncSoundButton();
     placeSoundButton();
   }

@@ -209,9 +209,14 @@
 
   function updateSoundButton() {
     if (!SING || !soundBtn) return;
-    var show = maxVisiblePdfPage() >= SING.firstPage;
+    var pages = visiblePdfPages();
+    var maxPage = pages.length ? Math.max.apply(null, pages) : 0;
+    var minPage = pages.length ? Math.min.apply(null, pages) : 0;
+    var theEnd = Number(SING.outroFirstPage) || (Number(SING.endPage) + 1);
+    var show = maxPage >= SING.firstPage && minPage < theEnd;
     soundBtn.hidden = false;
     soundBtn.classList.toggle("is-visible", show);
+    soundBtn.setAttribute("aria-hidden", show ? "false" : "true");
     syncSoundButton();
     placeSoundButton();
   }
