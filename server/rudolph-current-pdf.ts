@@ -6,8 +6,8 @@ import { dataDir, pdfsDir } from "./paths";
 import { applyReplacementPdf, enqueuePdfReplace } from "./replace-book-pdf";
 import type { BookStore } from "./storage";
 
-/** Desktop upload “Rudolph the Red Nosed Reindeer - Flip Book.pdf” (28 pages). */
-export const RUDOLPH_V3_SHA256 = "db7d035110d3a2aead2ed9c88070fbb2b163b7ee07719761bdd24dbe04f3f488";
+/** Desktop upload “Rudolph the Red Nosed Reindeer -v1.pdf” (28 pages). */
+export const RUDOLPH_V3_SHA256 = "8ad1c427abfa9f8029b823454f18d9a3ad4e31bb96db0e4a15208bd50cdad0ba";
 
 export function bundledRudolphPdfPath(): string {
   return path.resolve(process.cwd(), "media/pdfs/rudolph-v3.pdf");
@@ -54,11 +54,11 @@ export async function ensureRudolphCurrentPdf(store: BookStore): Promise<void> {
     await fs.promises.copyFile(bundled, dest);
   }
   const revision = `v3${RUDOLPH_V3_SHA256.slice(0, 8)}`;
-  console.log("[catalog] Rudolph v3 was not the saved PDF. Rendering that upload onto the book.");
+  console.log("[catalog] Rudolph revised PDF was not the saved PDF. Rendering that upload onto the book.");
   enqueuePdfReplace(book.id, async () => {
-    const saved = await applyReplacementPdf(store, book.id, dest, "Rudolph the Red Nosed Reindeer v3.pdf", revision);
+    const saved = await applyReplacementPdf(store, book.id, dest, "Rudolph the Red Nosed Reindeer -v1.pdf", revision);
     await fs.promises.mkdir(dataDir(), { recursive: true });
     await fs.promises.writeFile(marker, `${saved.pdf}\n`);
-    console.log(`[catalog] Rudolph is now ${saved.pageCount} pages from the v3 PDF`);
+    console.log(`[catalog] Rudolph is now ${saved.pageCount} pages from the revised PDF`);
   });
 }
