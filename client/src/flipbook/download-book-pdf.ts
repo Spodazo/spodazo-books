@@ -15,7 +15,7 @@ import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
-import { bookletSheetFromPageWidthMm, bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
+import { bookletSheetFromPageSizeMm, bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
 
 type Rendered = { png: Uint8Array; width: number; height: number };
 type PaperPaint = { id: string; image: HTMLImageElement | null; edge: HTMLImageElement | null };
@@ -412,7 +412,7 @@ export async function downloadStandardBookPdf(source: PublicBook) {
   downloadBlob(await standardPdf(cover, spreads, back), `${name}-standard.pdf`);
 }
 
-export async function downloadBookletPdf(source: PublicBook, pageWidthMm: number) {
+export async function downloadBookletPdf(source: PublicBook, pageWidthMm: number, pageHeightMm: number) {
   const { name, cover, spreads, back, paper, paperPaint } = await renderBookPages(source);
   const leaves = [cover];
   for (const spread of spreads) {
@@ -420,7 +420,7 @@ export async function downloadBookletPdf(source: PublicBook, pageWidthMm: number
     leaves.push(left, right);
   }
   const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
-  const sheet = bookletSheetFromPageWidthMm(pageWidthMm);
+  const sheet = bookletSheetFromPageSizeMm(pageWidthMm, pageHeightMm);
   const label = Number.isInteger(pageWidthMm) ? `${pageWidthMm}` : pageWidthMm.toFixed(1).replace(/\.0$/, "");
   downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-booklet-${label}mm.pdf`);
 }

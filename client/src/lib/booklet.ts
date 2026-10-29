@@ -10,16 +10,19 @@ export function mmToPt(mm: number): number {
 }
 
 /** Landscape print sheet: two pages wide, one page tall (PDF points). */
-export function bookletSheetFromPageWidthMm(pageWidthMm: number): [number, number] {
-  if (!Number.isFinite(pageWidthMm) || pageWidthMm <= 0) {
-    throw new Error("Booklet page width must be a positive number of millimeters");
+export function bookletSheetFromPageSizeMm(pageWidthMm: number, pageHeightMm: number): [number, number] {
+  if (!Number.isFinite(pageWidthMm) || pageWidthMm <= 0 || !Number.isFinite(pageHeightMm) || pageHeightMm <= 0) {
+    throw new Error("Booklet page size must be positive width and height in millimeters");
   }
-  const pageHeightMm = pageWidthMm * BOOKLET_PAGE_HEIGHT_PER_WIDTH;
   return [mmToPt(pageWidthMm * 2), mmToPt(pageHeightMm)];
 }
 
-export function bookletSheetSizeMm(pageWidthMm: number): { sheetWidthMm: number; pageHeightMm: number } {
-  const pageHeightMm = pageWidthMm * BOOKLET_PAGE_HEIGHT_PER_WIDTH;
+/** @deprecated Prefer bookletSheetFromPageSizeMm with the book’s print height. */
+export function bookletSheetFromPageWidthMm(pageWidthMm: number): [number, number] {
+  return bookletSheetFromPageSizeMm(pageWidthMm, pageWidthMm * BOOKLET_PAGE_HEIGHT_PER_WIDTH);
+}
+
+export function bookletSheetSizeMm(pageWidthMm: number, pageHeightMm: number): { sheetWidthMm: number; pageHeightMm: number } {
   return { sheetWidthMm: pageWidthMm * 2, pageHeightMm };
 }
 
