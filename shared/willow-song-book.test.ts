@@ -19,6 +19,7 @@ import {
   WILLOW_BACK_COVER_ASSET,
   WILLOW_FRONT_COVER_ASSET,
   prepareWillowBookForPrint,
+  willowBookletSingleLeafSpreads,
 } from "./willow-song-book";
 import type { Book } from "./types";
 
@@ -125,4 +126,9 @@ test("prepareWillowBookForPrint matches the online reader’s cover, back, and n
   assert.equal(prepared.backCoverLayout.elements[0]?.imageAsset, WILLOW_BACK_COVER_ASSET);
   assert.equal(prepared.endLayout.elements.find((el) => el.id === "nap-art")?.imageAsset, "willow-bear-nap.webp");
   assert.match(prepared.endLayout.elements.find((el) => el.id === "nap-end-text")?.text || "", /The End/);
+});
+
+test("Willow booklets keep each spread on one saddle-stitch leaf", () => {
+  assert.equal(willowBookletSingleLeafSpreads({ slug: "Willows-Big-Forest-Adventure", title: "Willow" }), true);
+  assert.equal(willowBookletSingleLeafSpreads({ slug: "Rudolph", title: "Rudolph" }), false);
 });

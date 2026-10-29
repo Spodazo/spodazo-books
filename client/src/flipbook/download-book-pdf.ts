@@ -482,9 +482,16 @@ async function renderBookPages(source: PublicBook) {
       )
     : null;
   const spreads: Rendered[] = [];
+  const bookletInteriors: Rendered[] = [];
   spreads.push(await renderLayout(book.titleLayout, book, "spread", false, undefined, paperPaint));
+  if (willow) {
+    bookletInteriors.push(await renderLayout(book.titleLayout, book, "cover", false, undefined, paperPaint));
+  }
   for (const page of visibleStoryPages(book)) {
     spreads.push(await renderLayout(page, book, "spread", false, undefined, paperPaint));
+    if (willow) {
+      bookletInteriors.push(await renderLayout(page, book, "cover", false, undefined, paperPaint));
+    }
   }
   spreads.push(
     await renderLayout(
@@ -496,8 +503,11 @@ async function renderBookPages(source: PublicBook) {
       paperPaint,
     ),
   );
+  if (willow) {
+    bookletInteriors.push(await renderLayout(book.endLayout, book, "cover", false, undefined, paperPaint));
+  }
   const paper = book.pageBackground || DEFAULT_PAGE_BACKGROUND;
-  return { name: slugFile(book.title), cover, spreads, back, paper, paperPaint };
+  return { name: slugFile(book.title), cover, spreads, bookletInteriors, willow, back, paper, paperPaint };
 }
 
 export async function downloadStandardBookPdf(source: PublicBook) {
@@ -506,11 +516,15 @@ export async function downloadStandardBookPdf(source: PublicBook) {
 }
 
 export async function downloadBookletPdf(source: PublicBook, pageWidthMm: number, pageHeightMm: number) {
-  const { name, cover, spreads, back, paper, paperPaint } = await renderBookPages(source);
-  const leaves = [cover];
-  for (const spread of spreads) {
-    const [left, right] = await halves(spread);
-    leaves.push(left, right);
+  const { name, cover, spreads, bookletInteriors, willow, back, paper, paperPaint } = await renderBookPages(source);
+  const leaves: Rendered[] = [cover];
+  if (willow) {
+    leaves.push(...bookletInteriors);
+  } else {
+    for (const spread of spreads) {
+      const [left, right] = await halves(spread);
+      leaves.push(left, right);
+    }
   }
   const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
   const label = Number.isInteger(pageWidthMm) ? `${pageWidthMm}` : pageWidthMm.toFixed(1).replace(/\.0$/, "");

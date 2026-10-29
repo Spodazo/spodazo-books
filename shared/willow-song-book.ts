@@ -100,6 +100,11 @@ export function willowNapEndLayout(pageBackground?: string): PageLayout {
   };
 }
 
+/** One portrait leaf per spread so saddle-stitch imposition does not split art and lyrics across sheets. */
+export function willowBookletSingleLeafSpreads(book: Pick<Book, "slug" | "title">): boolean {
+  return isWillowBook(book);
+}
+
 /** Same art and spreads as the online Willow reader, for PDF export. */
 export function prepareWillowBookForPrint<T extends Book>(book: T): T {
   if (!isWillowBook(book)) return book;
