@@ -31,7 +31,11 @@ import {
 import { writeCachedBooks, writeCachedSetup, clearHomeClientCache } from "../lib/homeCache";
 import { applyPalette } from "../lib/palette";
 import { applySiteIcons } from "../lib/siteIcons";
-import { downloadBookPdf, type BookPdfKind } from "../flipbook/download-book-pdf";
+import {
+  downloadBookletPdf,
+  downloadStandardBookPdf,
+  type BookletPageWidth,
+} from "../flipbook/download-book-pdf";
 
 type CoverRect = { id: string; left: number; top: number; right: number; bottom: number };
 
@@ -729,7 +733,8 @@ function BookEditor({
   const [audienceCustom, setAudienceCustom] = useState(initialAudience.customLabel);
   const [audienceCustomOpen, setAudienceCustomOpen] = useState(initialAudience.useCustom);
   const [error, setError] = useState("");
-  const [pdfBusy, setPdfBusy] = useState<BookPdfKind | "">("");
+  const [pdfBusy, setPdfBusy] = useState<"standard" | "booklet" | "">("");
+  const [bookletWidth, setBookletWidth] = useState<BookletPageWidth>("a5");
   const [revisedBusy, setRevisedBusy] = useState(false);
   const [revisedNote, setRevisedNote] = useState("");
   const revisedPdfRef = useRef<HTMLInputElement>(null);
@@ -845,24 +850,46 @@ function BookEditor({
         >
           Save
         </button>
-        {(["standard", "a3-a4", "a4-a5"] as BookPdfKind[]).map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            className="ghost"
-            disabled={Boolean(pdfBusy)}
-            onClick={() => {
-              setPdfBusy(kind);
-              setError("");
-              void downloadBookPdf(book, kind)
-                .catch((err: Error) => setError(err.message || "Could not make the PDF"))
-                .finally(() => setPdfBusy(""));
-            }}
-          >
-            {pdfBusy === kind ? "Preparing PDF…" : kind === "standard" ? "Standard PDF" : kind === "a3-a4" ? "A3 folded to A4" : "A4 folded to A5"}
-          </button>
-        ))}
-        <p className="hint">Folded PDFs are for double-sided printing. Print at actual size, flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside. The designed back cover prints on the outside left of that sheet, and is not shown in the online book.</p>
+        <button
+          type="button"
+          className="ghost"
+          disabled={Boolean(pdfBusy)}
+          onClick={() => {
+            setPdfBusy("standard");
+            setError("");
+            void downloadStandardBookPdf(book)
+              .catch((err: Error) => setError(err.message || "Could not make the PDF"))
+              .finally(() => setPdfBusy(""));
+          }}
+        >
+          {pdfBusy === "standard" ? "Preparing PDF…" : "Standard PDF"}
+        </button>
+        <label>Booklet page width</label>
+        <select
+          value={bookletWidth}
+          disabled={Boolean(pdfBusy)}
+          onChange={(event) => setBookletWidth(event.target.value as BookletPageWidth)}
+        >
+          <option value="a5">A5 (print on A4 paper)</option>
+          <option value="a4">A4 (print on A3 paper)</option>
+        </select>
+        <button
+          type="button"
+          className="ghost"
+          disabled={Boolean(pdfBusy)}
+          onClick={() => {
+            setPdfBusy("booklet");
+            setError("");
+            void downloadBookletPdf(book, bookletWidth)
+              .catch((err: Error) => setError(err.message || "Could not make the PDF"))
+              .finally(() => setPdfBusy(""));
+          }}
+        >
+          {pdfBusy === "booklet" ? "Preparing PDF…" : "Download booklet"}
+        </button>
+        <p className="hint">
+          Booklet PDFs are sized for double-sided printing at actual size on the sheet size shown in the menu. Flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside. The designed back cover prints on the outside left of that sheet, and is not shown in the online book.
+        </p>
         {book.archived ? (
           <button
             type="button"

@@ -17,10 +17,16 @@ import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
 import { bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
 
-export type BookPdfKind = "standard" | "a3-a4" | "a4-a5";
+/** Finished page width after folding; the PDF sheet is one size larger (landscape, two-up). */
+export type BookletPageWidth = "a5" | "a4";
 
 const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
 const A3_LANDSCAPE: [number, number] = [1190.55, 841.89];
+
+const BOOKLET_SHEET: Record<BookletPageWidth, [number, number]> = {
+  a5: A4_LANDSCAPE,
+  a4: A3_LANDSCAPE,
+};
 
 type Rendered = { png: Uint8Array; width: number; height: number };
 type PaperPaint = { id: string; image: HTMLImageElement | null; edge: HTMLImageElement | null };
@@ -389,7 +395,7 @@ async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: st
   return pdf.save();
 }
 
-export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
+async function renderBookPages(source: PublicBook) {
   const setup = await fetchPlayerSetup();
   const book = ensureBookLayouts(source, { coverUrl: source.coverUrl, characterUrl: characterUrlFor(source) });
   await ensureFonts(book);
@@ -408,19 +414,23 @@ export async function downloadBookPdf(source: PublicBook, kind: BookPdfKind) {
     spreads.push(await renderLayout(page, book, "spread", false, undefined, paperPaint));
   }
   spreads.push(await renderLayout(book.endLayout, book, "spread", "end", legal, paperPaint));
-  const name = slugFile(book.title);
-  if (kind === "standard") {
-    downloadBlob(await standardPdf(cover, spreads, back), `${name}-standard.pdf`);
-    return;
-  }
+  const paper = book.pageBackground || DEFAULT_PAGE_BACKGROUND;
+  return { name: slugFile(book.title), cover, spreads, back, paper, paperPaint };
+}
+
+export async function downloadStandardBookPdf(source: PublicBook) {
+  const { name, cover, spreads, back } = await renderBookPages(source);
+  downloadBlob(await standardPdf(cover, spreads, back), `${name}-standard.pdf`);
+}
+
+export async function downloadBookletPdf(source: PublicBook, pageWidth: BookletPageWidth) {
+  const { name, cover, spreads, back, paper, paperPaint } = await renderBookPages(source);
   const leaves = [cover];
   for (const spread of spreads) {
     const [left, right] = await halves(spread);
     leaves.push(left, right);
   }
-  const paper = book.pageBackground || DEFAULT_PAGE_BACKGROUND;
   const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
-  const sheet = kind === "a3-a4" ? A3_LANDSCAPE : A4_LANDSCAPE;
-  const label = kind === "a3-a4" ? "A3-folded-to-A4" : "A4-folded-to-A5";
-  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-${label}.pdf`);
+  const sheet = BOOKLET_SHEET[pageWidth];
+  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-booklet-${pageWidth}.pdf`);
 }
