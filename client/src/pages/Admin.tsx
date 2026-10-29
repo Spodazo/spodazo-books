@@ -731,7 +731,7 @@ function BookEditor({
   const [audienceCustomOpen, setAudienceCustomOpen] = useState(initialAudience.useCustom);
   const [error, setError] = useState("");
   const [pdfBusy, setPdfBusy] = useState<"standard" | "booklet" | "">("");
-  const [bookletWidthMm, setBookletWidthMm] = useState("148");
+  const [bookletWidthMm, setBookletWidthMm] = useState("");
   const [revisedBusy, setRevisedBusy] = useState(false);
   const [revisedNote, setRevisedNote] = useState("");
   const revisedPdfRef = useRef<HTMLInputElement>(null);
@@ -861,16 +861,21 @@ function BookEditor({
         >
           {pdfBusy === "standard" ? "Preparing PDF…" : "Standard PDF"}
         </button>
-        <label>Booklet page width (mm)</label>
+        <label>Finished printed page width (mm)</label>
         <input
           type="number"
           min={50}
           max={400}
           step={0.1}
+          placeholder="e.g. 148"
           value={bookletWidthMm}
           disabled={Boolean(pdfBusy)}
           onChange={(event) => setBookletWidthMm(event.target.value)}
         />
+        <p className="hint">
+          The online book does not have a fixed print size in millimeters. Enter how wide you want each physical page
+          after folding; the PDF is built to that width (page height follows the book layout).
+        </p>
         <button
           type="button"
           className="ghost"
@@ -878,7 +883,7 @@ function BookEditor({
           onClick={() => {
             const pageWidthMm = Number.parseFloat(bookletWidthMm);
             if (!Number.isFinite(pageWidthMm) || pageWidthMm < 50 || pageWidthMm > 400) {
-              setError("Enter a booklet page width between 50 and 400 mm.");
+              setError("Enter a finished page width between 50 and 400 mm.");
               return;
             }
             setPdfBusy("booklet");
