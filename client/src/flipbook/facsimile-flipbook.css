@@ -105,15 +105,15 @@ body { background: var(--ground); color: #fff; }
   z-index: 20;
   top: max(10px, env(safe-area-inset-top));
   left: max(12px, env(safe-area-inset-left));
-  width: 44px;
-  height: 44px;
+  width: 35px;
+  height: 35px;
   display: grid;
   place-items: center;
   border: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, .12);
   color: rgba(255, 255, 255, .88);
-  font: 600 32px/1 system-ui, sans-serif;
+  font: 600 26px/1 system-ui, sans-serif;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
   backdrop-filter: blur(4px);

@@ -895,7 +895,7 @@
     arrR.classList.toggle("off", atEnd);
     if (closeBtn) {
       closeBtn.hidden = false;
-      closeBtn.className = atEnd && !single ? "flipbook-close right" : "flipbook-close left";
+      closeBtn.className = "flipbook-close left";
     }
   }
 
