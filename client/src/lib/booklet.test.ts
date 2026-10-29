@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   BOOKLET_BLEED_MM,
+  BOOKLET_SMALL_IMPOSITION_SLOTS,
+  bookletImpositionSlotCount,
   bookletImpositionSlots,
   bookletPrintSheetFromPageSizeMm,
   bookletSheetFromPageWidthMm,
@@ -32,6 +34,13 @@ test("booklet print sheet adds bleed on the outer edges", () => {
   const sizes = bookletSheetSizeMm(210, 297);
   assert.equal(sizes.trimSheetWidthMm, 420);
   assert.equal(sizes.printSheetWidthMm, 420 + BOOKLET_BLEED_MM * 2);
+});
+
+test("booklets through 32 pages pad imposition to 32 slots", () => {
+  assert.equal(bookletImpositionSlotCount(26), BOOKLET_SMALL_IMPOSITION_SLOTS);
+  assert.equal(bookletImpositionSlotCount(6), BOOKLET_SMALL_IMPOSITION_SLOTS);
+  assert.equal(bookletImpositionSlotCount(30), BOOKLET_SMALL_IMPOSITION_SLOTS);
+  assert.equal(bookletImpositionSlotCount(31), 36);
 });
 
 test("small booklets pad imposition so the title faces a blank, not the ending", () => {

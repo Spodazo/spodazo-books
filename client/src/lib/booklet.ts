@@ -86,7 +86,8 @@ export const BOOKLET_SMALL_IMPOSITION_SLOTS = 32;
 export function bookletImpositionSlotCount(interiorCount: number): number {
   const contentSlots = interiorCount + 2;
   const padded = paddedPageCount(contentSlots);
-  return contentSlots <= 16 ? BOOKLET_SMALL_IMPOSITION_SLOTS : padded;
+  if (padded <= BOOKLET_SMALL_IMPOSITION_SLOTS) return BOOKLET_SMALL_IMPOSITION_SLOTS;
+  return padded;
 }
 
 /** Cover at 0, back at last index, interiors at 1..n, remaining slots blank. */

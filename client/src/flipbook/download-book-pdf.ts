@@ -11,7 +11,10 @@ import {
   publishedLabel,
 } from "@shared/page-layout";
 import { normalizePaperTexture, paperTextureUrl } from "@shared/paper";
+import { bookUsesFacsimilePrintPages } from "@shared/book-print-size";
+import { FACSIMILE_A4_RATIO } from "@shared/facsimile-flipbook";
 import { characterUrlFor, isWillowBook, visibleStoryPages } from "@shared/reader-pages";
+import type { BookPage } from "@shared/types";
 import { prepareWillowBookForPrint } from "@shared/willow-song-book";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
@@ -293,10 +296,47 @@ async function renderLayout(layout: PageLayout, book: PublicBook, kind: "cover" 
   return { png, width: canvas.width, height: canvas.height };
 }
 
-function blankLeaf(color: string, paperPaint?: PaperPaint): Rendered {
+function facsimileLeafPixelSize(): { width: number; height: number } {
+  const width = 800;
+  return { width, height: Math.round(width * FACSIMILE_A4_RATIO) };
+}
+
+async function renderFacsimileLeaf(
+  page: BookPage,
+  book: PublicBook,
+  paperPaint?: PaperPaint,
+  size = facsimileLeafPixelSize(),
+): Promise<Rendered> {
+  const url = page.fullPageUrl || page.imageUrl;
+  if (!url) throw new Error("Missing facsimile page art");
+  const paper = pageFill(page.background, book.pageBackground || DEFAULT_PAGE_BACKGROUND);
   const canvas = document.createElement("canvas");
-  canvas.width = 800;
-  canvas.height = 1000;
+  canvas.width = size.width * 2;
+  canvas.height = size.height * 2;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not draw a facsimile page");
+  ctx.scale(2, 2);
+  paintPaper(ctx, paper, size.width, size.height, paperPaint);
+  const img = await loadHtmlImage(url);
+  const boxW = size.width;
+  const boxH = size.height;
+  const scale = Math.min(boxW / img.naturalWidth, boxH / img.naturalHeight);
+  const width = img.naturalWidth * scale;
+  const height = img.naturalHeight * scale;
+  ctx.drawImage(img, (boxW - width) / 2, (boxH - height) / 2, width, height);
+  const png = await new Promise<Uint8Array>((resolve, reject) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) reject(new Error("Could not draw a facsimile page"));
+      else resolve(new Uint8Array(await blob.arrayBuffer()));
+    }, "image/png");
+  });
+  return { png, width: canvas.width, height: canvas.height };
+}
+
+function blankLeaf(color: string, paperPaint?: PaperPaint, size = { width: 800, height: 1000 }): Rendered {
+  const canvas = document.createElement("canvas");
+  canvas.width = size.width;
+  canvas.height = size.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not prepare a blank page");
   paintPaper(ctx, color, canvas.width, canvas.height, paperPaint);
@@ -466,12 +506,35 @@ async function renderBookPages(source: PublicBook) {
   await ensureFonts(book);
   const legal = { credits: setup.credits || "", copyright: setup.copyright || "", logoUrl: setup.logoUrl || "" };
   const willow = isWillowBook(book);
+  const facsimile = bookUsesFacsimilePrintPages(book);
   const textureId = normalizePaperTexture(book.pageTexture);
   const paperPaint: PaperPaint = {
     id: textureId,
     image: textureId ? await loadHtmlImage(paperTextureUrl(textureId)).catch(() => null) : null,
     edge: textureId === "deckle" ? await loadHtmlImage("/paper/deckle-edge.png").catch(() => null) : null,
   };
+  const paper = book.pageBackground || DEFAULT_PAGE_BACKGROUND;
+  const leafSize = facsimile ? facsimileLeafPixelSize() : { width: 800, height: 1000 };
+
+  if (facsimile && book.pages.length >= 2) {
+    const leaves = await Promise.all(book.pages.map((page) => renderFacsimileLeaf(page, book, paperPaint, leafSize)));
+    const cover = leaves[0];
+    const back = leaves[leaves.length - 1];
+    const interiors = leaves.slice(1, -1);
+    return {
+      name: slugFile(book.title),
+      cover,
+      spreads: interiors,
+      bookletInteriors: interiors,
+      willow: false,
+      facsimile: true,
+      back,
+      paper,
+      paperPaint,
+      leafSize,
+    };
+  }
+
   const cover = await renderLayout(book.coverLayout, book, "cover", false, undefined, paperPaint);
   const back = hasLayout(book.backCoverLayout)
     ? await renderLayout(
@@ -508,8 +571,18 @@ async function renderBookPages(source: PublicBook) {
   if (willow) {
     bookletInteriors.push(await renderLayout(book.endLayout, book, "cover", false, undefined, paperPaint));
   }
-  const paper = book.pageBackground || DEFAULT_PAGE_BACKGROUND;
-  return { name: slugFile(book.title), cover, spreads, bookletInteriors, willow, back, paper, paperPaint };
+  return {
+    name: slugFile(book.title),
+    cover,
+    spreads,
+    bookletInteriors,
+    willow,
+    facsimile: false,
+    back,
+    paper,
+    paperPaint,
+    leafSize,
+  };
 }
 
 export async function downloadStandardBookPdf(source: PublicBook) {
@@ -518,24 +591,21 @@ export async function downloadStandardBookPdf(source: PublicBook) {
 }
 
 export async function downloadBookletPdf(source: PublicBook, pageWidthMm: number, pageHeightMm: number) {
-  const { name, cover, spreads, bookletInteriors, willow, back, paper, paperPaint } = await renderBookPages(source);
-  const leaves: Rendered[] = [cover];
-  if (willow) {
-    leaves.push(...bookletInteriors);
-  } else {
+  const { name, cover, spreads, bookletInteriors, willow, facsimile, back, paper, paperPaint, leafSize } =
+    await renderBookPages(source);
+  const blank = blankLeaf(paper, paperPaint, leafSize);
+  let ordered: Rendered[];
+  if (back && (facsimile || willowBookletSingleLeafSpreads(source))) {
+    ordered = bookletImpositionSlots(cover, back, bookletInteriors, blank);
+  } else if (back) {
+    const leaves: Rendered[] = [cover];
     for (const spread of spreads) {
       const [left, right] = await halves(spread);
       leaves.push(left, right);
     }
-  }
-  const blank = blankLeaf(paper, paperPaint);
-  let ordered: Rendered[];
-  if (back && willowBookletSingleLeafSpreads(source)) {
-    ordered = bookletImpositionSlots(cover, back, bookletInteriors, blank);
-  } else if (back) {
     ordered = withOutsideBack(leaves, back, blank);
   } else {
-    ordered = leaves;
+    ordered = [cover, ...bookletInteriors];
   }
   const label = Number.isInteger(pageWidthMm) ? `${pageWidthMm}` : pageWidthMm.toFixed(1).replace(/\.0$/, "");
   downloadBlob(
