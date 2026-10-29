@@ -1,4 +1,4 @@
-/* Rudolph music control — Start Music / Silence Music */
+/* Rudolph music control — Pause / Proceed */
 .rudolph-sound {
   position: absolute;
   z-index: 15;

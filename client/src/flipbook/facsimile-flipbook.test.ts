@@ -35,6 +35,9 @@ test("uploaded PDF flipbook engine has the Be Thou My Vision controls", async ()
   assert.match(engine, /followSong/);
   assert.match(engine, /toggleMusicButton/);
   assert.match(engine, /Start Music/);
+  assert.match(engine, /return "Pause"/);
+  assert.match(engine, /return "Proceed"/);
+  assert.match(engine, /song\.pause\(\)/);
   assert.match(engine, /rudolph-singalong-note/);
   assert.match(engine, /syncSongToManualPage/);
   assert.match(engine, /isPdfPageShown/);

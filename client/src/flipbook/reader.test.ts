@@ -2,21 +2,26 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("Willow title page has a Sing Along control wired to the song", async () => {
+test("Willow starts the song with the page turns and can pause both", async () => {
   const reader = await readFile(new URL("./reader.js", import.meta.url), "utf8");
   const runtime = await readFile(new URL("./reader-runtime.js", import.meta.url), "utf8");
   const css = await readFile(new URL("./reader.css", import.meta.url), "utf8");
   assert.match(reader, /WILLOW_SONG_AUDIO_URL/);
-  assert.match(reader, /class="sing-along"/);
+  assert.doesNotMatch(reader, /class="sing-along"/);
+  assert.doesNotMatch(reader, /Sing Along/);
+  assert.match(reader, /data-audio=/);
   assert.match(reader, /data-cue/);
   assert.match(reader, /WILLOW_SONG_END_CUE/);
   assert.match(reader, /WILLOW_SONG_BACK_COVER_CUE/);
   assert.match(runtime, /willow-nap-picture/);
-  assert.match(reader, /Sing Along/);
+  assert.match(runtime, /maybeStartWillowSong/);
+  assert.match(runtime, /startWillowSong/);
   assert.match(runtime, /toggleSingAlong/);
   assert.match(runtime, /followSong/);
   assert.match(runtime, /pageForSongTime/);
   assert.match(runtime, /song\.ended/);
+  assert.match(runtime, /audio\.pause\(\)/);
+  assert.match(runtime, /Proceed/);
   assert.match(runtime, /end-page/);
   assert.match(runtime, /splitWillowPortraitLeaves/);
   assert.match(runtime, /portraitHandset/);
@@ -26,11 +31,9 @@ test("Willow title page has a Sing Along control wired to the song", async () =>
   assert.match(css, /\.willow-sound\{[^}]*min-height:14\.5px;[^}]*font-size:5px/);
   assert.match(runtime, /willow-picture/);
   assert.match(css, /\.willow-picture/);
-  assert.match(runtime, /Silence Music/);
+  assert.doesNotMatch(runtime, /Silence Music/);
   assert.match(runtime, /songMuted/);
-  assert.doesNotMatch(runtime, /maybeStartSongOnFirstPage/);
   assert.match(reader, /id="soundBtn"/);
-  assert.match(css, /\.sing-along/);
   assert.match(css, /\.willow-sound/);
 });
 

@@ -375,14 +375,20 @@ body {
   function musicAudible() {
     return !!(song && !songMuted && !song.paused && !song.ended);
   }
+  function soundButtonLabel() {
+    if (musicAudible()) return 'Pause';
+    if (songStarted && song && song.paused && !song.ended) return 'Proceed';
+    return 'Start Music';
+  }
   function syncSoundButton() {
     if (!soundBtn) return;
     var audible = musicAudible();
-    var label = audible ? 'Silence Music' : 'Start Music';
+    var label = soundButtonLabel();
     soundBtn.textContent = label;
     soundBtn.classList.toggle('is-playing', audible);
     soundBtn.setAttribute('aria-pressed', audible ? 'true' : 'false');
     soundBtn.setAttribute('aria-label', label);
+    placeSoundButton();
   }
   function updateSoundButton() {
     if (!soundBtn) return;
@@ -485,10 +491,8 @@ body {
   function toggleMusicButton() {
     ensureSong();
     if (musicAudible()) {
-      songMuted = true;
-      song.muted = true;
+      song.pause();
       syncSoundButton();
-      placeSoundButton();
       return;
     }
     songMuted = false;

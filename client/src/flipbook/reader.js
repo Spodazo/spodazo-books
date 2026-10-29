@@ -205,23 +205,21 @@ function frontCoverHtml(book, baseUrl, libraryUrl) {
   return `<article class="page front-cover current" data-source="cover" aria-label="Cover">${chrome}<div class="front-cover-leaf" style="background-color:${fill}">${items}</div></article>`;
 }
 
-function singAlongHtml(book, baseUrl) {
+function willowSongSrc(book, baseUrl) {
   if (!isWillowBook(book)) return "";
-  const src = esc(safeURL(WILLOW_SONG_AUDIO_URL, baseUrl));
-  return `<button type="button" class="sing-along" data-audio="${src}" aria-pressed="false">Sing Along</button>`;
+  return esc(safeURL(WILLOW_SONG_AUDIO_URL, baseUrl));
 }
 
 function titlePageHtml(book, baseUrl, libraryUrl, isCurrent) {
   const chrome = readerChrome(libraryUrl, baseUrl, {hint: isCurrent});
   const current = isCurrent ? " current" : "";
-  const sing = singAlongHtml(book, baseUrl);
   const willowTitle = isWillowBook(book) ? " willow-title" : "";
   if (hasLayout(book.titleLayout)) {
     const layout = isWillowBook(book) ? separatedTitleCredits(book) : book.titleLayout;
-    return laidOutPage("Title page", layout, book, baseUrl, chrome, ` title-page${current}${willowTitle}`, sing, isWillowBook(book) ? cueAttr(WILLOW_SONG_TITLE_CUE) : "").replace("<article", '<article data-source="title"');
+    return laidOutPage("Title page", layout, book, baseUrl, chrome, ` title-page${current}${willowTitle}`, "", isWillowBook(book) ? cueAttr(WILLOW_SONG_TITLE_CUE) : "").replace("<article", '<article data-source="title"');
   }
   const src = coverSrc(book, baseUrl);
-  return `<article class="page title-page${current}${willowTitle}" data-source="title"${isWillowBook(book)?cueAttr(WILLOW_SONG_TITLE_CUE):""} aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div>${sing}</div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
+  return `<article class="page title-page${current}${willowTitle}" data-source="title"${isWillowBook(book)?cueAttr(WILLOW_SONG_TITLE_CUE):""} aria-label="Title page">${chrome}<div class="title-cover-wrap">${src?`<img class="title-cover" src="${src}" alt="">`:''}</div><section class="title-meta"><div class="title-top"><h1>${titleHtml(book.title)}</h1><div class="title-subs">${subtitleHtml(book.tagline)}</div></div><div class="title-bottom">${book.author?`<p class="title-author">${esc(book.author)}</p>`:''}${book.date?`<p class="title-date">${esc(book.date)}</p>`:''}</div></section></article>`;
 }
 
 /** Create an isolated document. Your app controls routing and the library destination. */
@@ -252,8 +250,9 @@ export function createReaderDocument(book,{libraryUrl='/',baseUrl=location.href,
   const templateAttr=oneLeaf?' data-page-template="one-up"':'';
   const htmlClass=` class="${fadeOpen?"opening":"booting"}${isWillowBook(book)?" willow":""}"`;
   const faces=localFontFaceCss((href)=>safeURL(href,baseUrl));
-  const soundBtn = isWillowBook(book)
-    ? '<button type="button" id="soundBtn" class="willow-sound" hidden aria-label="Start Music" aria-pressed="false">Start Music</button>'
+  const willowAudio = willowSongSrc(book, baseUrl);
+  const soundBtn = willowAudio
+    ? `<button type="button" id="soundBtn" class="willow-sound" data-audio="${willowAudio}" hidden aria-label="Start Music" aria-pressed="false">Start Music</button>`
     : '';
   const lora = isWillowBook(book)
     ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@400&display=swap">'
