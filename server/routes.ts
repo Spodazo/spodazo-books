@@ -38,7 +38,7 @@ import {
   parseOutlineRequest,
 } from "./ai-book";
 import { importPdfOnServer } from "./pdf-import";
-import { pdfReplaceStatus, startPdfReplace } from "./replace-book-pdf";
+import { pdfReplaceStatus, startPdfReplace, takePdfReplaceStatus } from "./replace-book-pdf";
 import { withTaglineText, withTitleText } from "../shared/page-layout";
 import { paletteById } from "../shared/palettes";
 import { withCoverMetrics } from "./homeShell";
@@ -484,7 +484,7 @@ export function registerRoutes(app: Express): void {
   });
 
   app.get("/api/admin/books/:id/replace-pdf-status", requireAdmin, async (req, res) => {
-    const job = pdfReplaceStatus(req.params.id);
+    const job = takePdfReplaceStatus(req.params.id);
     if (!job) {
       sendNoStoreJson(res, { status: "idle" });
       return;

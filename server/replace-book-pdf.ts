@@ -18,6 +18,13 @@ export function pdfReplaceStatus(bookId: string): PdfReplaceJob | null {
   return jobs.get(bookId) || null;
 }
 
+/** Return the job once; drop finished jobs so a later upload can poll cleanly. */
+export function takePdfReplaceStatus(bookId: string): PdfReplaceJob | null {
+  const job = jobs.get(bookId) || null;
+  if (job?.status === "done" || job?.status === "error") jobs.delete(bookId);
+  return job;
+}
+
 /** Run one replacement at a time per book, and keep going after the HTTP response. */
 export function enqueuePdfReplace(bookId: string, job: () => Promise<void>): void {
   const previous = tails.get(bookId) || Promise.resolve();

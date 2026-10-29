@@ -136,7 +136,11 @@ type PdfReplacePoll =
   | { status: "done"; book: PublicBook }
   | { status: "error"; error?: string };
 
-export async function replaceBookPdf(id: string, file: File): Promise<PublicBook> {
+export async function replaceBookPdf(
+  id: string,
+  file: File,
+  options?: { slug?: string; pdfUrlBefore?: string; updatedAtBefore?: string },
+): Promise<PublicBook> {
   const data = new FormData();
   data.append("file", file, file.name);
   const started = await fetch(`/api/admin/books/${encodeURIComponent(id)}/replace-pdf`, {
@@ -154,7 +158,17 @@ export async function replaceBookPdf(id: string, file: File): Promise<PublicBook
     }).then((res) => parse<PdfReplacePoll>(res));
     if (job.status === "done") return job.book;
     if (job.status === "error") throw new Error(job.error || "Could not replace the book");
-    if (job.status === "idle") throw new Error("The revised PDF did not finish saving. Please upload it again.");
+    if (job.status === "idle") {
+      const slug = String(options?.slug || "").trim();
+      if (slug) {
+        invalidateBookCache(slug);
+        const latest = await fetchBook(slug);
+        const pdfChanged = options?.pdfUrlBefore !== undefined && latest.pdfUrl !== options.pdfUrlBefore;
+        const updatedChanged = options?.updatedAtBefore !== undefined && latest.updatedAt !== options.updatedAtBefore;
+        if (pdfChanged || updatedChanged) return latest;
+      }
+      throw new Error("The revised PDF did not finish saving. Please upload it again.");
+    }
   }
   throw new Error("The new PDF is still being prepared. Wait a minute, then open the book.");
 }
