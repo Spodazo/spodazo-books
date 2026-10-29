@@ -5,16 +5,37 @@ export type BookletSheet = { front: SheetSide; back: SheetSide };
 /** Matches rendered booklet leaves (800×1000 px). */
 export const BOOKLET_PAGE_HEIGHT_PER_WIDTH = 1000 / 800;
 
+export const BOOKLET_BLEED_MM = 3;
+
 export function mmToPt(mm: number): number {
   return (mm * 72) / 25.4;
 }
 
-/** Landscape print sheet: two pages wide, one page tall (PDF points). */
-export function bookletSheetFromPageSizeMm(pageWidthMm: number, pageHeightMm: number): [number, number] {
+function assertPageSizeMm(pageWidthMm: number, pageHeightMm: number) {
   if (!Number.isFinite(pageWidthMm) || pageWidthMm <= 0 || !Number.isFinite(pageHeightMm) || pageHeightMm <= 0) {
     throw new Error("Booklet page size must be positive width and height in millimeters");
   }
+}
+
+/** Trim size: landscape sheet, two pages wide (PDF points). */
+export function bookletTrimSheetFromPageSizeMm(pageWidthMm: number, pageHeightMm: number): [number, number] {
+  assertPageSizeMm(pageWidthMm, pageHeightMm);
   return [mmToPt(pageWidthMm * 2), mmToPt(pageHeightMm)];
+}
+
+/** Print size including 3 mm bleed on the outer sheet edges (PDF points). */
+export function bookletPrintSheetFromPageSizeMm(
+  pageWidthMm: number,
+  pageHeightMm: number,
+  bleedMm = BOOKLET_BLEED_MM,
+): [number, number] {
+  assertPageSizeMm(pageWidthMm, pageHeightMm);
+  return [mmToPt(pageWidthMm * 2 + bleedMm * 2), mmToPt(pageHeightMm + bleedMm * 2)];
+}
+
+/** @deprecated Use bookletTrimSheetFromPageSizeMm or bookletPrintSheetFromPageSizeMm. */
+export function bookletSheetFromPageSizeMm(pageWidthMm: number, pageHeightMm: number): [number, number] {
+  return bookletTrimSheetFromPageSizeMm(pageWidthMm, pageHeightMm);
 }
 
 /** @deprecated Prefer bookletSheetFromPageSizeMm with the book’s print height. */
@@ -22,8 +43,25 @@ export function bookletSheetFromPageWidthMm(pageWidthMm: number): [number, numbe
   return bookletSheetFromPageSizeMm(pageWidthMm, pageWidthMm * BOOKLET_PAGE_HEIGHT_PER_WIDTH);
 }
 
-export function bookletSheetSizeMm(pageWidthMm: number, pageHeightMm: number): { sheetWidthMm: number; pageHeightMm: number } {
-  return { sheetWidthMm: pageWidthMm * 2, pageHeightMm };
+export function bookletSheetSizeMm(
+  pageWidthMm: number,
+  pageHeightMm: number,
+  bleedMm = BOOKLET_BLEED_MM,
+): {
+  trimSheetWidthMm: number;
+  trimSheetHeightMm: number;
+  printSheetWidthMm: number;
+  printSheetHeightMm: number;
+  bleedMm: number;
+} {
+  assertPageSizeMm(pageWidthMm, pageHeightMm);
+  return {
+    trimSheetWidthMm: pageWidthMm * 2,
+    trimSheetHeightMm: pageHeightMm,
+    printSheetWidthMm: pageWidthMm * 2 + bleedMm * 2,
+    printSheetHeightMm: pageHeightMm + bleedMm * 2,
+    bleedMm,
+  };
 }
 
 export function paddedPageCount(count: number): number {

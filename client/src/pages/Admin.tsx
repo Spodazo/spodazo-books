@@ -909,13 +909,14 @@ function BookEditor({
             trimmed && Number.isFinite(parsed) && parsed > 0
               ? scaleBookPrintPageDimensionsMm(book, parsed)
               : bookPageSizeMm;
-          const { sheetWidthMm, pageHeightMm } = bookletSheetSizeMm(printSize.widthMm, printSize.heightMm);
+          const sheet = bookletSheetSizeMm(printSize.widthMm, printSize.heightMm);
           return (
             <p className="hint">
-              Booklet pages will be {formatMm(printSize.widthMm)}×{formatMm(printSize.heightMm)} mm. Print double-sided on{" "}
-              {formatMm(sheetWidthMm)}×{formatMm(pageHeightMm)} mm landscape sheets at actual size, flip on the long edge,
-              fold each sheet in half, and nest them with the cover sheet on the outside. The designed back cover prints on
-              the outside left of that sheet, and is not shown in the online book.
+              Trimmed page size {formatMm(printSize.widthMm)}×{formatMm(printSize.heightMm)} mm with {sheet.bleedMm} mm bleed.
+              Print double-sided on {formatMm(sheet.printSheetWidthMm)}×{formatMm(sheet.printSheetHeightMm)} mm landscape
+              sheets at actual size (crop marks sit in the bleed). Flip on the long edge, fold each sheet in half, and nest
+              them with the cover sheet on the outside. The designed back cover prints on the outside left of that sheet,
+              and is not shown in the online book.
             </p>
           );
         })()}

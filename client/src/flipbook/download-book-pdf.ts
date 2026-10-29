@@ -15,7 +15,13 @@ import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
-import { bookletSheetFromPageSizeMm, bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
+import {
+  BOOKLET_BLEED_MM,
+  bookletSheets,
+  mmToPt,
+  paddedPageCount,
+  withOutsideBack,
+} from "../lib/booklet";
 
 type Rendered = { png: Uint8Array; width: number; height: number };
 type PaperPaint = { id: string; image: HTMLImageElement | null; edge: HTMLImageElement | null };
@@ -341,6 +347,45 @@ function fitRect(image: { width: number; height: number }, boxW: number, boxH: n
   return { width, height, x: (boxW - width) / 2, y: (boxH - height) / 2 };
 }
 
+function fitRectCover(image: { width: number; height: number }, boxW: number, boxH: number) {
+  const scale = Math.max(boxW / image.width, boxH / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+  return { width, height, x: (boxW - width) / 2, y: (boxH - height) / 2 };
+}
+
+const CROP_MARK = rgb(0, 0, 0);
+
+function drawBookletCropMarks(
+  page: ReturnType<PDFDocument["addPage"]>,
+  bleed: number,
+  trimSheetW: number,
+  trimH: number,
+  markLen: number,
+) {
+  const left = bleed;
+  const right = bleed + trimSheetW;
+  const bottom = bleed;
+  const top = bleed + trimH;
+  const gutter = bleed + trimSheetW / 2;
+  const stroke = 0.25;
+  const marks: Array<[{ x: number; y: number }, { x: number; y: number }]> = [
+    [{ x: 0, y: bottom }, { x: markLen, y: bottom }],
+    [{ x: left, y: 0 }, { x: left, y: markLen }],
+    [{ x: right, y: bottom }, { x: right + markLen, y: bottom }],
+    [{ x: right, y: 0 }, { x: right, y: markLen }],
+    [{ x: 0, y: top }, { x: markLen, y: top }],
+    [{ x: left, y: top }, { x: left, y: top + markLen }],
+    [{ x: right, y: top }, { x: right + markLen, y: top }],
+    [{ x: right, y: top }, { x: right, y: top + markLen }],
+    [{ x: gutter, y: 0 }, { x: gutter, y: markLen }],
+    [{ x: gutter, y: top }, { x: gutter, y: top + markLen }],
+  ];
+  for (const [start, end] of marks) {
+    page.drawLine({ start, end, thickness: stroke, color: CROP_MARK });
+  }
+}
+
 async function standardPdf(cover: Rendered, spreads: Rendered[], back: Rendered | null) {
   const pdf = await PDFDocument.create();
   const pages = back ? [cover, ...spreads, back] : [cover, ...spreads];
@@ -363,24 +408,51 @@ function paperRgb(color: string) {
   );
 }
 
-async function bookletPdf(leaves: Rendered[], sheet: [number, number], paper: string, paperPaint?: PaperPaint) {
+async function bookletPdf(
+  leaves: Rendered[],
+  pageWidthMm: number,
+  pageHeightMm: number,
+  paper: string,
+  paperPaint?: PaperPaint,
+  bleedMm = BOOKLET_BLEED_MM,
+) {
   const total = paddedPageCount(leaves.length);
   const blanks = Array.from({ length: total - leaves.length }, () => blankLeaf(paper, paperPaint));
   const pages = [...leaves, ...blanks];
   const pdf = await PDFDocument.create();
-  const [sheetW, sheetH] = sheet;
-  const halfW = sheetW / 2;
+  const bleed = mmToPt(bleedMm);
+  const trimHalfW = mmToPt(pageWidthMm);
+  const trimH = mmToPt(pageHeightMm);
+  const trimSheetW = trimHalfW * 2;
+  const sheetW = trimSheetW + bleed * 2;
+  const sheetH = trimH + bleed * 2;
+  const markLen = bleed;
+  const panels: Array<{ index: number; x: number; boxW: number }> = [];
+
   for (const side of bookletSheets(total).flatMap((item) => [item.front, item.back])) {
     const page = pdf.addPage([sheetW, sheetH]);
     page.drawRectangle({ x: 0, y: 0, width: sheetW, height: sheetH, color: paperRgb(paper) });
-    for (const [index, place] of [[side.left, 0], [side.right, halfW]] as const) {
-      const shot = pages[index];
+    panels.length = 0;
+    panels.push(
+      { index: side.left, x: 0, boxW: trimHalfW + bleed },
+      { index: side.right, x: bleed + trimHalfW, boxW: trimHalfW + bleed },
+    );
+    for (const panel of panels) {
+      const shot = pages[panel.index];
       const embedded = await pdf.embedPng(shot.png);
-      const box = fitRect(shot, halfW - 24, sheetH - 24);
-      page.drawImage(embedded, { x: place + 12 + box.x, y: 12 + box.y, width: box.width, height: box.height });
+      const box = fitRectCover(shot, panel.boxW, sheetH);
+      page.drawImage(embedded, {
+        x: panel.x + box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+      });
     }
+    drawBookletCropMarks(page, bleed, trimSheetW, trimH, markLen);
   }
-  pdf.setSubject("Print double-sided, flip on the long edge, actual size. Fold each sheet in half and nest them in order, with the cover sheet on the outside.");
+  pdf.setSubject(
+    "Print double-sided at actual size (PDF includes 3 mm bleed and crop marks). Flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside.",
+  );
   return pdf.save();
 }
 
@@ -420,7 +492,9 @@ export async function downloadBookletPdf(source: PublicBook, pageWidthMm: number
     leaves.push(left, right);
   }
   const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
-  const sheet = bookletSheetFromPageSizeMm(pageWidthMm, pageHeightMm);
   const label = Number.isInteger(pageWidthMm) ? `${pageWidthMm}` : pageWidthMm.toFixed(1).replace(/\.0$/, "");
-  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-booklet-${label}mm.pdf`);
+  downloadBlob(
+    await bookletPdf(ordered, pageWidthMm, pageHeightMm, paper, paperPaint),
+    `${name}-booklet-${label}mm.pdf`,
+  );
 }
