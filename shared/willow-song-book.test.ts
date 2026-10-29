@@ -16,6 +16,9 @@ import {
   willowSongPages,
   willowSongPayload,
   willowStoryPageCue,
+  WILLOW_BACK_COVER_ASSET,
+  WILLOW_FRONT_COVER_ASSET,
+  prepareWillowBookForPrint,
 } from "./willow-song-book";
 import type { Book } from "./types";
 
@@ -105,4 +108,21 @@ test("needsWillowSongUpdate is true until the chorus pages are in place", () => 
     },
   };
   assert.equal(needsWillowSongUpdate(customSubtitle), false);
+});
+
+test("prepareWillowBookForPrint matches the online reader’s cover, back, and nap spread", () => {
+  const prepared = prepareWillowBookForPrint({
+    slug: "Willows-Big-Forest-Adventure",
+    title: "Willow",
+    author: "Wernard Broodryk",
+    pageBackground: "#efdda6",
+    coverLayout: { elements: [{ id: "legacy-cover", type: "text", x: 0, y: 0, w: 10, h: 10, z: 1, text: "old" }] },
+    backCoverLayout: { elements: [{ id: "legacy-back", type: "text", x: 0, y: 0, w: 10, h: 10, z: 1, text: "old" }] },
+    endLayout: { elements: [] },
+    titleLayout: { elements: [] },
+  } as Book);
+  assert.equal(prepared.coverLayout.elements[0]?.imageAsset, WILLOW_FRONT_COVER_ASSET);
+  assert.equal(prepared.backCoverLayout.elements[0]?.imageAsset, WILLOW_BACK_COVER_ASSET);
+  assert.equal(prepared.endLayout.elements.find((el) => el.id === "nap-art")?.imageAsset, "willow-bear-nap.webp");
+  assert.match(prepared.endLayout.elements.find((el) => el.id === "nap-end-text")?.text || "", /The End/);
 });

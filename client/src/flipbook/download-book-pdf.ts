@@ -11,7 +11,8 @@ import {
   publishedLabel,
 } from "@shared/page-layout";
 import { normalizePaperTexture, paperTextureUrl } from "@shared/paper";
-import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
+import { characterUrlFor, isWillowBook, visibleStoryPages } from "@shared/reader-pages";
+import { prepareWillowBookForPrint } from "@shared/willow-song-book";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
@@ -458,9 +459,11 @@ async function bookletPdf(
 
 async function renderBookPages(source: PublicBook) {
   const setup = await fetchPlayerSetup();
-  const book = ensureBookLayouts(source, { coverUrl: source.coverUrl, characterUrl: characterUrlFor(source) });
+  let book = ensureBookLayouts(source, { coverUrl: source.coverUrl, characterUrl: characterUrlFor(source) });
+  book = prepareWillowBookForPrint(book);
   await ensureFonts(book);
   const legal = { credits: setup.credits || "", copyright: setup.copyright || "", logoUrl: setup.logoUrl || "" };
+  const willow = isWillowBook(book);
   const textureId = normalizePaperTexture(book.pageTexture);
   const paperPaint: PaperPaint = {
     id: textureId,
@@ -468,13 +471,31 @@ async function renderBookPages(source: PublicBook) {
     edge: textureId === "deckle" ? await loadHtmlImage("/paper/deckle-edge.png").catch(() => null) : null,
   };
   const cover = await renderLayout(book.coverLayout, book, "cover", false, undefined, paperPaint);
-  const back = hasLayout(book.backCoverLayout) ? await renderLayout(book.backCoverLayout, book, "cover", "back", legal, paperPaint) : null;
+  const back = hasLayout(book.backCoverLayout)
+    ? await renderLayout(
+        book.backCoverLayout,
+        book,
+        "cover",
+        willow ? false : "back",
+        willow ? undefined : legal,
+        paperPaint,
+      )
+    : null;
   const spreads: Rendered[] = [];
   spreads.push(await renderLayout(book.titleLayout, book, "spread", false, undefined, paperPaint));
   for (const page of visibleStoryPages(book)) {
     spreads.push(await renderLayout(page, book, "spread", false, undefined, paperPaint));
   }
-  spreads.push(await renderLayout(book.endLayout, book, "spread", "end", legal, paperPaint));
+  spreads.push(
+    await renderLayout(
+      book.endLayout,
+      book,
+      "spread",
+      willow ? false : "end",
+      willow ? undefined : legal,
+      paperPaint,
+    ),
+  );
   const paper = book.pageBackground || DEFAULT_PAGE_BACKGROUND;
   return { name: slugFile(book.title), cover, spreads, back, paper, paperPaint };
 }

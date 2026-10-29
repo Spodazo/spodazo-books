@@ -11,6 +11,10 @@ export const WILLOW_SONG_AUDIO_URL = `/media/audio/${WILLOW_SONG_AUDIO_ASSET}`;
 export const WILLOW_AUTHOR = "Wernard A. Broodryk";
 export const WILLOW_FRONT_COVER_ASSET = "willow-front-cover.webp";
 export const WILLOW_FRONT_COVER_URL = `/media/images/${WILLOW_FRONT_COVER_ASSET}`;
+export const WILLOW_BACK_COVER_ASSET = "willow-back-cover.webp";
+export const WILLOW_BACK_COVER_URL = `/media/images/${WILLOW_BACK_COVER_ASSET}`;
+export const WILLOW_NAP_ASSET = "willow-bear-nap.webp";
+export const WILLOW_NAP_URL = `/media/images/${WILLOW_NAP_ASSET}`;
 /** Seconds into the song when the title page should be showing. */
 export const WILLOW_SONG_TITLE_CUE = 0;
 /**
@@ -30,24 +34,83 @@ export const WILLOW_SONG_END_CUE = WILLOW_SONG_LAST_WORD_AT + WILLOW_SONG_END_DE
  */
 export const WILLOW_SONG_BACK_COVER_CUE = WILLOW_SONG_END_CUE + 1;
 
-export function willowFrontCoverLayout(): PageLayout {
+function willowFullPageImageLayout(id: string, asset: string, url: string): PageLayout {
   return {
     background: "",
     elements: [{
-      id: "cover-art",
+      id,
       type: "image",
       x: 0,
       y: 0,
       w: 100,
       h: 100,
       z: 1,
-      imageAsset: WILLOW_FRONT_COVER_ASSET,
-      imageUrl: WILLOW_FRONT_COVER_URL,
+      imageAsset: asset,
+      imageUrl: url,
       fit: "contain",
       focusX: 50,
       focusY: 50,
       opacity: 100,
     }],
+  };
+}
+
+export function willowFrontCoverLayout(): PageLayout {
+  return willowFullPageImageLayout("cover-art", WILLOW_FRONT_COVER_ASSET, WILLOW_FRONT_COVER_URL);
+}
+
+export function willowBackCoverLayout(): PageLayout {
+  return willowFullPageImageLayout("back-cover-art", WILLOW_BACK_COVER_ASSET, WILLOW_BACK_COVER_URL);
+}
+
+/** Matches the reader nap spread: “The End” on the left, nap art on the right. */
+export function willowNapEndLayout(pageBackground?: string): PageLayout {
+  return {
+    background: pageBackground || "",
+    elements: [
+      {
+        id: "nap-end-text",
+        type: "text",
+        x: 2,
+        y: 38,
+        w: 46,
+        h: 24,
+        z: 2,
+        text: "The End",
+        align: "center",
+        fontSize: 9,
+        role: "end",
+      },
+      {
+        id: "nap-art",
+        type: "image",
+        x: 50,
+        y: 0,
+        w: 50,
+        h: 100,
+        z: 1,
+        imageAsset: WILLOW_NAP_ASSET,
+        imageUrl: WILLOW_NAP_URL,
+        fit: "contain",
+        focusX: 50,
+        focusY: 50,
+        opacity: 100,
+      },
+    ],
+  };
+}
+
+/** Same art and spreads as the online Willow reader, for PDF export. */
+export function prepareWillowBookForPrint<T extends Book>(book: T): T {
+  if (!isWillowBook(book)) return book;
+  const { author, titleLayout } = withWillowTitleCredits(book);
+  return {
+    ...book,
+    author,
+    titleLayout: titleLayout || book.titleLayout,
+    coverLayout: willowFrontCoverLayout(),
+    backCoverLayout: willowBackCoverLayout(),
+    endLayout: willowNapEndLayout(book.pageBackground),
   };
 }
 
