@@ -84,7 +84,7 @@ async function start() {
     try {
       const store = await getStore();
       const [setup, list] = await Promise.all([store.getPlayerSetup(), store.listBooks()]);
-      const books = await withCoverMetrics(list.filter((book) => book.published && !book.hidden));
+      const books = await withCoverMetrics(list.filter((book) => book.published && !book.hidden && !book.archived));
       return htmlWithHomeBootstrap(
         htmlWithPalette(htmlWithSiteIcons(source, setup.favicon), setup.collectionColor),
         { setup, books },

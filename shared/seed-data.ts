@@ -1,7 +1,11 @@
 import { normalizeColor, normalizeLayout } from "./page-layout";
 import { normalizePageJumpLinks } from "./pdf-index-links";
 import { DEFAULT_PALETTE_ID, normalizePaletteId } from "./palettes";
-import type { BookAudience, BookPage, CharacterRender, Curator, CuratorRecord, PageTemplate, PlayerSetup } from "./types";
+import { normalizeAudience as normalizeAudienceSlug, type BookAudience } from "./audience";
+import type { BookPage, CharacterRender, Curator, CuratorRecord, PageTemplate, PlayerSetup } from "./types";
+
+export { audienceLabel, BOOK_AUDIENCE_PRESETS, isBookAudiencePreset, normalizeAudience } from "./audience";
+export type { BookAudience, BookAudiencePreset } from "./audience";
 
 export function slugify(value: string): string {
   return value
@@ -12,8 +16,8 @@ export function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function normalizeAudience(raw?: string | null): BookAudience {
-  return raw === "adults" ? "adults" : "children";
+function normalizeAudience(raw?: string | null): BookAudience {
+  return normalizeAudienceSlug(raw);
 }
 
 export function normalizePageTemplate(raw?: string | null): PageTemplate {

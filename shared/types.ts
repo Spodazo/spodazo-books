@@ -1,4 +1,5 @@
-export type BookAudience = "children" | "adults";
+import type { BookAudience } from "./audience";
+export type { BookAudience } from "./audience";
 export type PageTemplate = "one-up" | "two-up" | "three-up";
 export type CharacterRender = "scene" | "cutout";
 export type PageElementRole = "title" | "tagline" | "author" | "date" | "body" | "end" | "back";
@@ -76,6 +77,7 @@ export type Book = {
   sortOrder: number;
   hidden: boolean;
   published: boolean;
+  archived: boolean;
   audience: BookAudience;
   pageTemplate: PageTemplate;
   characterRender: CharacterRender;
@@ -116,6 +118,7 @@ export type BookListItem = {
   sortOrder: number;
   hidden: boolean;
   published: boolean;
+  archived: boolean;
   audience: BookAudience;
   pageCount: number;
   pageBackground: string;

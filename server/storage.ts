@@ -45,6 +45,7 @@ export type BookInput = {
   color?: string;
   sortOrder?: number;
   hidden?: boolean;
+  archived?: boolean;
   published?: boolean;
   audience?: string;
   pageTemplate?: string;
@@ -145,6 +146,7 @@ function toListItem(book: Book): BookListItem {
     color: publicBook.color,
     sortOrder: publicBook.sortOrder,
     hidden: publicBook.hidden,
+    archived: publicBook.archived,
     published: publicBook.published,
     audience: publicBook.audience,
     pageCount: publicBook.pageCount,
@@ -198,6 +200,7 @@ function recordBook(row: {
   color?: string | null;
   sortOrder?: number | null;
   hidden?: boolean | null;
+  archived?: boolean | null;
   published?: boolean | null;
   audience?: string | null;
   pageTemplate?: string | null;
@@ -231,6 +234,7 @@ function recordBook(row: {
     color: row.color || "honey",
     sortOrder: row.sortOrder || 0,
     hidden: Boolean(row.hidden),
+    archived: Boolean(row.archived),
     published: row.published !== false,
     audience: normalizeAudience(row.audience),
     pageTemplate: normalizePageTemplate(row.pageTemplate),
@@ -318,6 +322,7 @@ export class JsonBookStore implements BookStore {
       color: normalizePaletteId(input.color),
       sortOrder: input.sortOrder ?? catalog.books.length + 1,
       hidden: Boolean(input.hidden),
+      archived: Boolean(input.archived),
       published: input.published !== false,
       audience: normalizeAudience(input.audience),
       pageTemplate: normalizePageTemplate(input.pageTemplate),
@@ -361,6 +366,7 @@ export class JsonBookStore implements BookStore {
     if (input.color !== undefined) book.color = normalizePaletteId(input.color);
     if (input.sortOrder !== undefined) book.sortOrder = input.sortOrder;
     if (input.hidden !== undefined) book.hidden = input.hidden;
+    if (input.archived !== undefined) book.archived = input.archived;
     if (input.published !== undefined) book.published = input.published;
     if (input.audience !== undefined) book.audience = normalizeAudience(input.audience);
     if (input.pageTemplate !== undefined) book.pageTemplate = normalizePageTemplate(input.pageTemplate);
@@ -491,6 +497,7 @@ export class PostgresBookStore implements BookStore {
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS author TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS book_date TEXT NOT NULL DEFAULT ''`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'children'`);
+    await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS archived BOOLEAN NOT NULL DEFAULT false`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_template TEXT NOT NULL DEFAULT 'one-up'`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS character_render TEXT NOT NULL DEFAULT 'scene'`);
     await this.db.execute(sql`ALTER TABLE books ADD COLUMN IF NOT EXISTS page_background TEXT NOT NULL DEFAULT ''`);
@@ -542,6 +549,7 @@ export class PostgresBookStore implements BookStore {
         color: normalizePaletteId(input.color),
         sortOrder: input.sortOrder ?? (await this.db.select().from(books)).length + 1,
         hidden: Boolean(input.hidden),
+        archived: Boolean(input.archived),
         published: input.published !== false,
         audience: normalizeAudience(input.audience),
         pageTemplate: normalizePageTemplate(input.pageTemplate),
@@ -573,6 +581,7 @@ export class PostgresBookStore implements BookStore {
     if (input.color !== undefined) patch.color = normalizePaletteId(input.color);
     if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
     if (input.hidden !== undefined) patch.hidden = input.hidden;
+    if (input.archived !== undefined) patch.archived = input.archived;
     if (input.published !== undefined) patch.published = input.published;
     if (input.audience !== undefined) patch.audience = normalizeAudience(input.audience);
     if (input.pageTemplate !== undefined) patch.pageTemplate = normalizePageTemplate(input.pageTemplate);

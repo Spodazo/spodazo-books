@@ -279,7 +279,9 @@ export function registerRoutes(app: Express): void {
   app.get("/api/books", async (req, res) => {
     const store = await getStore();
     const list = await store.listBooks();
-    const visible = req.session?.admin ? list : list.filter((book) => !book.hidden && book.published);
+    const visible = req.session?.admin
+      ? list
+      : list.filter((book) => !book.archived && !book.hidden && book.published);
     sendNoStoreJson(res, await withCoverMetrics(visible));
     void warmHomeCardImages(list);
   });
@@ -287,7 +289,7 @@ export function registerRoutes(app: Express): void {
   app.get("/api/books/:slug", async (req, res) => {
     const store = await getStore();
     const book = await store.getBookBySlug(req.params.slug);
-    if (!book || ((!book.published || book.hidden) && !req.session?.admin)) {
+    if (!book || ((!book.published || book.hidden || book.archived) && !req.session?.admin)) {
       res.status(404).json({ error: "Book not found" });
       return;
     }
@@ -616,6 +618,7 @@ export function registerRoutes(app: Express): void {
         pages,
         color: body.color !== undefined ? String(body.color) : undefined,
         hidden: body.hidden !== undefined ? body.hidden === true || body.hidden === "true" : undefined,
+        archived: body.archived !== undefined ? body.archived === true || body.archived === "true" : undefined,
         published: body.published !== undefined ? body.published !== "false" && body.published !== false : undefined,
         audience: body.audience !== undefined ? String(body.audience) : undefined,
         pageTemplate: body.pageTemplate !== undefined ? String(body.pageTemplate) : undefined,

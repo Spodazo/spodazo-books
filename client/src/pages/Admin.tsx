@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { homeCoverSrc } from "@shared/home-cover";
 import { PALETTES, paletteById } from "@shared/palettes";
+import {
+  audienceLabel,
+  isBookAudiencePreset,
+  normalizeAudience,
+} from "@shared/audience";
 import { DEFAULT_CURATOR, DEFAULT_PLAYER_SETUP, publicCurator } from "@shared/seed-data";
 import type { BookListItem, BookPage, Curator, PlayerSetup, PublicBook } from "@shared/types";
 import {
@@ -10,7 +15,6 @@ import {
   createBook,
   importPdfOnServer,
   replaceBookPdf,
-  deleteBook,
   fetchBook,
   fetchBooks,
   invalidateBookCache,
@@ -74,6 +78,7 @@ export default function AdminPage() {
   const [curatorRecover, setCuratorRecover] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [archivedView, setArchivedView] = useState(false);
   const [reorderBusy, setReorderBusy] = useState(false);
   const booksRef = useRef(books);
   booksRef.current = books;
@@ -110,10 +115,15 @@ export default function AdminPage() {
     }
   }
 
+  function libraryShelfBooks(list = booksRef.current): BookListItem[] {
+    return list.filter((book) => !book.archived);
+  }
+
   async function moveBook(index: number, delta: -1 | 1) {
-    const current = booksRef.current;
+    if (archivedView || reorderBusy) return;
+    const current = libraryShelfBooks();
     const target = index + delta;
-    if (target < 0 || target >= current.length || reorderBusy) return;
+    if (target < 0 || target >= current.length) return;
     const next = current.slice();
     [next[index], next[target]] = [next[target], next[index]];
     await saveOrder(next, current);
@@ -121,7 +131,8 @@ export default function AdminPage() {
 
   function onCoverPointerDown(event: ReactPointerEvent<HTMLDivElement>, book: BookListItem) {
     skipClick.current = false;
-    if (booksRef.current.length < 2 || reorderBusy || event.button !== 0) return;
+    const shelf = libraryShelfBooks();
+    if (archivedView || shelf.length < 2 || reorderBusy || event.button !== 0) return;
     const nodes = rowRef.current?.querySelectorAll<HTMLElement>("[data-book-id]") ?? [];
     dragRef.current = {
       id: book.id,
@@ -130,7 +141,7 @@ export default function AdminPage() {
       startY: event.clientY,
       active: false,
       overId: book.id,
-      origin: booksRef.current.slice(),
+      origin: shelf.slice(),
       rects: Array.from(nodes).map((node) => {
         const rect = node.getBoundingClientRect();
         return { id: node.dataset.bookId || "", left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
@@ -205,6 +216,10 @@ export default function AdminPage() {
       .catch((err: Error) => setError(err.message))
       .finally(() => setReady(true));
   }, []);
+
+  const activeBooks = books.filter((book) => !book.archived);
+  const archivedBooks = books.filter((book) => book.archived);
+  const shelfBooks = archivedView ? archivedBooks : activeBooks;
 
   if (!ready) return <main className="admin"><p>Loading…</p></main>;
 
@@ -321,16 +336,32 @@ export default function AdminPage() {
 
       <section className="card">
         <div className="admin-top">
-          <h2>Books</h2>
+          <h2>{archivedView ? "Archived Books" : "Books"}</h2>
           <div className="admin-top-actions">
-            <button type="button" onClick={() => setImportOpen(true)}>Add book from PDF</button>
+            {archivedView ? (
+              <button type="button" className="ghost" onClick={() => { setArchivedView(false); setSelected(null); }}>
+                Active library
+              </button>
+            ) : archivedBooks.length ? (
+              <button type="button" className="ghost" onClick={() => { setArchivedView(true); setSelected(null); }}>
+                Archived Books
+              </button>
+            ) : null}
+            {!archivedView ? (
+              <button type="button" onClick={() => setImportOpen(true)}>Add book from PDF</button>
+            ) : null}
           </div>
         </div>
-        {books.length > 1 ? (
+        {archivedView ? (
+          <p className="hint">Archived books stay in Admin but leave the public library. Open one to restore it.</p>
+        ) : shelfBooks.length > 1 ? (
           <p className="hint">Drag a book to set library order (left to right on the home page).</p>
         ) : null}
+        {!shelfBooks.length ? (
+          <p className="hint">{archivedView ? "No archived books yet." : "No books in the library yet."}</p>
+        ) : null}
         <div className="album-cover-row" ref={rowRef}>
-          {books.map((book, index) => {
+          {shelfBooks.map((book, index) => {
             const dragging = dragUi?.id === book.id;
             const dropTarget = Boolean(dragUi && dragUi.overId === book.id && dragUi.id !== book.id);
             const cover = homeCoverSrc(book);
@@ -369,10 +400,11 @@ export default function AdminPage() {
               >
                 <div className={`album-cover-tile${selected?.id === book.id ? " selected" : ""}`}>
                   {cover ? <img src={cover} alt="" draggable={false} /> : <span className="album-cover-empty" />}
-                  {book.hidden ? <span className="hidden-badge">Hidden</span> : null}
+                  {book.archived ? <span className="hidden-badge">Archived</span> : null}
+                  {!book.archived && book.hidden ? <span className="hidden-badge">Hidden</span> : null}
                 </div>
                 <p className="album-cover-title">{book.title}</p>
-                <p className="hint">{book.audience === "adults" ? "Adults" : "Children"}</p>
+                <p className="hint">{audienceLabel(book.audience)}</p>
               </div>
             );
           })}
@@ -390,9 +422,15 @@ export default function AdminPage() {
             setBooks(list);
             writeCachedBooks(list);
           }}
-          onDeleted={async () => {
+          archivedView={archivedView}
+          onShowArchived={() => { setArchivedView(true); setSelected(null); }}
+          onLibraryChange={async () => {
             setSelected(null);
-            setBooks(await fetchBooks());
+            invalidateBookCache();
+            clearHomeClientCache();
+            const list = await fetchBooks();
+            setBooks(list);
+            writeCachedBooks(list);
           }}
         />
       ) : null}
@@ -414,6 +452,73 @@ export default function AdminPage() {
   );
 }
 
+function audienceEditorState(raw: string) {
+  const normalized = normalizeAudience(raw);
+  const useCustom = !isBookAudiencePreset(normalized);
+  return {
+    preset: useCustom ? "__custom__" as const : normalized,
+    customLabel: useCustom ? audienceLabel(normalized) : "",
+    useCustom,
+  };
+}
+
+function audienceEditorValue(preset: string, customLabel: string, useCustom: boolean): string {
+  return normalizeAudience(useCustom ? customLabel : preset);
+}
+
+function AudienceFields({
+  preset,
+  customLabel,
+  useCustom,
+  disabled,
+  onPresetChange,
+  onCustomLabelChange,
+  onUseCustomChange,
+}: {
+  preset: string;
+  customLabel: string;
+  useCustom: boolean;
+  disabled?: boolean;
+  onPresetChange: (value: string) => void;
+  onCustomLabelChange: (value: string) => void;
+  onUseCustomChange: (value: boolean) => void;
+}) {
+  return (
+    <>
+      <label>Audience</label>
+      <select
+        value={useCustom ? "__custom__" : preset}
+        disabled={disabled}
+        onChange={(event) => {
+          const value = event.target.value;
+          if (value === "__custom__") {
+            onUseCustomChange(true);
+            return;
+          }
+          onUseCustomChange(false);
+          onPresetChange(value);
+        }}
+      >
+        <option value="children">Children</option>
+        <option value="adults">Adults</option>
+        <option value="__custom__">Custom…</option>
+      </select>
+      {useCustom ? (
+        <>
+          <label>Custom audience</label>
+          <input
+            value={customLabel}
+            disabled={disabled}
+            placeholder="e.g. Family reading"
+            onChange={(event) => onCustomLabelChange(event.target.value)}
+          />
+        </>
+      ) : null}
+      <p className="hint">Choose Children, Adults, or enter a custom section name. Click Save to apply.</p>
+    </>
+  );
+}
+
 function ImportBookForm({
   onSaved,
   onCancel,
@@ -425,7 +530,9 @@ function ImportBookForm({
   const [error, setError] = useState("");
   const [imported, setImported] = useState<Imported | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
-  const [audience, setAudience] = useState<PublicBook["audience"]>("children");
+  const [audiencePreset, setAudiencePreset] = useState("children");
+  const [audienceCustom, setAudienceCustom] = useState("");
+  const [audienceCustomOpen, setAudienceCustomOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
 
@@ -488,11 +595,15 @@ function ImportBookForm({
           <input value={imported.book.author || ""} onChange={(event) => { imported.book.author = event.target.value; setImported({ ...imported }); }} />
           <label>Date</label>
           <input value={imported.book.date || ""} onChange={(event) => { imported.book.date = event.target.value; setImported({ ...imported }); }} />
-          <label>Audience</label>
-          <select value={audience} disabled={busy} onChange={(event) => setAudience(event.target.value as PublicBook["audience"])}>
-            <option value="children">Children</option>
-            <option value="adults">Adults</option>
-          </select>
+          <AudienceFields
+            preset={audiencePreset}
+            customLabel={audienceCustom}
+            useCustom={audienceCustomOpen}
+            disabled={busy}
+            onPresetChange={setAudiencePreset}
+            onCustomLabelChange={setAudienceCustom}
+            onUseCustomChange={setAudienceCustomOpen}
+          />
           <label>Page</label>
           <select value={pageIndex} onChange={(event) => setPageIndex(Number(event.target.value))}>
             {imported.book.pages.map((item, index) => (
@@ -572,7 +683,7 @@ function ImportBookForm({
                   ],
                 },
                 pages: imported.book.pages,
-                audience,
+                audience: audienceEditorValue(audiencePreset, audienceCustom, audienceCustomOpen),
                 published: true,
                 hidden: false,
               });
@@ -597,11 +708,15 @@ function ImportBookForm({
 function BookEditor({
   book,
   onSaved,
-  onDeleted,
+  archivedView,
+  onShowArchived,
+  onLibraryChange,
 }: {
   book: PublicBook;
   onSaved: (book: PublicBook) => Promise<void>;
-  onDeleted: () => Promise<void>;
+  archivedView: boolean;
+  onShowArchived: () => void;
+  onLibraryChange: () => Promise<void>;
 }) {
   const [title, setTitle] = useState(book.title);
   const [tagline, setTagline] = useState(book.tagline);
@@ -609,7 +724,10 @@ function BookEditor({
   const [date, setDate] = useState(book.date || "");
   const [coverUrl, setCoverUrl] = useState(book.coverUrl);
   const [hidden, setHidden] = useState(book.hidden);
-  const [audience, setAudience] = useState(book.audience || "children");
+  const initialAudience = audienceEditorState(book.audience || "children");
+  const [audiencePreset, setAudiencePreset] = useState(initialAudience.preset);
+  const [audienceCustom, setAudienceCustom] = useState(initialAudience.customLabel);
+  const [audienceCustomOpen, setAudienceCustomOpen] = useState(initialAudience.useCustom);
   const [error, setError] = useState("");
   const [pdfBusy, setPdfBusy] = useState<BookPdfKind | "">("");
   const [revisedBusy, setRevisedBusy] = useState(false);
@@ -623,8 +741,13 @@ function BookEditor({
     setDate(book.date || "");
     setCoverUrl(book.coverUrl);
     setHidden(book.hidden);
-    setAudience(book.audience || "children");
+    const nextAudience = audienceEditorState(book.audience || "children");
+    setAudiencePreset(nextAudience.preset);
+    setAudienceCustom(nextAudience.customLabel);
+    setAudienceCustomOpen(nextAudience.useCustom);
   }, [book.id]);
+
+  const audience = audienceEditorValue(audiencePreset, audienceCustom, audienceCustomOpen);
 
   return (
     <section className="card">
@@ -654,12 +777,14 @@ function BookEditor({
       <input value={author} onChange={(event) => setAuthor(event.target.value)} placeholder="Author name" />
       <label>Date</label>
       <input value={date} onChange={(event) => setDate(event.target.value)} placeholder="2026" />
-      <label>Audience</label>
-      <select value={audience} onChange={(event) => setAudience(event.target.value as PublicBook["audience"])}>
-        <option value="children">Children</option>
-        <option value="adults">Adults</option>
-      </select>
-      <p className="hint">Children and Adults appear in separate sections on the home page. Click Save to apply.</p>
+      <AudienceFields
+        preset={audiencePreset}
+        customLabel={audienceCustom}
+        useCustom={audienceCustomOpen}
+        onPresetChange={setAudiencePreset}
+        onCustomLabelChange={setAudienceCustom}
+        onUseCustomChange={setAudienceCustomOpen}
+      />
       <label>
         <input type="checkbox" checked={hidden} onChange={(event) => setHidden(event.target.checked)} />
         Hide from the public library
@@ -738,17 +863,46 @@ function BookEditor({
           </button>
         ))}
         <p className="hint">Folded PDFs are for double-sided printing. Print at actual size, flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside. The designed back cover prints on the outside left of that sheet, and is not shown in the online book.</p>
-        <button
-          type="button"
-          className="danger"
-          onClick={async () => {
-            if (!confirm(`Delete ${book.title}?`)) return;
-            await deleteBook(book.id);
-            await onDeleted();
-          }}
-        >
-          Delete
-        </button>
+        {book.archived ? (
+          <button
+            type="button"
+            onClick={async () => {
+              if (!confirm(`Restore “${book.title.replace(/\n/g, " ")}” to the active library?`)) return;
+              setError("");
+              try {
+                await onSaved(await updateBook(book.id, { archived: false }));
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Could not restore the book");
+              }
+            }}
+          >
+            Restore to library
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="danger"
+              onClick={async () => {
+                if (!confirm(`Archive “${book.title.replace(/\n/g, " ")}”? It will leave the public library but stay here in Admin.`)) return;
+                setError("");
+                try {
+                  await updateBook(book.id, { archived: true });
+                  await onLibraryChange();
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Could not archive the book");
+                }
+              }}
+            >
+              Archive
+            </button>
+            {!archivedView ? (
+              <button type="button" className="ghost" onClick={onShowArchived}>
+                Archived Books
+              </button>
+            ) : null}
+          </>
+        )}
       </div>
       {error ? <p className="error">{error}</p> : null}
     </section>

@@ -13,6 +13,7 @@ export const books = pgTable("books", {
   color: text("color").notNull().default("honey"),
   sortOrder: integer("sort_order").notNull().default(0),
   hidden: boolean("hidden").notNull().default(false),
+  archived: boolean("archived").notNull().default(false),
   published: boolean("published").notNull().default(true),
   audience: text("audience").notNull().default("children"),
   pageTemplate: text("page_template").notNull().default("one-up"),
