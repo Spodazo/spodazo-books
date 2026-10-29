@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { homeCoverSrc } from "@shared/home-cover";
 import { PALETTES, paletteById } from "@shared/palettes";
 import { DEFAULT_CURATOR, DEFAULT_PLAYER_SETUP, publicCurator } from "@shared/seed-data";
 import type { BookListItem, BookPage, Curator, PlayerSetup, PublicBook } from "@shared/types";
@@ -33,6 +34,23 @@ import { downloadBookPdf, type BookPdfKind } from "../flipbook/download-book-pdf
 import { mountFacsimileFlipbook } from "../flipbook/facsimile-flipbook.js";
 import { mountReader } from "../flipbook/reader.js";
 
+type CoverRect = { id: string; left: number; top: number; right: number; bottom: number };
+
+function nearestCoverId(x: number, y: number, rects: CoverRect[]): string {
+  let bestId = "";
+  let best = Number.POSITIVE_INFINITY;
+  for (const rect of rects) {
+    const dx = x - (rect.left + rect.right) / 2;
+    const dy = y - (rect.top + rect.bottom) / 2;
+    const dist = dx * dx + dy * dy;
+    if (dist < best) {
+      best = dist;
+      bestId = rect.id;
+    }
+  }
+  return bestId;
+}
+
 type Imported = {
   book: {
     schemaVersion: 1;
@@ -63,23 +81,109 @@ export default function AdminPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [reorderBusy, setReorderBusy] = useState(false);
+  const booksRef = useRef(books);
+  booksRef.current = books;
+  const rowRef = useRef<HTMLDivElement>(null);
+  const skipClick = useRef(false);
+  const dragRef = useRef<{
+    id: string;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    active: boolean;
+    overId: string;
+    origin: BookListItem[];
+    rects: CoverRect[];
+  } | null>(null);
+  const [dragUi, setDragUi] = useState<{ id: string; dx: number; dy: number; overId: string } | null>(null);
 
-  async function moveBook(index: number, delta: -1 | 1) {
-    const target = index + delta;
-    if (target < 0 || target >= books.length || reorderBusy) return;
+  async function saveOrder(next: BookListItem[], previous: BookListItem[]) {
     setReorderBusy(true);
     setError("");
+    booksRef.current = next;
+    setBooks(next);
     try {
-      const next = books.slice();
-      [next[index], next[target]] = [next[target], next[index]];
       const saved = await reorderBooks(next.map((book) => book.id));
+      booksRef.current = saved;
       setBooks(saved);
       writeCachedBooks(saved);
     } catch (err) {
+      booksRef.current = previous;
+      setBooks(previous);
       setError(err instanceof Error ? err.message : "Could not reorder books");
     } finally {
       setReorderBusy(false);
     }
+  }
+
+  async function moveBook(index: number, delta: -1 | 1) {
+    const current = booksRef.current;
+    const target = index + delta;
+    if (target < 0 || target >= current.length || reorderBusy) return;
+    const next = current.slice();
+    [next[index], next[target]] = [next[target], next[index]];
+    await saveOrder(next, current);
+  }
+
+  function onCoverPointerDown(event: ReactPointerEvent<HTMLDivElement>, book: BookListItem) {
+    skipClick.current = false;
+    if (booksRef.current.length < 2 || reorderBusy || event.button !== 0) return;
+    const nodes = rowRef.current?.querySelectorAll<HTMLElement>("[data-book-id]") ?? [];
+    dragRef.current = {
+      id: book.id,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      active: false,
+      overId: book.id,
+      origin: booksRef.current.slice(),
+      rects: Array.from(nodes).map((node) => {
+        const rect = node.getBoundingClientRect();
+        return { id: node.dataset.bookId || "", left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      }),
+    };
+  }
+
+  function onCoverPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (!drag.active) {
+      if (Math.hypot(dx, dy) < 8) return;
+      drag.active = true;
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        /* The drag still follows the pointer when capture is unavailable. */
+      }
+    }
+    drag.overId = nearestCoverId(event.clientX, event.clientY, drag.rects) || drag.id;
+    setDragUi({ id: drag.id, dx, dy, overId: drag.overId });
+  }
+
+  function onCoverPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDragUi(null);
+    if (!drag.active) return;
+    skipClick.current = true;
+    if (drag.overId === drag.id) return;
+    const previous = drag.origin;
+    const next = previous.slice();
+    const from = next.findIndex((item) => item.id === drag.id);
+    const to = next.findIndex((item) => item.id === drag.overId);
+    if (from < 0 || to < 0 || from === to) return;
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    void saveOrder(next, previous);
+  }
+
+  function onCoverPointerCancel(event: ReactPointerEvent<HTMLDivElement>) {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDragUi(null);
   }
 
   async function refresh() {
@@ -230,45 +334,55 @@ export default function AdminPage() {
           </div>
         </div>
         {books.length > 1 ? (
-          <p className="hint">Use the arrows to set library order (left to right on the home page).</p>
+          <p className="hint">Drag a book to set library order (left to right on the home page).</p>
         ) : null}
-        <div className="album-cover-row">
-          {books.map((book, index) => (
-            <div key={book.id} className="album-cover-item">
-              <button
-                type="button"
-                className={`album-cover-tile${selected?.id === book.id ? " selected" : ""}`}
-                onClick={() => void fetchBook(book.slug).then(setSelected)}
+        <div className="album-cover-row" ref={rowRef}>
+          {books.map((book, index) => {
+            const dragging = dragUi?.id === book.id;
+            const dropTarget = Boolean(dragUi && dragUi.overId === book.id && dragUi.id !== book.id);
+            const cover = homeCoverSrc(book);
+            return (
+              <div
+                key={book.id}
+                data-book-id={book.id}
+                role="button"
+                tabIndex={0}
+                aria-label={book.title}
+                className={`album-cover-item${dragging ? " is-dragging" : ""}${dropTarget ? " is-drop-target" : ""}`}
+                style={dragging ? { transform: `translate(${dragUi.dx}px, ${dragUi.dy}px)` } : undefined}
+                onPointerDown={(event) => onCoverPointerDown(event, book)}
+                onPointerMove={onCoverPointerMove}
+                onPointerUp={onCoverPointerUp}
+                onPointerCancel={onCoverPointerCancel}
+                onClick={() => {
+                  if (skipClick.current) {
+                    skipClick.current = false;
+                    return;
+                  }
+                  void fetchBook(book.slug).then(setSelected);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    void fetchBook(book.slug).then(setSelected);
+                  } else if (event.key === "ArrowLeft") {
+                    event.preventDefault();
+                    void moveBook(index, -1);
+                  } else if (event.key === "ArrowRight") {
+                    event.preventDefault();
+                    void moveBook(index, 1);
+                  }
+                }}
               >
-                {book.coverUrl ? <img src={book.coverUrl} alt="" /> : <span className="album-cover-empty" />}
-                {book.hidden ? <span className="hidden-badge">Hidden</span> : null}
-              </button>
-              {books.length > 1 ? (
-                <div className="album-cover-order">
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={index === 0 || reorderBusy}
-                    aria-label={`Move ${book.title} earlier`}
-                    onClick={() => void moveBook(index, -1)}
-                  >
-                    ←
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={index === books.length - 1 || reorderBusy}
-                    aria-label={`Move ${book.title} later`}
-                    onClick={() => void moveBook(index, 1)}
-                  >
-                    →
-                  </button>
+                <div className={`album-cover-tile${selected?.id === book.id ? " selected" : ""}`}>
+                  {cover ? <img src={cover} alt="" draggable={false} /> : <span className="album-cover-empty" />}
+                  {book.hidden ? <span className="hidden-badge">Hidden</span> : null}
                 </div>
-              ) : null}
-              <p>{book.title}</p>
-              <p className="hint">{book.audience === "adults" ? "Adults" : "Children"}</p>
-            </div>
-          ))}
+                <p className="album-cover-title">{book.title}</p>
+                <p className="hint">{book.audience === "adults" ? "Adults" : "Children"}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 

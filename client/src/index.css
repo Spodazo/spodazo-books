@@ -447,18 +447,57 @@ html.book-opening-bundled body {
 .curator-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px; }
 .curator-fields dt { color: var(--muted); font-size: 12px; }
 .curator-fields dd { margin: 0; }
-.album-cover-row { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
-.album-cover-order {
+.album-cover-row {
   display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 6px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px 20px;
+  margin-top: 16px;
 }
-.album-cover-order .ghost {
-  min-width: 36px;
-  padding: 4px 10px;
-  font-size: 16px;
-  line-height: 1;
+.album-cover-item {
+  width: 140px;
+  flex: 0 0 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.album-cover-item:focus-visible {
+  outline: none;
+}
+.album-cover-item:focus-visible .album-cover-tile {
+  outline: 3px solid var(--amber);
+  outline-offset: 3px;
+}
+.album-cover-item.is-dragging {
+  position: relative;
+  z-index: 4;
+  cursor: grabbing;
+}
+.album-cover-item.is-dragging .album-cover-tile {
+  box-shadow: 0 14px 30px var(--shadow);
+}
+.album-cover-item.is-drop-target .album-cover-tile {
+  outline: 3px solid var(--amber);
+  outline-offset: 3px;
+}
+.album-cover-title {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 600;
+  overflow-wrap: break-word;
+}
+.album-cover-item .hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.2;
 }
 .album-cover-tile {
   width: 140px;
@@ -468,7 +507,12 @@ html.book-opening-bundled body {
   border-radius: 12px;
   background: var(--portrait);
 }
-.album-cover-tile img { width: 100%; height: 100%; object-fit: cover; }
+.album-cover-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
 .album-cover-tile.selected { outline: 3px solid var(--amber); }
 .book-cover-preview {
   display: block;
