@@ -31,11 +31,8 @@ import {
 import { writeCachedBooks, writeCachedSetup, clearHomeClientCache } from "../lib/homeCache";
 import { applyPalette } from "../lib/palette";
 import { applySiteIcons } from "../lib/siteIcons";
-import {
-  downloadBookletPdf,
-  downloadStandardBookPdf,
-  type BookletPageWidth,
-} from "../flipbook/download-book-pdf";
+import { downloadBookletPdf, downloadStandardBookPdf } from "../flipbook/download-book-pdf";
+import { bookletSheetSizeMm } from "../lib/booklet";
 
 type CoverRect = { id: string; left: number; top: number; right: number; bottom: number };
 
@@ -734,7 +731,7 @@ function BookEditor({
   const [audienceCustomOpen, setAudienceCustomOpen] = useState(initialAudience.useCustom);
   const [error, setError] = useState("");
   const [pdfBusy, setPdfBusy] = useState<"standard" | "booklet" | "">("");
-  const [bookletWidth, setBookletWidth] = useState<BookletPageWidth>("a5");
+  const [bookletWidthMm, setBookletWidthMm] = useState("148");
   const [revisedBusy, setRevisedBusy] = useState(false);
   const [revisedNote, setRevisedNote] = useState("");
   const revisedPdfRef = useRef<HTMLInputElement>(null);
@@ -864,32 +861,49 @@ function BookEditor({
         >
           {pdfBusy === "standard" ? "Preparing PDF…" : "Standard PDF"}
         </button>
-        <label>Booklet page width</label>
-        <select
-          value={bookletWidth}
+        <label>Booklet page width (mm)</label>
+        <input
+          type="number"
+          min={50}
+          max={400}
+          step={0.1}
+          value={bookletWidthMm}
           disabled={Boolean(pdfBusy)}
-          onChange={(event) => setBookletWidth(event.target.value as BookletPageWidth)}
-        >
-          <option value="a5">A5 (print on A4 paper)</option>
-          <option value="a4">A4 (print on A3 paper)</option>
-        </select>
+          onChange={(event) => setBookletWidthMm(event.target.value)}
+        />
         <button
           type="button"
           className="ghost"
           disabled={Boolean(pdfBusy)}
           onClick={() => {
+            const pageWidthMm = Number.parseFloat(bookletWidthMm);
+            if (!Number.isFinite(pageWidthMm) || pageWidthMm < 50 || pageWidthMm > 400) {
+              setError("Enter a booklet page width between 50 and 400 mm.");
+              return;
+            }
             setPdfBusy("booklet");
             setError("");
-            void downloadBookletPdf(book, bookletWidth)
+            void downloadBookletPdf(book, pageWidthMm)
               .catch((err: Error) => setError(err.message || "Could not make the PDF"))
               .finally(() => setPdfBusy(""));
           }}
         >
           {pdfBusy === "booklet" ? "Preparing PDF…" : "Download booklet"}
         </button>
-        <p className="hint">
-          Booklet PDFs are sized for double-sided printing at actual size on the sheet size shown in the menu. Flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside. The designed back cover prints on the outside left of that sheet, and is not shown in the online book.
-        </p>
+        {(() => {
+          const pageWidthMm = Number.parseFloat(bookletWidthMm);
+          if (!Number.isFinite(pageWidthMm) || pageWidthMm <= 0) return null;
+          const { sheetWidthMm, pageHeightMm } = bookletSheetSizeMm(pageWidthMm);
+          const fmt = (n: number) => (Math.round(n * 10) / 10).toString();
+          return (
+            <p className="hint">
+              Each finished page will be {fmt(pageWidthMm)}×{fmt(pageHeightMm)} mm. Print double-sided on{" "}
+              {fmt(sheetWidthMm)}×{fmt(pageHeightMm)} mm landscape sheets at actual size, flip on the long edge, fold each
+              sheet in half, and nest them with the cover sheet on the outside. The designed back cover prints on the
+              outside left of that sheet, and is not shown in the online book.
+            </p>
+          );
+        })()}
         {book.archived ? (
           <button
             type="button"

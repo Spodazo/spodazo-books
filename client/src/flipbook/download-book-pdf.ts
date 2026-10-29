@@ -15,18 +15,7 @@ import { characterUrlFor, visibleStoryPages } from "@shared/reader-pages";
 import { frameClass, frameMarkup } from "@shared/text-frames";
 import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
-import { bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
-
-/** Finished page width after folding; the PDF sheet is one size larger (landscape, two-up). */
-export type BookletPageWidth = "a5" | "a4";
-
-const A4_LANDSCAPE: [number, number] = [841.89, 595.28];
-const A3_LANDSCAPE: [number, number] = [1190.55, 841.89];
-
-const BOOKLET_SHEET: Record<BookletPageWidth, [number, number]> = {
-  a5: A4_LANDSCAPE,
-  a4: A3_LANDSCAPE,
-};
+import { bookletSheetFromPageWidthMm, bookletSheets, paddedPageCount, withOutsideBack } from "../lib/booklet";
 
 type Rendered = { png: Uint8Array; width: number; height: number };
 type PaperPaint = { id: string; image: HTMLImageElement | null; edge: HTMLImageElement | null };
@@ -423,7 +412,7 @@ export async function downloadStandardBookPdf(source: PublicBook) {
   downloadBlob(await standardPdf(cover, spreads, back), `${name}-standard.pdf`);
 }
 
-export async function downloadBookletPdf(source: PublicBook, pageWidth: BookletPageWidth) {
+export async function downloadBookletPdf(source: PublicBook, pageWidthMm: number) {
   const { name, cover, spreads, back, paper, paperPaint } = await renderBookPages(source);
   const leaves = [cover];
   for (const spread of spreads) {
@@ -431,6 +420,7 @@ export async function downloadBookletPdf(source: PublicBook, pageWidth: BookletP
     leaves.push(left, right);
   }
   const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
-  const sheet = BOOKLET_SHEET[pageWidth];
-  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-booklet-${pageWidth}.pdf`);
+  const sheet = bookletSheetFromPageWidthMm(pageWidthMm);
+  const label = Number.isInteger(pageWidthMm) ? `${pageWidthMm}` : pageWidthMm.toFixed(1).replace(/\.0$/, "");
+  downloadBlob(await bookletPdf(ordered, sheet, paper, paperPaint), `${name}-booklet-${label}mm.pdf`);
 }
