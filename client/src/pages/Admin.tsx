@@ -869,18 +869,28 @@ function BookEditor({
           {pdfBusy === "standard" ? "Preparing PDF…" : "Standard PDF"}
         </button>
         <p className="hint">
-          Book page size: {formatMm(bookPageSizeMm.widthMm)} × {formatMm(bookPageSizeMm.heightMm)} mm
+          This book’s layout is sized for{" "}
+          <strong>
+            {formatMm(bookPageSizeMm.widthMm)} × {formatMm(bookPageSizeMm.heightMm)} mm per page
+          </strong>{" "}
+          (one page after folding—not the whole sheet).
         </p>
-        <label>Booklet page width (mm, optional)</label>
+        <label>Finished page width (mm)</label>
         <input
           type="number"
           min={50}
           max={400}
           step={0.1}
+          placeholder={`Default ${formatMm(bookPageSizeMm.widthMm)}`}
           value={bookletWidthMm}
           disabled={Boolean(pdfBusy)}
           onChange={(event) => setBookletWidthMm(event.target.value)}
         />
+        <p className="hint">
+          Choose how wide each physical page should be after folding. Leave empty to use{" "}
+          {formatMm(bookPageSizeMm.widthMm)} mm, or enter another width (e.g. 148 for a smaller booklet). Height scales
+          with the book’s proportions.
+        </p>
         <button
           type="button"
           className="ghost"
@@ -912,11 +922,13 @@ function BookEditor({
           const sheet = bookletSheetSizeMm(printSize.widthMm, printSize.heightMm);
           return (
             <p className="hint">
-              Trimmed page size {formatMm(printSize.widthMm)}×{formatMm(printSize.heightMm)} mm with {sheet.bleedMm} mm bleed.
-              Print double-sided on {formatMm(sheet.printSheetWidthMm)}×{formatMm(sheet.printSheetHeightMm)} mm landscape
-              sheets at actual size (crop marks sit in the bleed). Flip on the long edge, fold each sheet in half, and nest
-              them with the cover sheet on the outside. The designed back cover prints on the outside left of that sheet,
-              and is not shown in the online book.
+              <strong>One finished page:</strong> {formatMm(printSize.widthMm)} × {formatMm(printSize.heightMm)} mm (trim).
+              Each sheet prints <strong>two</strong> pages side by side, so one landscape sheet is{" "}
+              {formatMm(sheet.trimSheetWidthMm)} × {formatMm(sheet.trimSheetHeightMm)} mm trim (
+              {formatMm(sheet.printSheetWidthMm)} × {formatMm(sheet.printSheetHeightMm)} mm including {sheet.bleedMm} mm
+              bleed and crop marks). Print double-sided at actual size, flip on the long edge, fold in half, and nest with
+              the cover sheet on the outside. The designed back cover is on the outside left of that sheet and is not shown
+              in the online book.
             </p>
           );
         })()}
