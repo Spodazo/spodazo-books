@@ -80,6 +80,25 @@ export function withOutsideBack<T>(leaves: T[], back: T, blank: T): T[] {
   return [front, ...interiors, ...pads, back];
 }
 
+/** Small saddle-stitch booklets pair early pages with late ones; pad to 32 slots so the title does not face the ending. */
+export const BOOKLET_SMALL_IMPOSITION_SLOTS = 32;
+
+export function bookletImpositionSlotCount(interiorCount: number): number {
+  const contentSlots = interiorCount + 2;
+  const padded = paddedPageCount(contentSlots);
+  return contentSlots <= 16 ? BOOKLET_SMALL_IMPOSITION_SLOTS : padded;
+}
+
+/** Cover at 0, back at last index, interiors at 1..n, remaining slots blank. */
+export function bookletImpositionSlots<T>(cover: T, back: T, interiors: T[], blank: T): T[] {
+  const total = bookletImpositionSlotCount(interiors.length);
+  const slots: T[] = Array.from({ length: total }, () => blank);
+  slots[0] = cover;
+  slots[total - 1] = back;
+  for (let i = 0; i < interiors.length; i += 1) slots[i + 1] = interiors[i];
+  return slots;
+}
+
 /** Saddle-stitch sheets. Page indexes are zero-based and already padded to a multiple of 4. */
 export function bookletSheets(pageCount: number): BookletSheet[] {
   if (pageCount < 4 || pageCount % 4 !== 0) throw new Error("Booklet page count must be a multiple of 4");

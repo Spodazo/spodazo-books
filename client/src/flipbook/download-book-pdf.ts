@@ -18,11 +18,13 @@ import type { PageElement, PageLayout, PublicBook } from "@shared/types";
 import { fetchPlayerSetup } from "../lib/api";
 import {
   BOOKLET_BLEED_MM,
+  bookletImpositionSlots,
   bookletSheets,
   mmToPt,
   paddedPageCount,
   withOutsideBack,
 } from "../lib/booklet";
+import { willowBookletSingleLeafSpreads } from "@shared/willow-song-book";
 
 type Rendered = { png: Uint8Array; width: number; height: number };
 type PaperPaint = { id: string; image: HTMLImageElement | null; edge: HTMLImageElement | null };
@@ -526,7 +528,15 @@ export async function downloadBookletPdf(source: PublicBook, pageWidthMm: number
       leaves.push(left, right);
     }
   }
-  const ordered = back ? withOutsideBack(leaves, back, blankLeaf(paper, paperPaint)) : leaves;
+  const blank = blankLeaf(paper, paperPaint);
+  let ordered: Rendered[];
+  if (back && willowBookletSingleLeafSpreads(source)) {
+    ordered = bookletImpositionSlots(cover, back, bookletInteriors, blank);
+  } else if (back) {
+    ordered = withOutsideBack(leaves, back, blank);
+  } else {
+    ordered = leaves;
+  }
   const label = Number.isInteger(pageWidthMm) ? `${pageWidthMm}` : pageWidthMm.toFixed(1).replace(/\.0$/, "");
   downloadBlob(
     await bookletPdf(ordered, pageWidthMm, pageHeightMm, paper, paperPaint),
