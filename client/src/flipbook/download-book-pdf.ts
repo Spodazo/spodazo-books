@@ -452,7 +452,7 @@ async function bookletPdf(
     drawBookletCropMarks(page, bleed, trimSheetW, trimH, markLen);
   }
   pdf.setSubject(
-    "Print double-sided at actual size (PDF includes 3 mm bleed and crop marks). Flip on the long edge, fold each sheet in half, and nest them with the cover sheet on the outside.",
+    "Print double-sided at actual size (PDF includes 3 mm bleed and crop marks). Flip on the short edge, fold each landscape sheet in half on the centre crease, and nest them with the cover sheet on the outside.",
   );
   return pdf.save();
 }

@@ -926,7 +926,8 @@ function BookEditor({
               Each sheet prints <strong>two</strong> pages side by side, so one landscape sheet is{" "}
               {formatMm(sheet.trimSheetWidthMm)} × {formatMm(sheet.trimSheetHeightMm)} mm trim (
               {formatMm(sheet.printSheetWidthMm)} × {formatMm(sheet.printSheetHeightMm)} mm including {sheet.bleedMm} mm
-              bleed and crop marks). Print double-sided at actual size, flip on the long edge, fold in half, and nest with
+              bleed and crop marks). Print double-sided at actual size and flip on the short edge (landscape sheets), fold
+              in half on the centre crease, and nest with
               the cover sheet on the outside. The designed back cover is on the outside left of that sheet and is not shown
               in the online book.
             </p>
