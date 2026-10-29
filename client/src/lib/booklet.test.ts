@@ -36,10 +36,10 @@ test("booklet print sheet adds bleed on the outer edges", () => {
   assert.equal(sizes.printSheetWidthMm, 420 + BOOKLET_BLEED_MM * 2);
 });
 
-test("booklets through 32 pages pad imposition to 32 slots", () => {
-  assert.equal(bookletImpositionSlotCount(26), BOOKLET_SMALL_IMPOSITION_SLOTS);
+test("small booklets pad imposition to 32 slots; larger ones use natural multiples of 4", () => {
   assert.equal(bookletImpositionSlotCount(6), BOOKLET_SMALL_IMPOSITION_SLOTS);
-  assert.equal(bookletImpositionSlotCount(30), BOOKLET_SMALL_IMPOSITION_SLOTS);
+  assert.equal(bookletImpositionSlotCount(26), 28);
+  assert.equal(bookletImpositionSlotCount(30), 32);
   assert.equal(bookletImpositionSlotCount(31), 36);
 });
 

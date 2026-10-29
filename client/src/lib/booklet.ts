@@ -80,13 +80,16 @@ export function withOutsideBack<T>(leaves: T[], back: T, blank: T): T[] {
   return [front, ...interiors, ...pads, back];
 }
 
-/** Small saddle-stitch booklets pair early pages with late ones; pad to 32 slots so the title does not face the ending. */
+/** Small layout booklets (e.g. Willow): pad imposition to 32 slots so the title does not face the ending. */
 export const BOOKLET_SMALL_IMPOSITION_SLOTS = 32;
+
+/** Only booklets whose padded leaf count is at most this need the 32-slot saddle-stitch padding. */
+export const BOOKLET_SMALL_IMPOSITION_MAX_PADDED = 16;
 
 export function bookletImpositionSlotCount(interiorCount: number): number {
   const contentSlots = interiorCount + 2;
   const padded = paddedPageCount(contentSlots);
-  if (padded <= BOOKLET_SMALL_IMPOSITION_SLOTS) return BOOKLET_SMALL_IMPOSITION_SLOTS;
+  if (padded <= BOOKLET_SMALL_IMPOSITION_MAX_PADDED) return BOOKLET_SMALL_IMPOSITION_SLOTS;
   return padded;
 }
 
