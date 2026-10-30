@@ -24,19 +24,16 @@ export const WILLOW_SONG_TITLE_CUE = 0;
 export const WILLOW_SONG_PAGE_CUES = [8, 30, 46, 60, 68, 83, 91, 106, 113, 128, 135, 153];
 /** Seconds when the last sung word (“more”) ends. */
 export const WILLOW_SONG_LAST_WORD_AT = 163;
-/** Seconds after that word before turning to THE END. */
-export const WILLOW_SONG_END_DELAY = 3;
-/** Seconds into the song when THE END should appear. */
+/** Turn to the nap spread as soon as the outro line finishes (no extra dwell on the lyric page). */
+export const WILLOW_SONG_END_DELAY = 0;
+/** Seconds into the song when the bear nap spread should appear. */
 export const WILLOW_SONG_END_CUE = WILLOW_SONG_LAST_WORD_AT + WILLOW_SONG_END_DELAY;
 /** Seconds to linger on the bear nap art before the back cover. */
-export const WILLOW_SONG_NAP_HOLD = 5;
-/**
- * Portrait phones show “The End” and the nap art on separate leaves; turn to the nap
- * picture one second after THE END.
- */
-export const WILLOW_SONG_NAP_PICTURE_CUE = WILLOW_SONG_END_CUE + 1;
+export const WILLOW_SONG_NAP_HOLD = 10;
+/** Portrait phones: bear art leaf uses the same moment as the nap spread. */
+export const WILLOW_SONG_NAP_PICTURE_CUE = WILLOW_SONG_END_CUE;
 /** Seconds when Sing Along should turn from the nap spread onto the back cover. */
-export const WILLOW_SONG_BACK_COVER_CUE = WILLOW_SONG_NAP_PICTURE_CUE + WILLOW_SONG_NAP_HOLD;
+export const WILLOW_SONG_BACK_COVER_CUE = WILLOW_SONG_END_CUE + WILLOW_SONG_NAP_HOLD;
 
 function willowFullPageImageLayout(id: string, asset: string, url: string): PageLayout {
   return {

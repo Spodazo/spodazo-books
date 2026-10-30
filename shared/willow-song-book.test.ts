@@ -61,11 +61,11 @@ test("Willow sing-along cues follow the recorded lyrics", () => {
   }
   assert.ok(WILLOW_SONG_PAGE_CUES[WILLOW_SONG_PAGE_CUES.length - 1] < WILLOW_SONG_LAST_WORD_AT);
   assert.equal(WILLOW_SONG_LAST_WORD_AT, 163);
-  assert.equal(WILLOW_SONG_END_DELAY, 3);
-  assert.equal(WILLOW_SONG_END_CUE, 166);
-  assert.equal(WILLOW_SONG_NAP_HOLD, 5);
-  assert.equal(WILLOW_SONG_NAP_PICTURE_CUE, 167);
-  assert.equal(WILLOW_SONG_BACK_COVER_CUE, 172);
+  assert.equal(WILLOW_SONG_END_DELAY, 0);
+  assert.equal(WILLOW_SONG_END_CUE, 163);
+  assert.equal(WILLOW_SONG_NAP_HOLD, 10);
+  assert.equal(WILLOW_SONG_NAP_PICTURE_CUE, 163);
+  assert.equal(WILLOW_SONG_BACK_COVER_CUE, 173);
   assert.ok(WILLOW_SONG_END_CUE > WILLOW_SONG_LAST_WORD_AT);
   assert.ok(WILLOW_SONG_BACK_COVER_CUE > WILLOW_SONG_NAP_PICTURE_CUE);
 });

@@ -366,15 +366,14 @@ function splitWillowNap(p,i){
   if(p.getAttribute('data-source'))end.setAttribute('data-source',p.getAttribute('data-source'));
   if(p.hasAttribute('data-cue')){
     var endCue=parseFloat(p.getAttribute('data-cue')),coverCue=NaN,j,ahead;
-    end.setAttribute('data-cue',p.getAttribute('data-cue'));
     for(j=i+1;j<pages.length;j++){
       if(!pages[j].classList.contains('end-page'))continue;
       ahead=parseFloat(pages[j].getAttribute('data-cue'));
       if(!isNaN(ahead))coverCue=ahead;
       break;
     }
-    if(!isNaN(endCue)&&!isNaN(coverCue)&&coverCue>endCue)p.setAttribute('data-cue',String(Math.round((endCue+1)*100)/100));
-    else p.removeAttribute('data-cue');
+    if(!isNaN(endCue)&&!isNaN(coverCue)&&coverCue>endCue)p.setAttribute('data-cue',String(Math.round(endCue*100)/100));
+    else if(isNaN(endCue)||isNaN(coverCue))p.removeAttribute('data-cue');
   }
   end.innerHTML='<p class="nap-end" style="position:absolute;left:0;right:0;top:50%;width:100%;margin:0;transform:translateY(-50%);text-align:center;">The End</p>';
   var blank=p.querySelector('.nap-leaf-blank');
@@ -720,7 +719,29 @@ function direction(target){var z=target.closest('[data-dir]');return z?Number(z.
 function tapSide(clientX){var box=book.getBoundingClientRect();if(!(box.width>0))return 0;return clientX-box.left>=box.width/2?1:-1;}
 function plainTap(target){return !(target&&target.closest&&target.closest('a,button,input,textarea,label,.hot,.admin-login'));}
 function control(target,name){return !!(target&&target.closest&&target.closest(name));}
-var song=null,songMuted=false,songStarted=false;
+var song=null,songMuted=false,songStarted=false,songEndedAt=0,outroFollowPoll=null;
+function songTimingSeconds(audio){
+  if(!audio)return 0;
+  if(!audio.ended)return audio.currentTime;
+  var frozen=audio.currentTime||0;
+  if(!songEndedAt)return frozen;
+  return frozen+(Date.now()-songEndedAt)/1000;
+}
+function disarmOutroFollowPoll(){
+  if(!outroFollowPoll)return;
+  clearInterval(outroFollowPoll);
+  outroFollowPoll=null;
+}
+function armOutroFollowPoll(){
+  var page;
+  if(outroFollowPoll||!song||!song.ended||!document.documentElement.classList.contains('willow'))return;
+  outroFollowPoll=setInterval(function(){
+    if(!song||!song.ended){disarmOutroFollowPoll();return;}
+    followSong();
+    page=pages[index];
+    if(page&&page.classList.contains('end-page'))disarmOutroFollowPoll();
+  },350);
+}
 function musicAudible(){
   return !!(song&&!songMuted&&!song.paused&&!song.ended);
 }
@@ -781,8 +802,20 @@ function songAudio(){
   src=btn&&btn.getAttribute('data-audio');
   if(!src)return null;
   song=new Audio(src);
-  song.addEventListener('ended',function(){songMuted=false;songStarted=false;syncSingAlong();followSong();});
-  song.addEventListener('play',function(){syncSingAlong();followSong();});
+  song.addEventListener('ended',function(){
+    songEndedAt=Date.now();
+    songMuted=false;
+    songStarted=false;
+    syncSingAlong();
+    followSong();
+    armOutroFollowPoll();
+  });
+  song.addEventListener('play',function(){
+    songEndedAt=0;
+    disarmOutroFollowPoll();
+    syncSingAlong();
+    followSong();
+  });
   song.addEventListener('pause',function(){syncSingAlong();});
   song.addEventListener('timeupdate',followSong);
   return song;
@@ -807,7 +840,7 @@ function followSong(){
   var target,t;
   if(!song||busy)return;
   if(song.paused&&!song.ended)return;
-  t=song.ended?Infinity:song.currentTime;
+  t=songTimingSeconds(song);
   target=pageForSongTime(t);
   if(target<0||target<=index)return;
   var next=pages[index+1];
@@ -820,6 +853,8 @@ function followSong(){
 }
 function stopWillowSong(){
   songStarted=false;
+  songEndedAt=0;
+  disarmOutroFollowPoll();
   if(!song){syncWillowSound();return;}
   song.pause();
   try{song.currentTime=0;}catch(err){}
