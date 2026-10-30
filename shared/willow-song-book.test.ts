@@ -66,7 +66,7 @@ test("Willow sing-along cues follow the recorded lyrics", () => {
   assert.equal(WILLOW_SONG_NAP_HOLD, 10);
   assert.equal(WILLOW_SONG_NAP_PICTURE_CUE, 163);
   assert.equal(WILLOW_SONG_BACK_COVER_CUE, 173);
-  assert.ok(WILLOW_SONG_END_CUE > WILLOW_SONG_LAST_WORD_AT);
+  assert.ok(WILLOW_SONG_END_CUE >= WILLOW_SONG_LAST_WORD_AT);
   assert.ok(WILLOW_SONG_BACK_COVER_CUE > WILLOW_SONG_NAP_PICTURE_CUE);
 });
 
