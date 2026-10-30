@@ -14,6 +14,8 @@ test("Willow starts the song with the page turns and can pause both", async () =
   assert.match(reader, /WILLOW_SONG_END_CUE/);
   assert.match(reader, /WILLOW_SONG_BACK_COVER_CUE/);
   assert.match(runtime, /willow-nap-picture/);
+  assert.match(runtime, /backCover=!!\(page&&page\.classList\.contains\('end-page'\)\)/);
+  assert.doesNotMatch(runtime, /willow-nap-picture.*theEnd/);
   assert.match(runtime, /maybeStartWillowSong/);
   assert.match(runtime, /startWillowSong/);
   assert.match(runtime, /toggleSingAlong/);

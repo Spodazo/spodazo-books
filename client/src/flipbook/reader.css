@@ -2035,7 +2035,7 @@ html.willow.mobile .page.willow-nap-picture .nap-leaf-art{
 }
 .willow-sound{
   position:fixed;
-  z-index:50;
+  z-index:100;
   appearance:none;
   box-sizing:border-box;
   display:inline-flex;

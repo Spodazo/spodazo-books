@@ -28,11 +28,15 @@ export const WILLOW_SONG_LAST_WORD_AT = 163;
 export const WILLOW_SONG_END_DELAY = 3;
 /** Seconds into the song when THE END should appear. */
 export const WILLOW_SONG_END_CUE = WILLOW_SONG_LAST_WORD_AT + WILLOW_SONG_END_DELAY;
+/** Seconds to linger on the bear nap art before the back cover. */
+export const WILLOW_SONG_NAP_HOLD = 5;
 /**
- * Seconds when Sing Along should turn from THE END onto the back cover.
- * The recording ends just after THE END, so this cue is reached when the song ends.
+ * Portrait phones show “The End” and the nap art on separate leaves; turn to the nap
+ * picture one second after THE END.
  */
-export const WILLOW_SONG_BACK_COVER_CUE = WILLOW_SONG_END_CUE + 1;
+export const WILLOW_SONG_NAP_PICTURE_CUE = WILLOW_SONG_END_CUE + 1;
+/** Seconds when Sing Along should turn from the nap spread onto the back cover. */
+export const WILLOW_SONG_BACK_COVER_CUE = WILLOW_SONG_NAP_PICTURE_CUE + WILLOW_SONG_NAP_HOLD;
 
 function willowFullPageImageLayout(id: string, asset: string, url: string): PageLayout {
   return {

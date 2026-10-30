@@ -373,7 +373,7 @@ function splitWillowNap(p,i){
       if(!isNaN(ahead))coverCue=ahead;
       break;
     }
-    if(!isNaN(endCue)&&!isNaN(coverCue)&&coverCue>endCue)p.setAttribute('data-cue',String(Math.round(((endCue+coverCue)/2)*100)/100));
+    if(!isNaN(endCue)&&!isNaN(coverCue)&&coverCue>endCue)p.setAttribute('data-cue',String(Math.round((endCue+1)*100)/100));
     else p.removeAttribute('data-cue');
   }
   end.innerHTML='<p class="nap-end" style="position:absolute;left:0;right:0;top:50%;width:100%;margin:0;transform:translateY(-50%);text-align:center;">The End</p>';
@@ -762,12 +762,12 @@ function placeWillowSound(){
   btn.style.top=Math.round(Math.max(0,y))+'px';
 }
 function updateWillowSound(){
-  var btn=document.getElementById('soundBtn'),page,cover,theEnd,show;
+  var btn=document.getElementById('soundBtn'),page,cover,backCover,show;
   if(!btn)return;
   page=pages[index];
   cover=!page||page.classList.contains('front-cover');
-  theEnd=!!(page&&(page.classList.contains('nap-spread')||page.classList.contains('end-page')||page.classList.contains('willow-the-end')||page.classList.contains('willow-nap-picture')));
-  show=!cover&&!theEnd;
+  backCover=!!(page&&page.classList.contains('end-page'));
+  show=!cover&&!backCover;
   btn.hidden=false;
   btn.classList.toggle('is-visible',show);
   btn.setAttribute('aria-hidden',show?'false':'true');

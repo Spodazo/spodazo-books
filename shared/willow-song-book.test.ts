@@ -7,6 +7,8 @@ import {
   WILLOW_SONG_BACK_COVER_CUE,
   WILLOW_SONG_END_CUE,
   WILLOW_SONG_END_DELAY,
+  WILLOW_SONG_NAP_HOLD,
+  WILLOW_SONG_NAP_PICTURE_CUE,
   WILLOW_SONG_LAST_WORD_AT,
   WILLOW_SONG_PAGE_COUNT,
   WILLOW_SONG_PAGE_CUES,
@@ -61,8 +63,11 @@ test("Willow sing-along cues follow the recorded lyrics", () => {
   assert.equal(WILLOW_SONG_LAST_WORD_AT, 163);
   assert.equal(WILLOW_SONG_END_DELAY, 3);
   assert.equal(WILLOW_SONG_END_CUE, 166);
+  assert.equal(WILLOW_SONG_NAP_HOLD, 5);
+  assert.equal(WILLOW_SONG_NAP_PICTURE_CUE, 167);
+  assert.equal(WILLOW_SONG_BACK_COVER_CUE, 172);
   assert.ok(WILLOW_SONG_END_CUE > WILLOW_SONG_LAST_WORD_AT);
-  assert.ok(WILLOW_SONG_BACK_COVER_CUE > WILLOW_SONG_END_CUE);
+  assert.ok(WILLOW_SONG_BACK_COVER_CUE > WILLOW_SONG_NAP_PICTURE_CUE);
 });
 
 test("needsWillowSongUpdate is true until the chorus pages are in place", () => {
