@@ -60,7 +60,35 @@
   var verselessSpreadKey = "";
   var verselessSpreadAt = 0;
   var songFollowPoll = null;
+  var outroFollowPoll = null;
+  var songEndedAt = 0;
   var soundBtn = document.getElementById("soundBtn");
+
+  function songTimingSeconds(audio) {
+    if (!audio) return 0;
+    if (!audio.ended) return audio.currentTime;
+    var frozen = audio.currentTime || 0;
+    if (!songEndedAt) return frozen;
+    return frozen + (Date.now() - songEndedAt) / 1000;
+  }
+
+  function disarmOutroFollowPoll() {
+    if (!outroFollowPoll) return;
+    clearInterval(outroFollowPoll);
+    outroFollowPoll = null;
+  }
+
+  function armOutroFollowPoll() {
+    if (outroFollowPoll || !SING || !song || !song.ended) return;
+    outroFollowPoll = setInterval(function () {
+      if (!song || !song.ended) {
+        disarmOutroFollowPoll();
+        return;
+      }
+      followSong();
+      if (pdfPageForTime(songTimingSeconds(song)) >= TOTAL) disarmOutroFollowPoll();
+    }, 350);
+  }
 
   function songAudioUrl() {
     if (!SING) return "";
@@ -143,11 +171,15 @@
     song.setAttribute("playsinline", "");
     song.addEventListener("timeupdate", followSong);
     song.addEventListener("ended", function () {
+      songEndedAt = Date.now();
       disarmSongFollowPoll();
       syncSoundButton();
       followSong();
+      armOutroFollowPoll();
     });
     song.addEventListener("play", function () {
+      songEndedAt = 0;
+      disarmOutroFollowPoll();
       armSongFollowPoll();
       syncSoundButton();
     });
@@ -429,7 +461,7 @@
     if (pageHoldBlocksTurn(audio)) return;
     checkVerselessBriefAdvance();
     if (busy) return;
-    target = pdfPageForTime(audio.ended ? SING.duration : audio.currentTime);
+    target = pdfPageForTime(songTimingSeconds(audio));
     if (target < SING.firstPage) return;
     if (target > TOTAL) target = TOTAL;
     if (single) {
@@ -450,7 +482,9 @@
 
   function stopSong() {
     songStarted = false;
+    songEndedAt = 0;
     disarmSongFollowPoll();
+    disarmOutroFollowPoll();
     verselessSpreadKey = "";
     if (!song) {
       syncSoundButton();

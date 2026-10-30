@@ -8,6 +8,8 @@ import {
   RUDOLPH_SONG_LAST_PDF_PAGE,
   RUDOLPH_SONG_PAGE_CUES,
   RUDOLPH_SONG_LAST_WORD_AT,
+  RUDOLPH_SONG_BACK_COVER_AT,
+  RUDOLPH_SONG_CAST_HOLD,
   RUDOLPH_STORY_PAGE_OFFSET,
   rudolphPdfPageForStoryPage,
   rudolphSingAlongConfig,
@@ -58,8 +60,11 @@ test("Rudolph sing-along follows the recording through the outro", () => {
   assert.equal(rudolphSongPdfPageForTime(360.28), RUDOLPH_SONG_LAST_PDF_PAGE);
   assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_LAST_WORD_AT), 25);
   assert.equal(rudolphSongPdfPageForTime(387.2), 26);
+  assert.equal(RUDOLPH_SONG_CAST_HOLD, 10);
+  assert.equal(RUDOLPH_SONG_BACK_COVER_AT, 400);
   assert.equal(rudolphSongPdfPageForTime(391), 27);
-  assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_DURATION), 28);
+  assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_DURATION), 27);
+  assert.equal(rudolphSongPdfPageForTime(RUDOLPH_SONG_BACK_COVER_AT), 28);
   assert.equal(rudolphSingAlongConfig("/").firstPage, RUDOLPH_MUSIC_START_PDF_PAGE);
   assert.ok(rudolphSingAlongConfig("/").soundOffUrl.includes("sound-off.webp"));
   assert.equal(rudolphSingAlongConfig("/").singalongNoteText, "");

@@ -22,6 +22,10 @@ export const RUDOLPH_PAGE12_HOLD_UNTIL = 243;
 
 /** Outro leaves after the song (PDF pages 25–28). The boy at the window is PDF page 27; 28 is the back cover. */
 export const RUDOLPH_SONG_OUTRO_FIRST_PDF_PAGE = RUDOLPH_SONG_LAST_PDF_PAGE + 1;
+/** Cast of Characters and the boy at the window (PDF page 27). */
+export const RUDOLPH_SONG_CAST_OUTRO_PDF_PAGE = 27;
+/** Seconds to linger on that outro leaf before the back cover. */
+export const RUDOLPH_SONG_CAST_HOLD = 10;
 
 /** @deprecated Use RUDOLPH_SONG_FIRST_PDF_PAGE */
 export const RUDOLPH_SONG_FIRST_PAGE = RUDOLPH_SONG_FIRST_PDF_PAGE;
@@ -45,16 +49,19 @@ export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
 
 /** Seconds when the last sung words finish. The End, the cast, and the boy at the window follow. */
 export const RUDOLPH_SONG_LAST_WORD_AT = 383.12;
-/** The last 2 seconds fade out, then 2 seconds of silence. The back cover turns as the fade reaches silence. */
+/** Recorded length of Rudolph-the-red-nosed-reindeer.mp3 (seconds). */
 export const RUDOLPH_SONG_DURATION = 396.92;
 
-/** Outro turns. The back cover (28) arrives as the fade reaches silence. */
+/** Outro turns. The cast / window leaf holds, then the back cover (28). */
 export const RUDOLPH_SONG_OUTRO_CUES: readonly [number, number][] = [
   [382.12, 25],
   [386.2, 26],
-  [390, 27],
-  [393.92, 28],
+  [390, RUDOLPH_SONG_CAST_OUTRO_PDF_PAGE],
+  [390 + RUDOLPH_SONG_CAST_HOLD, 28],
 ];
+
+/** Seconds when sing-along turns from the cast / window leaf to the back cover. */
+export const RUDOLPH_SONG_BACK_COVER_AT = 390 + RUDOLPH_SONG_CAST_HOLD;
 
 export function rudolphSongCueForPdfPage(pdfPage: number): number | undefined {
   if (pdfPage < RUDOLPH_MUSIC_START_PDF_PAGE || pdfPage > RUDOLPH_SONG_LAST_PDF_PAGE) return undefined;
