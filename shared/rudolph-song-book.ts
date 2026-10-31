@@ -15,10 +15,10 @@ export const RUDOLPH_SONG_FIRST_PDF_PAGE = 1 + RUDOLPH_STORY_PAGE_OFFSET;
 export const RUDOLPH_SONG_LAST_PDF_PAGE = 19 + RUDOLPH_STORY_PAGE_OFFSET;
 /**
  * Numbered page 12 stays on screen until the held “all” has finished.
- * That note runs about nine seconds, ending near 259.5s on the v2 recording. The turn is locked to 260s.
+ * That note runs about nine seconds, ending near 249s on the v2 recording. The turn is locked to 249s.
  */
 export const RUDOLPH_PAGE12_HOLD_PDF_PAGE = 12 + RUDOLPH_STORY_PAGE_OFFSET;
-export const RUDOLPH_PAGE12_HOLD_UNTIL = 260;
+export const RUDOLPH_PAGE12_HOLD_UNTIL = 249;
 
 /** Outro leaves after the song (PDF pages 25–28). The boy at the window is PDF page 27; 28 is the back cover. */
 export const RUDOLPH_SONG_OUTRO_FIRST_PDF_PAGE = RUDOLPH_SONG_LAST_PDF_PAGE + 1;
@@ -44,7 +44,7 @@ export function rudolphPdfPageForStoryPage(storyPage: number): number {
  * numbered page 1 arrives with the first verse. Numbered page 12 stays through the nine-second “all.”
  */
 export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
-  0, 2.1, 5.3, 10.2, 23.5, 44.2, 72.1, 107.2, 110.7, 128.9, 130.4, 149.2, 172, 181, 202.3, 225.8, 260.1, 267.6, 286.4, 305.1, 326.5, 349.6, 374.4,
+  0, 2.1, 5.3, 10.2, 23.5, 44.2, 72.1, 107.2, 110.7, 128.9, 130.4, 149.2, 172, 181, 202.3, 225.8, 250, 267.6, 286.4, 305.1, 326.5, 349.6, 374.4,
 ];
 
 /** Seconds when the last sung words finish. The End, the cast, and the boy at the window follow. */
