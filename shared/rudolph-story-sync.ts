@@ -11,11 +11,10 @@ export const RUDOLPH_STORY_LAST_WORDS: Readonly<Record<number, string>> = {
 
 /** v2 recording: when each last word’s note finishes (seconds). Pages 1–15 use RUDOLPH_SONG_PAGE_CUES. */
 export const RUDOLPH_STORY_LAST_WORD_END_AT: Readonly<Partial<Record<number, number>>> = {
-  /** “light” on page 16 — 314.5 was ~15s early on v2. */
-  16: 329.5,
-  17: 337.6,
-  18: 362.4,
-  19: 387.1,
+  16: 330.5,
+  17: 352.6,
+  18: 377.4,
+  19: 402.1,
 };
 
 /** PDF page when numbered story page N first appears (story page N−1 last word has finished). */

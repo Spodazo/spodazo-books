@@ -78,7 +78,7 @@ export const RUDOLPH_SONG_DURATION = 413.36;
 
 /** Outro turns. The cast / window leaf holds, then the back cover (28). */
 /** Cast / window outro leaf (PDF page 27) on the v2 recording. */
-export const RUDOLPH_SONG_CAST_AT = 389.2;
+export const RUDOLPH_SONG_CAST_AT = 404.2;
 
 export const RUDOLPH_SONG_OUTRO_CUES: readonly [number, number][] = [
   [RUDOLPH_SONG_LAST_WORD_AT - 1, 25],
