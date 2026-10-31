@@ -1,3 +1,5 @@
+import { RUDOLPH_STORY_LAST_WORD_END_AT } from "./rudolph-story-sync";
+
 /** Rudolph v3 PDF sing-along (28 leaves). Story pages 1–19 map to PDF pages 6–24. */
 export const RUDOLPH_SONG_AUDIO_ASSET = "rudolph-the-red-nosed-reindeer.mp3";
 export const RUDOLPH_SONG_AUDIO_URL = `/media/audio/${RUDOLPH_SONG_AUDIO_ASSET}?v=20261101`;
@@ -44,24 +46,49 @@ export function rudolphPdfPageForStoryPage(storyPage: number): number {
  * numbered page 1 arrives with the first verse. Numbered page 12 stays through the nine-second “all.”
  */
 export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
-  0, 2.1, 5.3, 10.2, 23.5, 44.2, 72.1, 107.2, 110.7, 128.9, 130.4, 149.2, 172, 181, 202.3, 225.8, 250, 261.6, 280.4, 299.1, 320.5, 343.6, 368.4,
+  0,
+  2.1,
+  5.3,
+  10.2,
+  23.5,
+  44.2,
+  72.1,
+  107.2,
+  110.7,
+  128.9,
+  130.4,
+  149.2,
+  172,
+  181,
+  202.3,
+  225.8,
+  250,
+  261.6,
+  280.4,
+  299.1,
+  RUDOLPH_STORY_LAST_WORD_END_AT[16]!,
+  RUDOLPH_STORY_LAST_WORD_END_AT[17]!,
+  RUDOLPH_STORY_LAST_WORD_END_AT[18]!,
 ];
 
 /** Seconds when the last sung words finish. The End, the cast, and the boy at the window follow. */
-export const RUDOLPH_SONG_LAST_WORD_AT = 393.1;
+export const RUDOLPH_SONG_LAST_WORD_AT = RUDOLPH_STORY_LAST_WORD_END_AT[19]!;
 /** Recorded length of Rudolph-the-red-nosed-reindeer.mp3 (seconds). */
 export const RUDOLPH_SONG_DURATION = 413.36;
 
 /** Outro turns. The cast / window leaf holds, then the back cover (28). */
+/** Cast / window outro leaf (PDF page 27) on the v2 recording. */
+export const RUDOLPH_SONG_CAST_AT = 389.2;
+
 export const RUDOLPH_SONG_OUTRO_CUES: readonly [number, number][] = [
-  [392.1, 25],
-  [394, 26],
-  [395.2, RUDOLPH_SONG_CAST_OUTRO_PDF_PAGE],
-  [395.2 + RUDOLPH_SONG_CAST_HOLD, 28],
+  [RUDOLPH_SONG_LAST_WORD_AT - 1, 25],
+  [RUDOLPH_SONG_LAST_WORD_AT + 0.9, 26],
+  [RUDOLPH_SONG_CAST_AT, RUDOLPH_SONG_CAST_OUTRO_PDF_PAGE],
+  [RUDOLPH_SONG_CAST_AT + RUDOLPH_SONG_CAST_HOLD, 28],
 ];
 
 /** Seconds when sing-along turns from the cast / window leaf to the back cover. */
-export const RUDOLPH_SONG_BACK_COVER_AT = 395.2 + RUDOLPH_SONG_CAST_HOLD;
+export const RUDOLPH_SONG_BACK_COVER_AT = RUDOLPH_SONG_CAST_AT + RUDOLPH_SONG_CAST_HOLD;
 
 export function rudolphSongCueForPdfPage(pdfPage: number): number | undefined {
   if (pdfPage < RUDOLPH_MUSIC_START_PDF_PAGE || pdfPage > RUDOLPH_SONG_LAST_PDF_PAGE) return undefined;
