@@ -51,8 +51,9 @@ test("Rudolph sing-along follows the recording through the outro", () => {
   assert.equal(rudolphSongPdfPageForTime(0), RUDOLPH_MUSIC_START_PDF_PAGE);
   assert.equal(rudolphSongPdfPageForTime(12), RUDOLPH_PREFACE_PDF_PAGE);
   assert.equal(rudolphSongPdfPageForTime(24.2), rudolphPdfPageForStoryPage(1));
-  assert.equal(rudolphSongPdfPageForTime(48.5), rudolphPdfPageForStoryPage(1));
-  assert.equal(rudolphSongPdfPageForTime(50.2), rudolphPdfPageForStoryPage(2));
+  assert.equal(rudolphSongPdfPageForTime(45.2), rudolphPdfPageForStoryPage(2));
+  assert.equal(rudolphSongPdfPageForTime(76), rudolphPdfPageForStoryPage(2));
+  assert.equal(rudolphSongPdfPageForTime(77.5), rudolphPdfPageForStoryPage(3));
   assert.equal(rudolphSongPdfPageForTime(129.5), rudolphPdfPageForStoryPage(6));
   assert.equal(rudolphSongPdfPageForTime(131.2), rudolphPdfPageForStoryPage(7));
   assert.equal(rudolphSongPdfPageForTime(248), rudolphPdfPageForStoryPage(12));
