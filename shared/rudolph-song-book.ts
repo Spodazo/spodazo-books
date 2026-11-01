@@ -51,7 +51,7 @@ export const RUDOLPH_SONG_PAGE_CUES: readonly number[] = [
   5.3,
   10.2,
   23.5,
-  44.2,
+  49.2,
   72.1,
   107.2,
   110.7,
