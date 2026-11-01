@@ -64,7 +64,8 @@
   var outroFollowPoll = null;
   var songEndedAt = 0;
   var soundBtn = document.getElementById("soundBtn");
-  var videoHoldTimer = 0;
+  var videoClockMs = 0;
+  var videoHoldUntil = 0;
   if (VIDEO) {
     document.documentElement.classList.add("rudolph-video");
     window.__rudolphVideoPhase = "loading";
@@ -73,6 +74,7 @@
   }
 
   function songTimingSeconds(audio) {
+    if (VIDEO) return videoClockMs / 1000;
     if (!audio) return 0;
     if (!audio.ended) return audio.currentTime;
     var frozen = audio.currentTime || 0;
@@ -87,7 +89,7 @@
   }
 
   function armOutroFollowPoll() {
-    if (outroFollowPoll || !SING || !song || !song.ended) return;
+    if (VIDEO || outroFollowPoll || !SING || !song || !song.ended) return;
     outroFollowPoll = setInterval(function () {
       if (!song || !song.ended) {
         disarmOutroFollowPoll();
@@ -100,12 +102,89 @@
   }
 
   function maybeFinishVideo() {
-    if (!VIDEO || videoHoldTimer || busy) return;
+    if (!VIDEO || videoHoldUntil || busy) return;
     if (!songStarted || !atLastPage()) return;
-    videoHoldTimer = setTimeout(function () {
-      window.__rudolphVideoPhase = "done";
-    }, 2500);
+    videoHoldUntil = videoClockMs + 2500;
   }
+
+  function videoAnimsPending() {
+    if (!busy) return false;
+    var anims = document.getAnimations();
+    for (var i = 0; i < anims.length; i++) {
+      var state = anims[i].playState;
+      if (state === "paused" || state === "running") return false;
+    }
+    return true;
+  }
+
+  function pauseVideoAnims() {
+    var anims = document.getAnimations();
+    for (var i = 0; i < anims.length; i++) {
+      if (anims[i].playState === "running") {
+        anims[i].pause();
+        try { anims[i].currentTime = 0; } catch (e) {}
+      }
+    }
+  }
+
+  function stepVideoAnims(ms) {
+    var anims = document.getAnimations();
+    for (var i = 0; i < anims.length; i++) {
+      var anim = anims[i];
+      if (anim.playState !== "paused" && anim.playState !== "running") continue;
+      var timing = anim.effect && anim.effect.getComputedTiming();
+      var dur = timing && timing.duration;
+      if (typeof dur !== "number" || !isFinite(dur)) continue;
+      var next = (anim.currentTime || 0) + ms;
+      if (next >= dur) anim.finish();
+      else anim.currentTime = next;
+    }
+  }
+
+  function afterVideoPaint(value) {
+    return new Promise(function (resolve) {
+      requestAnimationFrame(function () { resolve(value); });
+    });
+  }
+
+  function waitForVideoStill() {
+    return new Promise(function (resolve) {
+      var spins = 0;
+      function check() {
+        pauseVideoAnims();
+        spins += 1;
+        if (videoHoldUntil && videoClockMs >= videoHoldUntil) window.__rudolphVideoPhase = "done";
+        if (videoAnimsPending() && spins < 400) {
+          setTimeout(check, 10);
+          return;
+        }
+        afterVideoPaint(window.__rudolphVideoPhase).then(resolve);
+      }
+      setTimeout(check, 0);
+    });
+  }
+
+  window.__rudolphVideoWarm = function () {
+    var jobs = [];
+    var n;
+    for (n = 1; n <= IMAGES; n++) jobs.push(warm(n));
+    return Promise.all(jobs);
+  };
+
+  window.__rudolphVideoAdvance = function (ms) {
+    videoClockMs += ms;
+    if (song) {
+      song.currentTime = videoClockMs / 1000;
+      if (!song.ended && SING && song.currentTime >= SING.duration) {
+        song.ended = true;
+        song.paused = false;
+      }
+    }
+    stepVideoAnims(ms);
+    followSong();
+    maybeFinishVideo();
+    return waitForVideoStill();
+  };
 
   function songAudioUrl() {
     if (!SING) return "";
@@ -182,6 +261,25 @@
   function ensureSong() {
     if (!SING) return null;
     if (song) return song;
+    if (VIDEO) {
+      song = {
+        currentTime: 0,
+        paused: true,
+        ended: false,
+        muted: true,
+        duration: SING.duration,
+        readyState: 4,
+        preload: "auto",
+        play: function () {
+          this.paused = false;
+          return Promise.resolve();
+        },
+        pause: function () { this.paused = true; },
+        addEventListener: function () {},
+        setAttribute: function () {},
+      };
+      return song;
+    }
     song = new Audio(songAudioUrl());
     song.preload = "auto";
     song.muted = songMuted;
@@ -208,7 +306,7 @@
   }
 
   function armSongFollowPoll() {
-    if (songFollowPoll || !SING) return;
+    if (VIDEO || songFollowPoll || !SING) return;
     songFollowPoll = setInterval(function () {
       if (songPlaybackActive()) followSong();
     }, 350);
@@ -337,19 +435,7 @@
   window.__rudolphVideoStart = function () {
     if (!VIDEO || !SING) return Promise.reject(new Error("video playback is off"));
     startSongFromBeginning();
-    return new Promise(function (resolve, reject) {
-      var tries = 0;
-      var timer = setInterval(function () {
-        tries += 1;
-        if (window.__rudolphVideoPhase === "playing") {
-          clearInterval(timer);
-          resolve(window.__rudolphVideoAudioAt || Date.now());
-        } else if (window.__rudolphVideoPhase === "error" || tries > 80) {
-          clearInterval(timer);
-          reject(new Error("Rudolph music did not start"));
-        }
-      }, 50);
-    });
+    return waitForVideoStill();
   };
 
   function maybeStartSongOnFirstPage() {
@@ -923,7 +1009,7 @@
       }
       else { idx = spreadIndexForPage(pg + 1); }
     }
-    var m = single ? Math.max(12, Math.round(H * 0.03)) : 2;
+    var m = VIDEO ? Math.round(H * 0.055) : (single ? Math.max(12, Math.round(H * 0.03)) : 2);
     var avail = H - 2 * m;
     if (single) {
       pw = Math.floor(Math.min(W, avail / RATIO));
@@ -931,7 +1017,7 @@
     } else {
       // The arrow sits 26px outside the page and is at most 44px wide. Keep the full height when that gutter already fits; otherwise scale the spread down.
       var btn = Math.min(44, Math.max(28, 0.075 * (avail / RATIO)));
-      var sideRoom = Math.round(btn + 40);
+      var sideRoom = VIDEO ? m : Math.round(btn + 40);
       var fitPw = avail / RATIO;
       if (fitPw * 2 <= W - 2 * sideRoom) {
         ph = avail;
@@ -1009,6 +1095,7 @@
   }
 
   function raf2() {
+    if (VIDEO) return Promise.resolve();
     return new Promise(function (res) {
       var done = false;
       var fin = function () { if (!done) { done = true; res(); } };
@@ -1021,85 +1108,14 @@
 
   function rot(a) { return "perspective(" + Math.round(pw * 3.4) + "px) rotateY(" + a + "deg)"; }
 
-  function videoBezier(u) {
-    var x1 = 0.62, y1 = 0.04, x2 = 0.3, y2 = 1;
-    function curve(t, a, b) {
-      var m = 1 - t;
-      return 3 * m * m * t * a + 3 * m * t * t * b + t * t * t;
+  function startTurnAnim(el, frames, opts) {
+    if (!el || !frames || !frames.length) return { finished: Promise.resolve(), cancel: function () {} };
+    var anim = el.animate(frames, opts);
+    if (VIDEO) {
+      anim.pause();
+      try { anim.currentTime = 0; } catch (e) {}
     }
-    function slope(t, a, b) {
-      var m = 1 - t;
-      return 3 * m * m * a + 6 * m * t * (b - a) + 3 * t * t * (1 - b);
-    }
-    var t = u;
-    var i;
-    for (i = 0; i < 8; i++) {
-      var dx = slope(t, x1, x2);
-      if (Math.abs(dx) < 1e-6) break;
-      t = Math.min(1, Math.max(0, t - (curve(t, x1, x2) - u) / dx));
-    }
-    return curve(t, y1, y2);
-  }
-
-  function videoSample(frames, u) {
-    var i, o0, o1, span, t, a, b, out, angleA, angleB;
-    function offsetOf(frame, index) {
-      if (typeof frame.offset === "number") return frame.offset;
-      if (frames.length < 2) return 0;
-      return index / (frames.length - 1);
-    }
-    a = frames[0];
-    b = frames[frames.length - 1];
-    o0 = 0;
-    o1 = 1;
-    for (i = 0; i < frames.length - 1; i++) {
-      o0 = offsetOf(frames[i], i);
-      o1 = offsetOf(frames[i + 1], i + 1);
-      if (u >= o0 && u <= o1) {
-        a = frames[i];
-        b = frames[i + 1];
-        break;
-      }
-    }
-    span = (o1 == null ? 1 : o1) - (o0 == null ? 0 : o0);
-    t = span ? (u - (o0 || 0)) / span : 1;
-    out = {};
-    if (a.transform || b.transform) {
-      angleA = /rotateY\(([-\d.]+)deg\)/.exec(a.transform || "");
-      angleB = /rotateY\(([-\d.]+)deg\)/.exec(b.transform || "");
-      if (angleA && angleB) {
-        out.transform = rot(Number(angleA[1]) + (Number(angleB[1]) - Number(angleA[1])) * t);
-      } else out.transform = t < 1 ? a.transform : b.transform;
-    }
-    if (a.opacity != null || b.opacity != null) {
-      out.opacity = Number(a.opacity == null ? b.opacity : a.opacity) +
-        (Number(b.opacity == null ? a.opacity : b.opacity) - Number(a.opacity == null ? b.opacity : a.opacity)) * t;
-    }
-    return out;
-  }
-
-  function playMotion(el, keyframes, opts) {
-    if (!VIDEO || !keyframes || !keyframes.length) return el.animate(keyframes, opts);
-    var start = performance.now();
-    var stopped = false;
-    var resolve;
-    var finished = new Promise(function (res) { resolve = res; });
-    function frame(now) {
-      if (stopped) return;
-      var p = Math.min(1, (now - start) / opts.duration);
-      if (opts.direction === "reverse") p = 1 - p;
-      p = Math.min(1, Math.max(0, p));
-      var sample = videoSample(keyframes, opts.easing === "linear" ? p : videoBezier(p));
-      if (sample.transform) el.style.transform = sample.transform;
-      if (sample.opacity != null) el.style.opacity = String(sample.opacity);
-      if ((opts.direction === "reverse" ? (now - start) < opts.duration : p < 1)) requestAnimationFrame(frame);
-      else resolve();
-    }
-    requestAnimationFrame(frame);
-    return {
-      finished: finished,
-      cancel: function () { stopped = true; resolve(); },
-    };
+    return anim;
   }
 
   function faceFrames(isSingle) {
@@ -1169,18 +1185,23 @@
       var opts = { duration: dur, easing: "cubic-bezier(.62,.04,.3,1)", fill: "both", direction: dir > 0 ? "normal" : "reverse" };
       var anims = [];
       var ff = faceFrames(single);
-      anims.push(playMotion(front, ff.front, opts));
-      if (!single) anims.push(playMotion(back, ff.back, opts));
-      anims.push(playMotion(front.querySelector(".sh"), FRAMES.front, opts));
-      anims.push(playMotion(back.querySelector(".sh"), FRAMES.back, opts));
-      anims.push(playMotion(slotR.querySelector(".cast"), FRAMES.castR, opts));
-      if (!single) anims.push(playMotion(slotL.querySelector(".cast"), FRAMES.castL, opts));
+      anims.push(startTurnAnim(front, ff.front, opts));
+      if (!single) anims.push(startTurnAnim(back, ff.back, opts));
+      anims.push(startTurnAnim(front.querySelector(".sh"), FRAMES.front, opts));
+      anims.push(startTurnAnim(back.querySelector(".sh"), FRAMES.back, opts));
+      anims.push(startTurnAnim(slotR.querySelector(".cast"), FRAMES.castR, opts));
+      if (!single) anims.push(startTurnAnim(slotL.querySelector(".cast"), FRAMES.castL, opts));
       turnAnims = anims;
       if (!single) {
         var w = stackWidths(to);
-        stackL.style.transition = stackR.style.transition = "width " + dur + "ms ease";
-        stackL.style.width = w[0] + "px";
-        stackR.style.width = w[1] + "px";
+        if (VIDEO) {
+          anims.push(startTurnAnim(stackL, [{ width: stackL.style.width || "0px" }, { width: w[0] + "px" }], { duration: dur, easing: "ease", fill: "both" }));
+          anims.push(startTurnAnim(stackR, [{ width: stackR.style.width || "0px" }, { width: w[1] + "px" }], { duration: dur, easing: "ease", fill: "both" }));
+        } else {
+          stackL.style.transition = stackR.style.transition = "width " + dur + "ms ease";
+          stackL.style.width = w[0] + "px";
+          stackR.style.width = w[1] + "px";
+        }
       }
       slotPlan.forEach(function (s) { setPage(s[0], s[1]); });
       if (single) pg = to; else idx = to;
@@ -1190,7 +1211,7 @@
         return applyState().then(raf2).then(function () {
           if (gen !== turnGen) return;
           if (single) return;
-          var out = playMotion(leaf, [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 1 }], { duration: 160, easing: "linear", direction: "normal" });
+          var out = startTurnAnim(leaf, [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 1 }], { duration: 160, easing: "linear", fill: "both" });
           anims.push(out);
           return out.finished;
         }).then(function () {

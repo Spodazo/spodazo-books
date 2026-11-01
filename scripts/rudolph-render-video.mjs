@@ -327,17 +327,14 @@ function jpegSize(buf) {
   return { width: 0, height: 0 };
 }
 
-function writeConcat(listPath, frames, stoppedAt) {
+function writeConcat(listPath, frames) {
   const lines = ["ffconcat version 1.0"];
+  const duration = (1 / 30).toFixed(6);
   for (let i = 0; i < frames.length; i += 1) {
-    const nextAt = i + 1 < frames.length ? frames[i + 1].at : stoppedAt;
-    const duration = Math.max(0.001, (nextAt - frames[i].at) / 1000);
-    lines.push("file '" + frames[i].file.replace(/'/g, "'\\''") + "'");
-    lines.push("duration " + duration.toFixed(6));
+    lines.push("file '" + frames[i].replace(/'/g, "'\\''") + "'");
+    lines.push("duration " + duration);
   }
-  if (frames.length) {
-    lines.push("file '" + frames[frames.length - 1].file.replace(/'/g, "'\\''") + "'");
-  }
+  if (frames.length) lines.push("file '" + frames[frames.length - 1].replace(/'/g, "'\\''") + "'");
   fs.writeFileSync(listPath, lines.join("\n") + "\n");
 }
 
@@ -391,55 +388,32 @@ async function main() {
     }
     if (phase !== "ready" && phase !== "playing") throw new Error("Flipbook did not become ready (" + phase + ")");
 
+    await evaluate(session, "window.__rudolphVideoWarm()");
+    phase = await evaluate(session, "window.__rudolphVideoStart()");
     const frames = [];
-    let write = Promise.resolve();
     let frameSize = { width: 0, height: 0 };
-    session.on("Page.screencastFrame", (params) => {
-      const at = Date.now();
-      const buf = Buffer.from(params.data, "base64");
-      if (!frameSize.width) frameSize = jpegSize(buf);
+    const frameLimit = Math.ceil((secondsLimit || RUDOLPH_SONG_DURATION + 12) * 30);
+    while (frames.length < frameLimit) {
+      const shot = await session.send("Page.captureScreenshot", { format: "jpeg", quality: 92, fromSurface: true });
+      const buf = Buffer.from(shot.data, "base64");
+      if (!frameSize.width) {
+        frameSize = jpegSize(buf);
+        console.log("Frame size", frameSize.width + "×" + frameSize.height);
+      }
       const file = path.join(work, "f-" + String(frames.length).padStart(6, "0") + ".jpg");
-      const index = frames.length;
-      frames.push({ file, at });
-      write = write.then(() => fs.promises.writeFile(file, buf)).then(() => {
-        if (index === 0) console.log("Frame size", frameSize.width + "×" + frameSize.height);
-      });
-      session.send("Page.screencastFrameAck", { sessionId: params.sessionId }).catch(() => {});
-    });
-    await session.send("Page.startScreencast", {
-      format: "jpeg",
-      quality: 95,
-      maxWidth: WIDTH,
-      maxHeight: HEIGHT,
-      everyNthFrame: 1,
-    });
-    const firstDeadline = Date.now() + 10000;
-    while (!frames.length && Date.now() < firstDeadline) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-    if (!frames.length) throw new Error("Chrome did not send a video frame");
-    const audioAt = await evaluate(session, "window.__rudolphVideoStart()");
-    const lead = Math.max(0, (Number(audioAt) - frames[0].at) / 1000);
-    console.log("Music started", lead.toFixed(3), "s after the first frame");
-
-    const limit = secondsLimit || RUDOLPH_SONG_DURATION + 20;
-    const deadline = Date.now() + (limit + 15) * 1000;
-    while (Date.now() < deadline) {
-      phase = await evaluate(session, "window.__rudolphVideoPhase || ''");
-      const elapsed = (Date.now() - Number(audioAt)) / 1000;
-      if (secondsLimit && elapsed >= secondsLimit) break;
+      await fs.promises.writeFile(file, buf);
+      frames.push(file);
+      if (frames.length % 30 === 0) console.log("Recorded", (frames.length / 30).toFixed(0) + "s");
+      if (secondsLimit && frames.length >= secondsLimit * 30) break;
       if (!secondsLimit && phase === "done") break;
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      phase = await evaluate(session, "window.__rudolphVideoAdvance(1000/30)");
     }
-    const stoppedAt = Date.now();
-    await session.send("Page.stopScreencast").catch(() => {});
-    await write;
     if (frames.length < 2) throw new Error("Not enough frames were captured");
     console.log("Captured", frames.length, "frames");
 
     const listPath = path.join(work, "frames.txt");
-    writeConcat(listPath, frames, stoppedAt);
-    const videoDur = Math.max(0.5, (stoppedAt - frames[0].at) / 1000 - lead);
+    writeConcat(listPath, frames);
+    const videoDur = frames.length / 30;
     const sized = frameSize.width === WIDTH && frameSize.height === HEIGHT
       ? "scale=iw:ih:in_range=pc:out_range=tv"
       : "scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos:in_range=pc:out_range=tv";
@@ -447,7 +421,6 @@ async function main() {
     console.log("Encoding", outPath);
     await runFfmpeg([
       "-y",
-      "-ss", lead.toFixed(3),
       "-t", videoDur.toFixed(3),
       "-f", "concat",
       "-safe", "0",
