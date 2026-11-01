@@ -125,4 +125,12 @@ body { background: var(--ground); color: #fff; }
   color: #fff;
   outline: none;
 }
+/* YouTube capture: the book and the navy light only. */
+html.rudolph-video .flipbook-close,
+html.rudolph-video .arrow,
+html.rudolph-video .rudolph-sound,
+html.rudolph-video .rudolph-read-again,
+html.rudolph-video .landscape-hint {
+  display: none !important;
+}
 

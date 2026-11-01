@@ -14,7 +14,8 @@
     "check": "tsc",
     "test": "tsx --test server/*.test.ts shared/*.test.ts client/src/lib/*.test.ts client/src/flipbook/*.test.ts client/src/pages/*.test.ts",
     "db:push": "drizzle-kit push",
-    "postinstall": "node scripts/copy-pdfjs-assets.mjs"
+    "postinstall": "node scripts/copy-pdfjs-assets.mjs",
+    "video:rudolph": "tsx scripts/rudolph-render-video.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.9",

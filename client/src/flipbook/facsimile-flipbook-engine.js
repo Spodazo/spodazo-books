@@ -13,6 +13,7 @@
   var LIBRARY = cfg.libraryUrl || "/";
   var PAGE_LINKS = cfg.pageLinks && typeof cfg.pageLinks === "object" ? cfg.pageLinks : {};
   var SING = cfg.singAlong && typeof cfg.singAlong === "object" ? cfg.singAlong : null;
+  var VIDEO = cfg.video === true;
 
   var stage = document.getElementById("stage");
   var book = document.getElementById("book");
@@ -63,6 +64,13 @@
   var outroFollowPoll = null;
   var songEndedAt = 0;
   var soundBtn = document.getElementById("soundBtn");
+  var videoHoldTimer = 0;
+  if (VIDEO) {
+    document.documentElement.classList.add("rudolph-video");
+    window.__rudolphVideoPhase = "loading";
+    if (closeBtn) closeBtn.hidden = true;
+    if (soundBtn) soundBtn.hidden = true;
+  }
 
   function songTimingSeconds(audio) {
     if (!audio) return 0;
@@ -86,8 +94,17 @@
         return;
       }
       followSong();
+      maybeFinishVideo();
       if (pdfPageForTime(songTimingSeconds(song)) >= TOTAL) disarmOutroFollowPoll();
     }, 350);
+  }
+
+  function maybeFinishVideo() {
+    if (!VIDEO || videoHoldTimer || busy) return;
+    if (!songStarted || !atLastPage()) return;
+    videoHoldTimer = setTimeout(function () {
+      window.__rudolphVideoPhase = "done";
+    }, 2500);
   }
 
   function songAudioUrl() {
@@ -307,8 +324,33 @@
       songStarted = true;
       syncSoundButton();
       placeSoundButton();
-    }).catch(function () {});
+      if (VIDEO) {
+        window.__rudolphVideoPhase = "playing";
+        window.__rudolphVideoAudioAt = Date.now();
+        followSong();
+      }
+    }).catch(function () {
+      if (VIDEO) window.__rudolphVideoPhase = "error";
+    });
   }
+
+  window.__rudolphVideoStart = function () {
+    if (!VIDEO || !SING) return Promise.reject(new Error("video playback is off"));
+    startSongFromBeginning();
+    return new Promise(function (resolve, reject) {
+      var tries = 0;
+      var timer = setInterval(function () {
+        tries += 1;
+        if (window.__rudolphVideoPhase === "playing") {
+          clearInterval(timer);
+          resolve(window.__rudolphVideoAudioAt || Date.now());
+        } else if (window.__rudolphVideoPhase === "error" || tries > 80) {
+          clearInterval(timer);
+          reject(new Error("Rudolph music did not start"));
+        }
+      }, 50);
+    });
+  };
 
   function maybeStartSongOnFirstPage() {
     if (!SING || songStarted || songFollowTurn) return;
@@ -329,6 +371,7 @@
     }
     maybeStartSongOnFirstPage();
     syncSongToManualPage();
+    maybeFinishVideo();
   }
 
   function primeSongTime() {
@@ -478,6 +521,7 @@
       pair = SP[idx] || [0, 0];
       if (pair[1] > 0 && pair[1] < target) go(1, true);
     }
+    maybeFinishVideo();
   }
 
   function stopSong() {
@@ -674,7 +718,7 @@
     if (!SING) return;
     var p = pageEl(host);
     var el = p.querySelector(".rudolph-read-again");
-    if (n !== TOTAL) {
+    if (n !== TOTAL || VIDEO) {
       if (el) el.remove();
       return;
     }
@@ -977,6 +1021,87 @@
 
   function rot(a) { return "perspective(" + Math.round(pw * 3.4) + "px) rotateY(" + a + "deg)"; }
 
+  function videoBezier(u) {
+    var x1 = 0.62, y1 = 0.04, x2 = 0.3, y2 = 1;
+    function curve(t, a, b) {
+      var m = 1 - t;
+      return 3 * m * m * t * a + 3 * m * t * t * b + t * t * t;
+    }
+    function slope(t, a, b) {
+      var m = 1 - t;
+      return 3 * m * m * a + 6 * m * t * (b - a) + 3 * t * t * (1 - b);
+    }
+    var t = u;
+    var i;
+    for (i = 0; i < 8; i++) {
+      var dx = slope(t, x1, x2);
+      if (Math.abs(dx) < 1e-6) break;
+      t = Math.min(1, Math.max(0, t - (curve(t, x1, x2) - u) / dx));
+    }
+    return curve(t, y1, y2);
+  }
+
+  function videoSample(frames, u) {
+    var i, o0, o1, span, t, a, b, out, angleA, angleB;
+    function offsetOf(frame, index) {
+      if (typeof frame.offset === "number") return frame.offset;
+      if (frames.length < 2) return 0;
+      return index / (frames.length - 1);
+    }
+    a = frames[0];
+    b = frames[frames.length - 1];
+    o0 = 0;
+    o1 = 1;
+    for (i = 0; i < frames.length - 1; i++) {
+      o0 = offsetOf(frames[i], i);
+      o1 = offsetOf(frames[i + 1], i + 1);
+      if (u >= o0 && u <= o1) {
+        a = frames[i];
+        b = frames[i + 1];
+        break;
+      }
+    }
+    span = (o1 == null ? 1 : o1) - (o0 == null ? 0 : o0);
+    t = span ? (u - (o0 || 0)) / span : 1;
+    out = {};
+    if (a.transform || b.transform) {
+      angleA = /rotateY\(([-\d.]+)deg\)/.exec(a.transform || "");
+      angleB = /rotateY\(([-\d.]+)deg\)/.exec(b.transform || "");
+      if (angleA && angleB) {
+        out.transform = rot(Number(angleA[1]) + (Number(angleB[1]) - Number(angleA[1])) * t);
+      } else out.transform = t < 1 ? a.transform : b.transform;
+    }
+    if (a.opacity != null || b.opacity != null) {
+      out.opacity = Number(a.opacity == null ? b.opacity : a.opacity) +
+        (Number(b.opacity == null ? a.opacity : b.opacity) - Number(a.opacity == null ? b.opacity : a.opacity)) * t;
+    }
+    return out;
+  }
+
+  function playMotion(el, keyframes, opts) {
+    if (!VIDEO || !keyframes || !keyframes.length) return el.animate(keyframes, opts);
+    var start = performance.now();
+    var stopped = false;
+    var resolve;
+    var finished = new Promise(function (res) { resolve = res; });
+    function frame(now) {
+      if (stopped) return;
+      var p = Math.min(1, (now - start) / opts.duration);
+      if (opts.direction === "reverse") p = 1 - p;
+      p = Math.min(1, Math.max(0, p));
+      var sample = videoSample(keyframes, opts.easing === "linear" ? p : videoBezier(p));
+      if (sample.transform) el.style.transform = sample.transform;
+      if (sample.opacity != null) el.style.opacity = String(sample.opacity);
+      if ((opts.direction === "reverse" ? (now - start) < opts.duration : p < 1)) requestAnimationFrame(frame);
+      else resolve();
+    }
+    requestAnimationFrame(frame);
+    return {
+      finished: finished,
+      cancel: function () { stopped = true; resolve(); },
+    };
+  }
+
   function faceFrames(isSingle) {
     if (isSingle) {
       return {
@@ -1044,12 +1169,12 @@
       var opts = { duration: dur, easing: "cubic-bezier(.62,.04,.3,1)", fill: "both", direction: dir > 0 ? "normal" : "reverse" };
       var anims = [];
       var ff = faceFrames(single);
-      anims.push(front.animate(ff.front, opts));
-      if (!single) anims.push(back.animate(ff.back, opts));
-      anims.push(front.querySelector(".sh").animate(FRAMES.front, opts));
-      anims.push(back.querySelector(".sh").animate(FRAMES.back, opts));
-      anims.push(slotR.querySelector(".cast").animate(FRAMES.castR, opts));
-      if (!single) anims.push(slotL.querySelector(".cast").animate(FRAMES.castL, opts));
+      anims.push(playMotion(front, ff.front, opts));
+      if (!single) anims.push(playMotion(back, ff.back, opts));
+      anims.push(playMotion(front.querySelector(".sh"), FRAMES.front, opts));
+      anims.push(playMotion(back.querySelector(".sh"), FRAMES.back, opts));
+      anims.push(playMotion(slotR.querySelector(".cast"), FRAMES.castR, opts));
+      if (!single) anims.push(playMotion(slotL.querySelector(".cast"), FRAMES.castL, opts));
       turnAnims = anims;
       if (!single) {
         var w = stackWidths(to);
@@ -1065,7 +1190,7 @@
         return applyState().then(raf2).then(function () {
           if (gen !== turnGen) return;
           if (single) return;
-          var out = leaf.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: "linear", fill: "forwards" });
+          var out = playMotion(leaf, [{ opacity: 1, offset: 0 }, { opacity: 0, offset: 1 }], { duration: 160, easing: "linear", direction: "normal" });
           anims.push(out);
           return out.finished;
         }).then(function () {
@@ -1195,6 +1320,7 @@
       return el.closest && (el.closest(".flipbook-close") || el.closest(".hot") || el.closest(".arrow") || el.closest(".rudolph-sound"));
     },
     onTap: function (e) {
+      if (VIDEO) return;
       if (turnsSuppressed() || landPage) return;
       var r = stage.getBoundingClientRect();
       var onRight = e.clientX - r.left >= r.width / 2;
@@ -1210,6 +1336,7 @@
     wireFlipArrows(arrL, arrR, { start: goToStart, end: goToEnd, turn: turn });
   }
   window.addEventListener("keydown", function (e) {
+    if (VIDEO) return;
     if (e.key === "ArrowRight" || e.key === "PageDown") { if (atLastPage()) restart(); else turn(1); }
     else if (e.key === "ArrowLeft" || e.key === "PageUp") turn(-1);
   });
@@ -1261,6 +1388,18 @@
     new Promise(function (r) { setTimeout(r, 4000); }),
   ]).then(function () {
     book.classList.add("ready");
+    if (VIDEO && SING) {
+      ensureSong();
+      var armed = false;
+      function armVideo() {
+        if (armed) return;
+        armed = true;
+        window.__rudolphVideoPhase = "ready";
+      }
+      if (song.readyState >= 3) armVideo();
+      else song.addEventListener("canplaythrough", armVideo, { once: true });
+      setTimeout(armVideo, 8000);
+    }
     requestAnimationFrame(function () {
       requestAnimationFrame(signalReaderReady);
     });

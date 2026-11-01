@@ -8,3 +8,4 @@ dist
 .railway
 *.tar.gz
 kit-src
+out
