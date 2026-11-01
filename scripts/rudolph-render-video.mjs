@@ -6,7 +6,7 @@
  * The open book is two 1800×2160 pages, so that frame shows them almost at full size.
  *
  *   npm run video:rudolph
- *   npm run video:rudolph -- --seconds 8 --preset ultrafast
+ *   npm run video:rudolph -- --seconds 8 --hold 0 --preset ultrafast
  *   npm run video:rudolph -- --preset slow
  *
  * Output: out/rudolph-the-red-nosed-reindeer-2160p.mp4
@@ -36,6 +36,7 @@ function arg(name, fallback) {
 }
 
 const secondsLimit = Number(arg("--seconds", "0")) || 0;
+const holdSeconds = Math.max(0, Number(arg("--hold", secondsLimit ? "0" : "5")) || 0);
 const preset = arg("--preset", "medium");
 const outPath = path.resolve(arg("--out", path.join(root, "out/rudolph-the-red-nosed-reindeer-2160p.mp4")));
 
@@ -329,12 +330,11 @@ function jpegSize(buf) {
 
 function writeConcat(listPath, frames) {
   const lines = ["ffconcat version 1.0"];
-  const duration = (1 / 30).toFixed(6);
   for (let i = 0; i < frames.length; i += 1) {
-    lines.push("file '" + frames[i].replace(/'/g, "'\\''") + "'");
-    lines.push("duration " + duration);
+    lines.push("file '" + frames[i].file.replace(/'/g, "'\\''") + "'");
+    lines.push("duration " + frames[i].duration.toFixed(6));
   }
-  if (frames.length) lines.push("file '" + frames[frames.length - 1].replace(/'/g, "'\\''") + "'");
+  if (frames.length) lines.push("file '" + frames[frames.length - 1].file.replace(/'/g, "'\\''") + "'");
   fs.writeFileSync(listPath, lines.join("\n") + "\n");
 }
 
@@ -389,11 +389,9 @@ async function main() {
     if (phase !== "ready" && phase !== "playing") throw new Error("Flipbook did not become ready (" + phase + ")");
 
     await evaluate(session, "window.__rudolphVideoWarm()");
-    phase = await evaluate(session, "window.__rudolphVideoStart()");
     const frames = [];
     let frameSize = { width: 0, height: 0 };
-    const frameLimit = Math.ceil((secondsLimit || RUDOLPH_SONG_DURATION + 12) * 30);
-    while (frames.length < frameLimit) {
+    async function grab(duration) {
       const shot = await session.send("Page.captureScreenshot", { format: "jpeg", quality: 92, fromSurface: true });
       const buf = Buffer.from(shot.data, "base64");
       if (!frameSize.width) {
@@ -402,9 +400,20 @@ async function main() {
       }
       const file = path.join(work, "f-" + String(frames.length).padStart(6, "0") + ".jpg");
       await fs.promises.writeFile(file, buf);
-      frames.push(file);
-      if (frames.length % 30 === 0) console.log("Recorded", (frames.length / 30).toFixed(0) + "s");
-      if (secondsLimit && frames.length >= secondsLimit * 30) break;
+      frames.push({ file, duration });
+    }
+    if (holdSeconds > 0) {
+      await grab(holdSeconds);
+      console.log("Cover held", holdSeconds + "s");
+    }
+    phase = await evaluate(session, "window.__rudolphVideoStart()");
+    const frameLimit = Math.ceil((secondsLimit || RUDOLPH_SONG_DURATION + 12) * 30);
+    let recorded = 0;
+    while (recorded < frameLimit) {
+      await grab(1 / 30);
+      recorded += 1;
+      if (recorded % 30 === 0) console.log("Recorded", (holdSeconds + recorded / 30).toFixed(0) + "s");
+      if (secondsLimit && recorded >= secondsLimit * 30) break;
       if (!secondsLimit && phase === "done") break;
       phase = await evaluate(session, "window.__rudolphVideoAdvance(1000/30)");
     }
@@ -413,7 +422,7 @@ async function main() {
 
     const listPath = path.join(work, "frames.txt");
     writeConcat(listPath, frames);
-    const videoDur = frames.length / 30;
+    const videoDur = frames.reduce((sum, frame) => sum + frame.duration, 0);
     const sized = frameSize.width === WIDTH && frameSize.height === HEIGHT
       ? "scale=iw:ih:in_range=pc:out_range=tv"
       : "scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos:in_range=pc:out_range=tv";
@@ -425,6 +434,7 @@ async function main() {
       "-f", "concat",
       "-safe", "0",
       "-i", listPath,
+      "-itsoffset", holdSeconds.toFixed(3),
       "-i", audioPath,
       "-filter_complex", "[0:v]" + picture + "[v];[1:a]apad=pad_dur=8[a]",
       "-map", "[v]",

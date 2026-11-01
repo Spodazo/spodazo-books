@@ -133,4 +133,5 @@ html.rudolph-video .rudolph-read-again,
 html.rudolph-video .landscape-hint {
   display: none !important;
 }
+html.rudolph-video #book { transition: none; }
 

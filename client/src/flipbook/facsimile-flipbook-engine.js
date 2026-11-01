@@ -107,38 +107,100 @@
     videoHoldUntil = videoClockMs + 2500;
   }
 
-  function videoAnimsPending() {
-    if (!busy) return false;
-    var anims = document.getAnimations();
-    for (var i = 0; i < anims.length; i++) {
-      var state = anims[i].playState;
-      if (state === "paused" || state === "running") return false;
+  var videoMotions = [];
+
+  function videoCurve(x1, y1, x2, y2, x) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    var t = x;
+    var i;
+    for (i = 0; i < 8; i++) {
+      var mt = 1 - t;
+      var xEst = 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t;
+      var dx = 3 * mt * mt * x1 + 6 * mt * t * (x2 - x1) + 3 * t * t * (1 - x2);
+      if (Math.abs(dx) < 1e-6) break;
+      t = Math.min(1, Math.max(0, t - (xEst - x) / dx));
     }
-    return true;
+    var mt2 = 1 - t;
+    return 3 * mt2 * mt2 * t * y1 + 3 * mt2 * t * t * y2 + t * t * t;
   }
 
-  function pauseVideoAnims() {
-    var anims = document.getAnimations();
-    for (var i = 0; i < anims.length; i++) {
-      if (anims[i].playState === "running") {
-        anims[i].pause();
-        try { anims[i].currentTime = 0; } catch (e) {}
+  function videoSample(frames, u) {
+    var i;
+    var o0 = 0;
+    var o1 = 1;
+    var a = frames[0];
+    var b = frames[frames.length - 1];
+    function offsetOf(frame, index) {
+      if (typeof frame.offset === "number") return frame.offset;
+      if (frames.length < 2) return 0;
+      return index / (frames.length - 1);
+    }
+    for (i = 0; i < frames.length - 1; i++) {
+      o0 = offsetOf(frames[i], i);
+      o1 = offsetOf(frames[i + 1], i + 1);
+      if (u >= o0 && u <= o1) {
+        a = frames[i];
+        b = frames[i + 1];
+        break;
       }
     }
+    var span = o1 - o0;
+    var t = span ? (u - o0) / span : 1;
+    var out = {};
+    if (a.transform || b.transform) {
+      var angleA = /rotateY\(([-\d.]+)deg\)/.exec(a.transform || "");
+      var angleB = /rotateY\(([-\d.]+)deg\)/.exec(b.transform || "");
+      if (angleA && angleB) out.transform = rot(Number(angleA[1]) + (Number(angleB[1]) - Number(angleA[1])) * t);
+      else out.transform = t < 1 ? a.transform : b.transform;
+    }
+    if (a.opacity != null || b.opacity != null) {
+      var oa = a.opacity == null ? b.opacity : a.opacity;
+      var ob = b.opacity == null ? a.opacity : b.opacity;
+      if (span < 0.02 && Math.abs(oa - ob) > 0.5) out.opacity = t < 1 ? oa : ob;
+      else out.opacity = oa + (ob - oa) * t;
+    }
+    if (a.width || b.width) {
+      var wa = /([\d.]+)px/.exec(a.width || "");
+      var wb = /([\d.]+)px/.exec(b.width || "");
+      if (wa && wb) out.width = (Number(wa[1]) + (Number(wb[1]) - Number(wa[1])) * t) + "px";
+    }
+    return out;
   }
 
-  function stepVideoAnims(ms) {
-    var anims = document.getAnimations();
-    for (var i = 0; i < anims.length; i++) {
-      var anim = anims[i];
-      if (anim.playState !== "paused" && anim.playState !== "running") continue;
-      var timing = anim.effect && anim.effect.getComputedTiming();
-      var dur = timing && timing.duration;
-      if (typeof dur !== "number" || !isFinite(dur)) continue;
-      var next = (anim.currentTime || 0) + ms;
-      if (next >= dur) anim.finish();
-      else anim.currentTime = next;
+  function applyVideoMotion(motion) {
+    var t = Math.min(1, Math.max(0, motion.elapsed / motion.duration));
+    if (motion.reverse) t = 1 - t;
+    var u = motion.curve ? motion.curve(t) : t;
+    var sample = videoSample(motion.frames, u);
+    if (sample.transform) motion.el.style.transform = sample.transform;
+    if (sample.opacity != null) {
+      motion.el.style.opacity = String(sample.opacity);
+      motion.el.style.visibility = sample.opacity < 0.02 ? "hidden" : "visible";
     }
+    if (sample.width) motion.el.style.width = sample.width;
+  }
+
+  function stepVideoMotions(ms) {
+    var done = [];
+    var i;
+    for (i = 0; i < videoMotions.length; i++) {
+      var motion = videoMotions[i];
+      motion.elapsed += ms;
+      if (motion.elapsed >= motion.duration) {
+        motion.elapsed = motion.duration;
+        applyVideoMotion(motion);
+        done.push(motion);
+      } else applyVideoMotion(motion);
+    }
+    for (i = 0; i < done.length; i++) {
+      videoMotions = videoMotions.filter(function (motion) { return motion !== done[i]; });
+      done[i].resolve();
+    }
+  }
+
+  function videoAnimsPending() {
+    return busy && !videoMotions.length;
   }
 
   function afterVideoPaint(value) {
@@ -151,7 +213,6 @@
     return new Promise(function (resolve) {
       var spins = 0;
       function check() {
-        pauseVideoAnims();
         spins += 1;
         if (videoHoldUntil && videoClockMs >= videoHoldUntil) window.__rudolphVideoPhase = "done";
         if (videoAnimsPending() && spins < 400) {
@@ -180,7 +241,7 @@
         song.paused = false;
       }
     }
-    stepVideoAnims(ms);
+    stepVideoMotions(ms);
     followSong();
     maybeFinishVideo();
     return waitForVideoStill();
@@ -1110,12 +1171,27 @@
 
   function startTurnAnim(el, frames, opts) {
     if (!el || !frames || !frames.length) return { finished: Promise.resolve(), cancel: function () {} };
-    var anim = el.animate(frames, opts);
-    if (VIDEO) {
-      anim.pause();
-      try { anim.currentTime = 0; } catch (e) {}
-    }
-    return anim;
+    if (!VIDEO) return el.animate(frames, opts);
+    var motion = {
+      el: el,
+      frames: frames,
+      duration: opts.duration,
+      reverse: opts.direction === "reverse",
+      elapsed: 0,
+      curve: opts.easing === "linear" ? null : (opts.easing === "ease" ? function (t) { return videoCurve(0.25, 0.1, 0.25, 1, t); } : function (t) { return videoCurve(0.62, 0.04, 0.3, 1, t); }),
+    };
+    var resolve;
+    motion.finished = new Promise(function (res) { resolve = res; });
+    motion.resolve = resolve;
+    applyVideoMotion(motion);
+    videoMotions.push(motion);
+    return {
+      finished: motion.finished,
+      cancel: function () {
+        videoMotions = videoMotions.filter(function (item) { return item !== motion; });
+        resolve();
+      },
+    };
   }
 
   function faceFrames(isSingle) {
