@@ -10,6 +10,8 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate {
     private let queue = DispatchQueue(label: "rudolph-window-record")
     private var started = false
     private var sessionStarted = false
+    private var expectedWidth = 0
+    private var expectedHeight = 0
 
     init(url: URL, width: Int, height: Int) throws {
         writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
@@ -31,17 +33,26 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate {
     func stream(_ stream: SCStream, didOutputSampleBuffer sample: CMSampleBuffer, of type: SCStreamOutputType) {
         guard type == .screen, CMSampleBufferDataIsReady(sample) else { return }
         queue.sync {
-            if !started {
-                writer.startWriting()
-                started = true
+            if !self.started {
+                self.writer.startWriting()
+                self.started = true
             }
-            guard input.isReadyForMoreMediaData, writer.status == .writing || !sessionStarted else { return }
-            if !sessionStarted {
-                writer.startSession(atSourceTime: CMSampleBufferGetPresentationTimeStamp(sample))
-                sessionStarted = true
+            let time = CMSampleBufferGetPresentationTimeStamp(sample)
+            guard time.isValid, time.isNumeric else { return }
+            guard let image = CMSampleBufferGetImageBuffer(sample) else { return }
+            let pixelWidth = CVPixelBufferGetWidth(image)
+            let pixelHeight = CVPixelBufferGetHeight(image)
+            if self.sessionStarted, pixelWidth != self.expectedWidth || pixelHeight != self.expectedHeight { return }
+            guard self.writer.status == .writing, self.input.isReadyForMoreMediaData else { return }
+            if !self.sessionStarted {
+                self.expectedWidth = pixelWidth
+                self.expectedHeight = pixelHeight
+                self.writer.startSession(atSourceTime: time)
+                self.sessionStarted = true
             }
-            guard writer.status == .writing else { return }
-            input.append(sample)
+            if !self.input.append(sample) {
+                fputs("append failed \(self.writer.error?.localizedDescription ?? "")\n", stderr)
+            }
         }
     }
 
@@ -96,7 +107,7 @@ func record() async {
             config.showsCursor = false
             config.capturesAudio = false
             config.queueDepth = 6
-            config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
+            config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
             config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
             let recorder = try Recorder(url: url, width: width, height: height)
             let stream = SCStream(filter: filter, configuration: config, delegate: recorder)

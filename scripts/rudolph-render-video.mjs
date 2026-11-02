@@ -444,6 +444,18 @@ async function main() {
       const doc = frame && frame.contentDocument;
       const win = frame && frame.contentWindow;
       add(doc);
+      if (win && !win.__rudolphSmoothTurn) {
+        win.__rudolphSmoothTurn = true;
+        const original = win.Element.prototype.animate;
+        win.Element.prototype.animate = function (frames, options) {
+          const next = options && typeof options === "object" ? Object.assign({}, options) : options;
+          if (next && next.duration === 1000) {
+            next.duration = 1200;
+            next.easing = "linear";
+          }
+          return original.call(this, frames, next);
+        };
+      }
       if (!doc || !win || win.__rudolphInset) return true;
       win.__rudolphInset = function () {
         const book = doc.getElementById("book");
@@ -456,11 +468,15 @@ async function main() {
         const sh = stage.clientHeight;
         if (!bw || !bh || !sw || !sh) return;
         const scale = Math.min((sw - margin * 2) / bw, (sh - margin * 2) / bh);
-        book.style.transformOrigin = "center center";
-        book.style.transform = "scale(" + scale + ")";
+        if (!(scale > 0) || scale >= 0.995) return;
+        const width = bw * scale;
+        const height = bh * scale;
+        book.style.width = width + "px";
+        book.style.height = height + "px";
+        book.style.left = ((sw - width) / 2) + "px";
+        book.style.top = ((sh - height) / 2) + "px";
       };
       win.__rudolphInset();
-      win.setInterval(win.__rudolphInset, 250);
       return true;
     })()`);
     await sleep(500);
@@ -547,7 +563,7 @@ async function main() {
       "-i", captured,
       "-itsoffset", lead.toFixed(3),
       "-i", audioPath,
-      "-filter_complex", "[0:v]scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos,crop=" + WIDTH + ":" + (HEIGHT - 74) + ":0:74,format=yuv420p,fps=60[v];[1:a]apad=pad_dur=8[a]",
+      "-filter_complex", "[0:v]scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos,crop=" + WIDTH + ":" + (HEIGHT - 74) + ":0:74,format=yuv420p,fps=30[v];[1:a]apad=pad_dur=8[a]",
       "-map", "[v]",
       "-map", "[a]",
       "-c:v", "libx264",
@@ -556,7 +572,7 @@ async function main() {
       "-pix_fmt", "yuv420p",
       "-profile:v", "high",
       "-level:v", "5.2",
-      "-r", "60",
+      "-r", "30",
       "-fps_mode", "cfr",
       "-colorspace", "bt709",
       "-color_primaries", "bt709",
