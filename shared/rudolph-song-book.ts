@@ -2,7 +2,7 @@ import { RUDOLPH_STORY_LAST_WORD_END_AT } from "./rudolph-story-sync";
 
 /** Rudolph v3 PDF sing-along (28 leaves). Story pages 1–19 map to PDF pages 6–24. */
 export const RUDOLPH_SONG_AUDIO_ASSET = "rudolph-the-red-nosed-reindeer.mp3";
-export const RUDOLPH_SONG_AUDIO_URL = `/media/audio/${RUDOLPH_SONG_AUDIO_ASSET}?v=20261101`;
+export const RUDOLPH_SONG_AUDIO_URL = `/media/audio/${RUDOLPH_SONG_AUDIO_ASSET}?v=20261102`;
 
 export const RUDOLPH_PDF_PAGE_COUNT = 28;
 /** Printed story page 1 (“Up on the silver hills…”) is PDF page 6. */
