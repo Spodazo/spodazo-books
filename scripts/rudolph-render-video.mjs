@@ -1,18 +1,14 @@
 /**
- * Record Rudolph’s live flipbook (navy light, no stars, no sound button)
- * turning in time with the song, and write a YouTube master.
- *
- * YouTube’s highest usual upload size is 3840×2160 (4K), 16:9, H.264 + AAC.
- * The open book is two 1800×2160 pages, so that frame shows them almost at full size.
+ * Screen-record the live Rudolph book at https://books.spodazo.com/Rudolph.
+ * Chrome plays the real page turns. This script only records that window.
  *
  *   npm run video:rudolph
- *   npm run video:rudolph -- --seconds 8 --hold 0 --preset ultrafast
- *   npm run video:rudolph -- --preset slow
+ *   npm run video:rudolph -- --seconds 12
  *
  * Output: out/rudolph-the-red-nosed-reindeer-2160p.mp4
  */
 import crypto from "node:crypto";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import net from "node:net";
@@ -36,7 +32,8 @@ function arg(name, fallback) {
 }
 
 const secondsLimit = Number(arg("--seconds", "0")) || 0;
-const holdSeconds = Math.max(0, Number(arg("--hold", secondsLimit ? "0" : "5")) || 0);
+const holdSeconds = Math.max(0, Number(arg("--hold", "3")) || 0);
+const bookUrl = "https://books.spodazo.com/Rudolph";
 const preset = arg("--preset", "medium");
 const outPath = path.resolve(arg("--out", path.join(root, "out/rudolph-the-red-nosed-reindeer-2160p.mp4")));
 
@@ -106,7 +103,6 @@ function startServer(html) {
 function launchChrome(url) {
   const userDir = fs.mkdtempSync(path.join(os.tmpdir(), "rudolph-video-chrome-"));
   const chrome = spawn(chromePath, [
-    "--headless=new",
     "--remote-debugging-port=0",
     "--user-data-dir=" + userDir,
     "--autoplay-policy=no-user-gesture-required",
@@ -116,8 +112,9 @@ function launchChrome(url) {
     "--disable-backgrounding-occluded-windows",
     "--no-first-run",
     "--no-default-browser-check",
-    "--window-size=" + WIDTH + "," + HEIGHT,
-    url,
+    "--app=" + url,
+    "--window-position=40,40",
+    "--window-size=1680,945",
   ], { stdio: ["ignore", "pipe", "pipe"] });
   let log = "";
   const ready = new Promise((resolve, reject) => {
@@ -354,17 +351,69 @@ function runFfmpeg(args) {
   });
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function chromeWindowBox(session) {
+  const { windowId } = await session.send("Browser.getWindowForTarget");
+  const { bounds } = await session.send("Browser.getWindowBounds", { windowId });
+  const scale = 2;
+  const width = Math.round(bounds.width * scale);
+  const height = Math.round(bounds.height * scale);
+  return {
+    x: Math.max(0, Math.round((bounds.left || 0) * scale)),
+    y: Math.max(0, Math.round((bounds.top || 0) * scale)),
+    w: width - width % 2,
+    h: height - height % 2,
+  };
+}
+
+function startScreenCapture(box, file) {
+  const child = spawn("ffmpeg", [
+    "-y",
+    "-f", "avfoundation",
+    "-framerate", "60",
+    "-capture_cursor", "0",
+    "-i", "3:none",
+    "-vf", "crop=" + box.w + ":" + box.h + ":" + box.x + ":" + box.y + ",format=yuv420p",
+    "-c:v", "h264_videotoolbox",
+    "-b:v", "45M",
+    "-pix_fmt", "yuv420p",
+    file,
+  ], { stdio: ["pipe", "ignore", "pipe"] });
+  let err = "";
+  child.stderr.on("data", (chunk) => {
+    err += chunk.toString();
+    if (err.length > 8000) err = err.slice(-8000);
+  });
+  const closed = new Promise((resolve, reject) => {
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0 || code === 255 || code === null) resolve();
+      else reject(new Error("screen capture failed\n" + err));
+    });
+  });
+  return {
+    child,
+    closed,
+    stop() {
+      try { child.stdin.write("q"); } catch { /* already closed */ }
+      setTimeout(() => { try { child.kill("SIGINT"); } catch { /* already gone */ } }, 1500);
+    },
+  };
+}
+
 async function main() {
   if (!fs.existsSync(chromePath)) throw new Error("Google Chrome is not installed");
   if (!fs.existsSync(audioPath)) throw new Error("Missing " + audioPath);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "rudolph-video-"));
-  const html = videoDocument();
-  const { server, port } = await startServer(html);
-  const url = "http://127.0.0.1:" + port + "/video.html";
-  console.log("Recording", WIDTH + "×" + HEIGHT, "from", url);
-  const launched = launchChrome(url);
+  const captured = path.join(work, "screen.mp4");
+  console.log("Opening", bookUrl);
+  const launched = launchChrome(bookUrl);
   let session;
+  let capture;
   try {
     const browserWs = await launched.ready;
     const pageWs = await pageSocket(browserWs);
@@ -372,71 +421,99 @@ async function main() {
     await session.opened;
     await session.send("Page.enable");
     await session.send("Runtime.enable");
-    await session.send("Emulation.setDeviceMetricsOverride", {
-      width: WIDTH,
-      height: HEIGHT,
-      deviceScaleFactor: 1,
-      mobile: false,
-    });
-    await session.send("Page.reload", { ignoreCache: true });
-    const readyDeadline = Date.now() + 30000;
-    let phase = "";
+    await session.send("Page.bringToFront");
+    const readyDeadline = Date.now() + 45000;
+    let spot = null;
     while (Date.now() < readyDeadline) {
-      phase = await evaluate(session, "window.__rudolphVideoPhase || ''");
-      if (phase === "ready" || phase === "playing") break;
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      spot = await evaluate(session, `(() => {
+        const frame = document.querySelector("iframe");
+        const doc = frame && frame.contentDocument;
+        const book = doc && doc.getElementById("book");
+        if (!book || !book.classList.contains("ready")) return null;
+        const fr = frame.getBoundingClientRect();
+        const br = book.getBoundingClientRect();
+        if (br.width < 200) return null;
+        return { x: fr.left + br.left + br.width * 0.75, y: fr.top + br.top + br.height / 2 };
+      })()`);
+      if (spot) break;
+      await sleep(300);
     }
-    if (phase !== "ready" && phase !== "playing") throw new Error("Flipbook did not become ready (" + phase + ")");
-
-    await evaluate(session, "window.__rudolphVideoWarm()");
-    const frames = [];
-    let frameSize = { width: 0, height: 0 };
-    async function grab(duration) {
-      const shot = await session.send("Page.captureScreenshot", { format: "jpeg", quality: 92, fromSurface: true });
-      const buf = Buffer.from(shot.data, "base64");
-      if (!frameSize.width) {
-        frameSize = jpegSize(buf);
-        console.log("Frame size", frameSize.width + "×" + frameSize.height);
+    if (!spot) throw new Error("The Rudolph book did not open");
+    await sleep(700);
+    const box = await chromeWindowBox(session);
+    console.log("Recording the Chrome window", box.w + "×" + box.h);
+    capture = startScreenCapture(box, captured);
+    const captureStart = Date.now();
+    await sleep(holdSeconds * 1000);
+    await session.send("Input.dispatchMouseEvent", { type: "mousePressed", x: spot.x, y: spot.y, button: "left", clickCount: 1 });
+    await session.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: spot.x, y: spot.y, button: "left", clickCount: 1 });
+    await evaluate(session, `(() => {
+      const frame = document.querySelector("iframe");
+      const doc = frame && frame.contentDocument;
+      const stage = doc && doc.getElementById("stage");
+      if (!stage) return "no-stage";
+      const r = stage.getBoundingClientRect();
+      const x = r.left + r.width * 0.82;
+      const y = r.top + r.height * 0.55;
+      const opts = { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0 };
+      stage.dispatchEvent(new PointerEvent("pointerdown", opts));
+      stage.dispatchEvent(new PointerEvent("pointerup", opts));
+      const arrow = doc.getElementById("arrR");
+      if (arrow) arrow.click();
+      frame.contentWindow.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      return "tapped";
+    })()`);
+    console.log("Turned the cover");
+    const songState = `(() => {
+      const frame = document.querySelector("iframe");
+      const doc = frame && frame.contentDocument;
+      const btn = doc && doc.getElementById("soundBtn");
+      const audio = doc && doc.querySelector("audio");
+      const imgs = doc ? Array.from(doc.querySelectorAll("#book img")).map((img) => (img.currentSrc || img.src || "").split("/").pop()) : [];
+      return { label: btn ? btn.textContent : "", pressed: btn ? btn.getAttribute("aria-pressed") : "", t: audio ? audio.currentTime : -1, paused: audio ? audio.paused : true, imgs: imgs.slice(0, 4) };
+    })()`;
+    let musicAt = 0;
+    const musicDeadline = Date.now() + 15000;
+    let lastState = null;
+    while (Date.now() < musicDeadline) {
+      lastState = await evaluate(session, songState);
+      const playing = lastState && (lastState.label === "Pause" || lastState.pressed === "true" || (lastState.t > 0.05 && !lastState.paused));
+      if (playing) {
+        musicAt = Date.now();
+        break;
       }
-      const file = path.join(work, "f-" + String(frames.length).padStart(6, "0") + ".jpg");
-      await fs.promises.writeFile(file, buf);
-      frames.push({ file, duration });
+      await sleep(200);
     }
-    if (holdSeconds > 0) {
-      await grab(holdSeconds);
-      console.log("Cover held", holdSeconds + "s");
+    if (!musicAt) {
+      const state = await evaluate(session, `(() => {
+        const doc = document.querySelector("iframe") && document.querySelector("iframe").contentDocument;
+        if (!doc) return { frame: false };
+        const audio = doc.querySelector("audio");
+        return {
+          frame: true,
+          imgs: Array.from(doc.querySelectorAll("#slotL img, #slotR img")).map((img) => img.getAttribute("src")),
+          button: doc.getElementById("soundBtn") && doc.getElementById("soundBtn").textContent,
+          hasMusic: doc.documentElement.innerHTML.includes("Start Music"),
+          arrow: doc.getElementById("arrR") && doc.getElementById("arrR").className,
+          audio: audio ? { paused: audio.paused, t: audio.currentTime } : null,
+        };
+      })()`);
+      throw new Error("The book did not start the music " + JSON.stringify(state));
     }
-    phase = await evaluate(session, "window.__rudolphVideoStart()");
-    const frameLimit = Math.ceil((secondsLimit || RUDOLPH_SONG_DURATION + 12) * 30);
-    let recorded = 0;
-    while (recorded < frameLimit) {
-      await grab(1 / 30);
-      recorded += 1;
-      if (recorded % 30 === 0) console.log("Recorded", (holdSeconds + recorded / 30).toFixed(0) + "s");
-      if (secondsLimit && recorded >= secondsLimit * 30) break;
-      if (!secondsLimit && phase === "done") break;
-      phase = await evaluate(session, "window.__rudolphVideoAdvance(1000/30)");
-    }
-    if (frames.length < 2) throw new Error("Not enough frames were captured");
-    console.log("Captured", frames.length, "frames");
-
-    const listPath = path.join(work, "frames.txt");
-    writeConcat(listPath, frames);
-    const videoDur = frames.reduce((sum, frame) => sum + frame.duration, 0);
-    const sized = frameSize.width === WIDTH && frameSize.height === HEIGHT
-      ? "scale=iw:ih:in_range=pc:out_range=tv"
-      : "scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos:in_range=pc:out_range=tv";
-    const picture = sized + ",format=yuv420p,fps=30";
+    const lead = (musicAt - captureStart) / 1000;
+    console.log("Music started", lead.toFixed(2), "s into the recording");
+    const recordFor = (secondsLimit || RUDOLPH_SONG_DURATION + 20) * 1000;
+    const remain = Math.max(0, recordFor - (Date.now() - musicAt));
+    await sleep(remain);
+    capture.stop();
+    await capture.closed;
     console.log("Encoding", outPath);
     await runFfmpeg([
       "-y",
-      "-t", videoDur.toFixed(3),
-      "-f", "concat",
-      "-safe", "0",
-      "-i", listPath,
-      "-itsoffset", holdSeconds.toFixed(3),
+      "-i", captured,
+      "-itsoffset", lead.toFixed(3),
       "-i", audioPath,
-      "-filter_complex", "[0:v]" + picture + "[v];[1:a]apad=pad_dur=8[a]",
+      "-filter_complex", "[0:v]scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos,format=yuv420p,fps=60[v];[1:a]apad=pad_dur=8[a]",
       "-map", "[v]",
       "-map", "[a]",
       "-c:v", "libx264",
@@ -444,8 +521,8 @@ async function main() {
       "-crf", "16",
       "-pix_fmt", "yuv420p",
       "-profile:v", "high",
-      "-level:v", "5.1",
-      "-r", "30",
+      "-level:v", "5.2",
+      "-r", "60",
       "-fps_mode", "cfr",
       "-colorspace", "bt709",
       "-color_primaries", "bt709",
@@ -460,10 +537,10 @@ async function main() {
     ]);
     console.log("Wrote", outPath);
   } finally {
+    try { if (capture) capture.stop(); } catch { /* already stopped */ }
     try { if (session) session.close(); } catch { /* already closed */ }
     try { launched.chrome.kill("SIGTERM"); } catch { /* already gone */ }
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    server.close();
+    await sleep(400);
     fs.rmSync(launched.userDir, { recursive: true, force: true, maxRetries: 5 });
     fs.rmSync(work, { recursive: true, force: true, maxRetries: 5 });
   }
