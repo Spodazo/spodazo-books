@@ -73,6 +73,71 @@
     if (soundBtn) soundBtn.hidden = true;
   }
 
+  function startRudolphSnow() {
+    if (!SING || !stage) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var canvas = document.createElement("canvas");
+    canvas.id = "rudolph-snow";
+    canvas.setAttribute("aria-hidden", "true");
+    stage.insertBefore(canvas, book);
+    var ctx = canvas.getContext("2d");
+    var flakes = [];
+    var width = 0;
+    var height = 0;
+    function resize() {
+      var rect = stage.getBoundingClientRect();
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = rect.width;
+      height = rect.height;
+      canvas.width = Math.max(1, Math.round(width * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    var count = Math.max(24, Math.min(56, Math.round(width * height / 22000)));
+    var i;
+    for (i = 0; i < count; i++) {
+      flakes.push({
+        x: Math.random(),
+        y: Math.random(),
+        radius: 0.7 + Math.random() * 1.5,
+        speed: 0.035 + Math.random() * 0.055,
+        sway: 0.004 + Math.random() * 0.01,
+        phase: Math.random() * Math.PI * 2,
+        alpha: 0.22 + Math.random() * 0.38,
+      });
+    }
+    var last = performance.now();
+    function fall(now) {
+      var dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#fff";
+      for (i = 0; i < flakes.length; i++) {
+        var flake = flakes[i];
+        flake.y += flake.speed * dt;
+        flake.x += Math.sin(now / 1400 + flake.phase) * flake.sway * dt;
+        if (flake.y > 1.04) {
+          flake.y = -0.04;
+          flake.x = Math.random();
+        }
+        if (flake.x < -0.04) flake.x = 1.04;
+        if (flake.x > 1.04) flake.x = -0.04;
+        ctx.globalAlpha = flake.alpha;
+        ctx.beginPath();
+        ctx.arc(flake.x * width, flake.y * height, flake.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(fall);
+    }
+    requestAnimationFrame(fall);
+  }
+  startRudolphSnow();
+
   function songTimingSeconds(audio) {
     if (VIDEO) return videoClockMs / 1000;
     if (!audio) return 0;

@@ -45,6 +45,8 @@ test("uploaded PDF flipbook engine has the Be Thou My Vision controls", async ()
   assert.match(engine, /spreadIndexForTargetPage/);
   assert.match(engine, /armSongFollowPoll/);
   assert.match(engine, /__rudolphVideoStart/);
+  assert.match(engine, /rudolph-snow/);
+  assert.match(css, /#rudolph-snow/);
   assert.match(css, /html\.rudolph-video \.rudolph-sound/);
   assert.match(mount, /singAlong/);
 });
