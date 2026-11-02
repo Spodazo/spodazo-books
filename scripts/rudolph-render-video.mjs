@@ -432,6 +432,21 @@ async function main() {
     }
     if (!spot) throw new Error("The Rudolph book did not open");
     await evaluate(session, `(() => {
+      // A deploy reloads this tab back to the cover. Freeze the version check so the book stays put.
+      if (!window.__rudolphHoldPage) {
+        window.__rudolphHoldPage = true;
+        const stored = sessionStorage.getItem("spodazo-app-rev") || "recording|recording";
+        const origFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+          const url = typeof input === "string" ? input : (input && input.url) || "";
+          if (String(url).indexOf("/api/version") !== -1) {
+            const parts = stored.split("|");
+            const body = JSON.stringify({ build: parts[0] || "recording", libraryAt: parts[1] || "recording" });
+            return Promise.resolve(new Response(body, { status: 200, headers: { "content-type": "application/json" } }));
+          }
+          return origFetch(input, init);
+        };
+      }
       const css = ".flipbook-close,.arrow,.rudolph-sound,.rudolph-read-again,.fullscreen-toggle,.reader-close{display:none!important}.leaf .face{will-change:transform,opacity}";
       function add(doc) {
         if (!doc || doc.getElementById("rudolph-video-dress")) return;
@@ -445,6 +460,17 @@ async function main() {
       const doc = frame && frame.contentDocument;
       const win = frame && frame.contentWindow;
       add(doc);
+      if (win && !win.__rudolphQuietSong) {
+        win.__rudolphQuietSong = true;
+        const OrigAudio = win.Audio;
+        function QuietAudio(src) {
+          const audio = new OrigAudio(src);
+          audio.muted = true;
+          return audio;
+        }
+        QuietAudio.prototype = OrigAudio.prototype;
+        win.Audio = QuietAudio;
+      }
       if (win && !win.__rudolphSmoothTurn) {
         win.__rudolphSmoothTurn = true;
         const original = win.Element.prototype.animate;
