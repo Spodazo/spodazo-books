@@ -97,41 +97,44 @@
     }
     resize();
     window.addEventListener("resize", resize);
-    var count = Math.max(24, Math.min(56, Math.round(width * height / 22000)));
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+    var count = Math.max(36, Math.min(80, Math.round((width * height) / 14000) || 48));
     var i;
     for (i = 0; i < count; i++) {
       flakes.push({
         x: Math.random(),
         y: Math.random(),
-        radius: 0.7 + Math.random() * 1.5,
-        speed: 0.035 + Math.random() * 0.055,
-        sway: 0.004 + Math.random() * 0.01,
+        radius: 1.6 + Math.random() * 2.8,
+        speed: 0.03 + Math.random() * 0.05,
+        sway: 0.006 + Math.random() * 0.014,
         phase: Math.random() * Math.PI * 2,
-        alpha: 0.22 + Math.random() * 0.38,
+        alpha: 0.45 + Math.random() * 0.4,
       });
     }
     var last = performance.now();
     function fall(now) {
       var dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      if (!width || !height) resize();
       ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "#fff";
       for (i = 0; i < flakes.length; i++) {
         var flake = flakes[i];
         flake.y += flake.speed * dt;
-        flake.x += Math.sin(now / 1400 + flake.phase) * flake.sway * dt;
+        flake.x += Math.sin(now / 1600 + flake.phase) * flake.sway * dt;
         if (flake.y > 1.04) {
           flake.y = -0.04;
           flake.x = Math.random();
         }
         if (flake.x < -0.04) flake.x = 1.04;
         if (flake.x > 1.04) flake.x = -0.04;
-        ctx.globalAlpha = flake.alpha;
         ctx.beginPath();
+        ctx.fillStyle = "rgba(255,255,255," + flake.alpha + ")";
+        ctx.shadowColor = "rgba(255,255,255,0.85)";
+        ctx.shadowBlur = flake.radius * 2.2;
         ctx.arc(flake.x * width, flake.y * height, flake.radius, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
       requestAnimationFrame(fall);
     }
     requestAnimationFrame(fall);
