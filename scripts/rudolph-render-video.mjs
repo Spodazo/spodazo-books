@@ -375,14 +375,15 @@ function startWindowRecording(pid, seconds, file) {
   const child = spawn(bin, [String(pid), String(seconds), file], { stdio: ["ignore", "ignore", "pipe"] });
   let err = "";
   child.stderr.on("data", (chunk) => {
+    process.stderr.write(chunk);
     err += chunk.toString();
     if (err.length > 8000) err = err.slice(-8000);
   });
   const closed = new Promise((resolve, reject) => {
     child.on("error", reject);
     child.on("exit", (code) => {
-      if (code === 0 || code === 255 || code === null) resolve();
-      else reject(new Error("screen capture failed\n" + err));
+      if (code === 0) resolve();
+      else reject(new Error("screen capture failed (" + (code ?? "signal") + ")\n" + err));
     });
   });
   return {
@@ -431,7 +432,7 @@ async function main() {
     }
     if (!spot) throw new Error("The Rudolph book did not open");
     await evaluate(session, `(() => {
-      const css = ".flipbook-close,.arrow,.rudolph-sound,.rudolph-read-again,.fullscreen-toggle,.reader-close{display:none!important}";
+      const css = ".flipbook-close,.arrow,.rudolph-sound,.rudolph-read-again,.fullscreen-toggle,.reader-close{display:none!important}.leaf .face{will-change:transform,opacity}";
       function add(doc) {
         if (!doc || doc.getElementById("rudolph-video-dress")) return;
         const style = doc.createElement("style");
@@ -447,11 +448,14 @@ async function main() {
       if (win && !win.__rudolphSmoothTurn) {
         win.__rudolphSmoothTurn = true;
         const original = win.Element.prototype.animate;
+        const smooth = "cubic-bezier(0.05, 0.42, 0.95, 0.58)";
         win.Element.prototype.animate = function (frames, options) {
           const next = options && typeof options === "object" ? Object.assign({}, options) : options;
-          if (next && next.duration === 1000) {
-            next.duration = 1200;
-            next.easing = "linear";
+          if (next && typeof next.duration === "number" && next.duration >= 600 && next.duration <= 1600) {
+            // rotateY looks fastest when the page is edge-on. This curve
+            // lingers through that middle so the curl does not jump.
+            next.duration = 1300;
+            next.easing = smooth;
           }
           return original.call(this, frames, next);
         };
@@ -563,7 +567,7 @@ async function main() {
       "-i", captured,
       "-itsoffset", lead.toFixed(3),
       "-i", audioPath,
-      "-filter_complex", "[0:v]scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos,crop=" + WIDTH + ":" + (HEIGHT - 74) + ":0:74,format=yuv420p,fps=30[v];[1:a]apad=pad_dur=8[a]",
+      "-filter_complex", "[0:v]scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos,crop=" + WIDTH + ":" + (HEIGHT - 74) + ":0:74,format=yuv420p,fps=60[v];[1:a]apad=pad_dur=8[a]",
       "-map", "[v]",
       "-map", "[a]",
       "-c:v", "libx264",
@@ -572,7 +576,7 @@ async function main() {
       "-pix_fmt", "yuv420p",
       "-profile:v", "high",
       "-level:v", "5.2",
-      "-r", "30",
+      "-r", "60",
       "-fps_mode", "cfr",
       "-colorspace", "bt709",
       "-color_primaries", "bt709",
