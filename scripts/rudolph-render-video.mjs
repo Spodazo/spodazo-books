@@ -449,6 +449,36 @@ async function main() {
         win.__rudolphSmoothTurn = true;
         const original = win.Element.prototype.animate;
         const smooth = "cubic-bezier(0.05, 0.42, 0.95, 0.58)";
+        let turns = 0;
+        let lastTurnAt = 0;
+        const fadeSnow = () => {
+          const snow = doc.getElementById("rudolph-snow");
+          if (!snow || snow.dataset.fading === "1") return;
+          snow.dataset.fading = "1";
+          snow.style.transition = "opacity 1.6s ease";
+          snow.style.opacity = "0";
+          win.setTimeout(() => {
+            const ctx = snow.getContext("2d");
+            if (ctx) {
+              ctx.clearRect(0, 0, snow.width, snow.height);
+              const stop = () => {};
+              ctx.clearRect = stop;
+              ctx.beginPath = stop;
+              ctx.arc = stop;
+              ctx.fill = stop;
+              ctx.setTransform = stop;
+            }
+            snow.style.display = "none";
+          }, 1700);
+        };
+        const noteTurn = (next) => {
+          if (!next || typeof next.duration !== "number" || next.duration < 600) return;
+          const now = Date.now();
+          if (now - lastTurnAt < 500) return;
+          lastTurnAt = now;
+          turns += 1;
+          if (turns === 2) win.setTimeout(fadeSnow, next.duration + 80);
+        };
         win.Element.prototype.animate = function (frames, options) {
           const next = options && typeof options === "object" ? Object.assign({}, options) : options;
           if (next && typeof next.duration === "number" && next.duration >= 600 && next.duration <= 1600) {
@@ -457,6 +487,7 @@ async function main() {
             next.duration = 1300;
             next.easing = smooth;
           }
+          noteTurn(next);
           return original.call(this, frames, next);
         };
       }
