@@ -74,12 +74,13 @@
   }
 
   function startRudolphSnow() {
-    if (!SING || !stage) return;
-    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!SING || !stage || !book) return;
     var canvas = document.createElement("canvas");
     canvas.id = "rudolph-snow";
     canvas.setAttribute("aria-hidden", "true");
+    canvas.style.zIndex = "1";
     stage.insertBefore(canvas, book);
+    book.style.zIndex = "2";
     var ctx = canvas.getContext("2d");
     var flakes = [];
     var width = 0;
