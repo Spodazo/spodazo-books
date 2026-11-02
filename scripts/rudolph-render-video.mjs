@@ -430,7 +430,51 @@ async function main() {
       await sleep(300);
     }
     if (!spot) throw new Error("The Rudolph book did not open");
-    await sleep(700);
+    await evaluate(session, `(() => {
+      const css = ".flipbook-close,.arrow,.rudolph-sound,.rudolph-read-again,.fullscreen-toggle,.reader-close{display:none!important}";
+      function add(doc) {
+        if (!doc || doc.getElementById("rudolph-video-dress")) return;
+        const style = doc.createElement("style");
+        style.id = "rudolph-video-dress";
+        style.textContent = css;
+        (doc.head || doc.documentElement).appendChild(style);
+      }
+      add(document);
+      const frame = document.querySelector("iframe");
+      const doc = frame && frame.contentDocument;
+      const win = frame && frame.contentWindow;
+      add(doc);
+      if (!doc || !win || win.__rudolphInset) return true;
+      win.__rudolphInset = function () {
+        const book = doc.getElementById("book");
+        const stage = doc.getElementById("stage");
+        if (!book || !stage) return;
+        const margin = 20;
+        const bw = book.offsetWidth;
+        const bh = book.offsetHeight;
+        const sw = stage.clientWidth;
+        const sh = stage.clientHeight;
+        if (!bw || !bh || !sw || !sh) return;
+        const scale = Math.min((sw - margin * 2) / bw, (sh - margin * 2) / bh);
+        book.style.transformOrigin = "center center";
+        book.style.transform = "scale(" + scale + ")";
+      };
+      win.__rudolphInset();
+      win.setInterval(win.__rudolphInset, 250);
+      return true;
+    })()`);
+    await sleep(500);
+    spot = await evaluate(session, `(() => {
+      const frame = document.querySelector("iframe");
+      const doc = frame && frame.contentDocument;
+      const book = doc && doc.getElementById("book");
+      if (!book) return null;
+      const fr = frame.getBoundingClientRect();
+      const br = book.getBoundingClientRect();
+      return { x: fr.left + br.left + br.width * 0.75, y: fr.top + br.top + br.height / 2 };
+    })()`);
+    if (!spot) throw new Error("The Rudolph book disappeared");
+    await sleep(400);
     const recordSeconds = holdSeconds + (secondsLimit || RUDOLPH_SONG_DURATION + 20) + 12;
     console.log("Recording only the Rudolph window for", Math.round(recordSeconds) + "s");
     capture = startWindowRecording(launched.chrome.pid, recordSeconds, captured);
@@ -503,7 +547,7 @@ async function main() {
       "-i", captured,
       "-itsoffset", lead.toFixed(3),
       "-i", audioPath,
-      "-filter_complex", "[0:v]scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos,format=yuv420p,fps=60[v];[1:a]apad=pad_dur=8[a]",
+      "-filter_complex", "[0:v]scale=" + WIDTH + ":" + HEIGHT + ":flags=lanczos,crop=" + WIDTH + ":" + (HEIGHT - 74) + ":0:74,format=yuv420p,fps=60[v];[1:a]apad=pad_dur=8[a]",
       "-map", "[v]",
       "-map", "[a]",
       "-c:v", "libx264",
