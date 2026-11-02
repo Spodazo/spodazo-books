@@ -369,19 +369,10 @@ async function chromeWindowBox(session) {
   };
 }
 
-function startScreenCapture(box, file) {
-  const child = spawn("ffmpeg", [
-    "-y",
-    "-f", "avfoundation",
-    "-framerate", "60",
-    "-capture_cursor", "0",
-    "-i", "3:none",
-    "-vf", "crop=" + box.w + ":" + box.h + ":" + box.x + ":" + box.y + ",format=yuv420p",
-    "-c:v", "h264_videotoolbox",
-    "-b:v", "45M",
-    "-pix_fmt", "yuv420p",
-    file,
-  ], { stdio: ["pipe", "ignore", "pipe"] });
+function startWindowRecording(pid, seconds, file) {
+  const bin = path.join(os.tmpdir(), "record-one-window");
+  execFileSync("swiftc", ["-o", bin, path.join(root, "scripts/record-one-window.swift")], { stdio: "inherit" });
+  const child = spawn(bin, [String(pid), String(seconds), file], { stdio: ["ignore", "ignore", "pipe"] });
   let err = "";
   child.stderr.on("data", (chunk) => {
     err += chunk.toString();
@@ -440,9 +431,9 @@ async function main() {
     }
     if (!spot) throw new Error("The Rudolph book did not open");
     await sleep(700);
-    const box = await chromeWindowBox(session);
-    console.log("Recording the Chrome window", box.w + "×" + box.h);
-    capture = startScreenCapture(box, captured);
+    const recordSeconds = holdSeconds + (secondsLimit || RUDOLPH_SONG_DURATION + 20) + 12;
+    console.log("Recording only the Rudolph window for", Math.round(recordSeconds) + "s");
+    capture = startWindowRecording(launched.chrome.pid, recordSeconds, captured);
     const captureStart = Date.now();
     await sleep(holdSeconds * 1000);
     await session.send("Input.dispatchMouseEvent", { type: "mousePressed", x: spot.x, y: spot.y, button: "left", clickCount: 1 });
@@ -505,7 +496,6 @@ async function main() {
     const recordFor = (secondsLimit || RUDOLPH_SONG_DURATION + 20) * 1000;
     const remain = Math.max(0, recordFor - (Date.now() - musicAt));
     await sleep(remain);
-    capture.stop();
     await capture.closed;
     console.log("Encoding", outPath);
     await runFfmpeg([
@@ -537,7 +527,7 @@ async function main() {
     ]);
     console.log("Wrote", outPath);
   } finally {
-    try { if (capture) capture.stop(); } catch { /* already stopped */ }
+    try { if (capture) capture.child.kill("SIGTERM"); } catch { /* already stopped */ }
     try { if (session) session.close(); } catch { /* already closed */ }
     try { launched.chrome.kill("SIGTERM"); } catch { /* already gone */ }
     await sleep(400);
