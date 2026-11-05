@@ -6,6 +6,7 @@
  * - While zoomed: one-finger drag pans (all directions); double-tap or pinch to 1× resets
  * - Page turns via swipe only at 1× zoom
  * - Pan is clamped to the scaled page bounds
+ * - Double-click/tap the left or right page of an open book jumps to the start or end
  * - Double-tap a left/right edge (one-page mode, not zoomed) jumps to start/end
  */
 (function (global) {
@@ -81,6 +82,9 @@
     var lastEdgeTap = 0;
     var lastEdgeSide = 0;
     var edgeTimer = 0;
+    var lastPageTap = 0;
+    var lastPageSide = 0;
+    var pageTimer = 0;
     var sx = 0;
     var sy = 0;
     var sp = null;
@@ -272,7 +276,29 @@
       }
       if (ax < 10 && ay < 10) {
         var stageBox = stage.getBoundingClientRect();
-        var side = edgeJumpSide(e.clientX - stageBox.left, stageBox.width);
+        var localX = e.clientX - stageBox.left;
+        if (!isSingle() && viewScale <= 1 && opts.onJump) {
+          var half = localX < stageBox.width / 2 ? -1 : 1;
+          var nowSpread = Date.now();
+          if (half === lastPageSide && nowSpread - lastPageTap > 0 && nowSpread - lastPageTap <= ARROW_MS) {
+            clearTimeout(pageTimer);
+            pageTimer = 0;
+            lastPageTap = 0;
+            lastPageSide = 0;
+            opts.onJump(half);
+            return;
+          }
+          lastPageTap = nowSpread;
+          lastPageSide = half;
+          clearTimeout(pageTimer);
+          var spreadTap = { clientX: e.clientX, clientY: e.clientY, pointerType: type };
+          pageTimer = setTimeout(function () {
+            pageTimer = 0;
+            if (opts.onTap) opts.onTap(spreadTap, type);
+          }, ARROW_MS);
+          return;
+        }
+        var side = edgeJumpSide(localX, stageBox.width);
         var now = Date.now();
         if (isSingle() && viewScale <= 1 && side && opts.onJump) {
           if (side === lastEdgeSide && now - lastEdgeTap > 0 && now - lastEdgeTap <= DOUBLE_MS) {
